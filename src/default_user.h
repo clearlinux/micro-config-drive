@@ -42,6 +42,10 @@
 	#define DEFAULT_USER_HOME_DIR "/home/clear"
 #endif /* DEFAULT_USER_HOME_DIR */
 
+#ifndef DEFAULT_USER_GROUPS
+	#define DEFAULT_USER_GROUPS "wheel"
+#endif /* DEFAULT_USER_GROUPS */
+
 #ifndef DEFAULT_USER_INACTIVE
 	#define DEFAULT_USER_INACTIVE "-1"
 #endif /* DEFAULT_USER_INACTIVE */
@@ -67,5 +71,5 @@
 #endif /* DEFAULT_USER_PASSWORD */
 
 #ifndef DEFAULT_USER_SUDO
-	#define DEFAULT_USER_SUDO "[\"ALL=(ALL) NOPASSWD:ALL\"]"
+	#define DEFAULT_USER_SUDO "clear ALL=(ALL) NOPASSWD:ALL"
 #endif /* DEFAULT_USER_SUDO */

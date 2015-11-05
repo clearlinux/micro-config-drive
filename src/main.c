@@ -112,8 +112,9 @@ int main(int argc, char *argv[]) {
 		/* default user will be used by ccmodules and datasources */
 		char useradd_command[LINE_MAX] = { 0 };
 		snprintf(useradd_command, LINE_MAX, "useradd"
-				" -U -d '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
+				" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
 				, DEFAULT_USER_HOME_DIR
+				, DEFAULT_USER_GROUPS
 				, DEFAULT_USER_INACTIVE
 				, DEFAULT_USER_EXPIREDATE
 				, DEFAULT_USER_SHELL
@@ -123,7 +124,7 @@ int main(int argc, char *argv[]) {
 
 		exec_task(useradd_command);
 
-		//FIXME: implement sudo (DEFAULT_USER_SUDO)
+		write_sudo_string(DEFAULT_USER_USERNAME"-cloud-init", DEFAULT_USER_SUDO);
 	}
 
 	if (!userdata_filename) {
