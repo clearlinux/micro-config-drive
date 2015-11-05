@@ -1,4 +1,8 @@
 
+A cloud-init for Clear Linux* Project for Intel Architecture
+
+====
+
 Contents:
 
 1) Description of this project
@@ -6,8 +10,6 @@ Contents:
 3) Bugs and feedback?
 
 ====
-
-1. Cloud-init for Clearlinux Project for Intel Architecture
 
 cloud-init is the standard way for cloud customers to initialize
 containers and virtual hosts. These virtual machines are usually
