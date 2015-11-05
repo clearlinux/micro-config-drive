@@ -44,6 +44,8 @@
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
 
 #include <glib.h>
 
@@ -95,4 +97,68 @@ int chown_path(const char* pathname, const char* ownername, const char* groupnam
 	group_id = grp ? grp->gr_gid : (gid_t) - 1;
 
 	return chown(pathname, owner_id, group_id);
+}
+
+int write_sudo_string(const gchar* filename, const gchar* data) {
+	int fd;
+	gchar sudoers_file[PATH_MAX];
+	g_snprintf(sudoers_file, PATH_MAX, "/etc/sudoers.d/");
+	if (make_dir(sudoers_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
+		return 1;
+	}
+
+	g_strlcat(sudoers_file, filename, PATH_MAX);
+	fd = open(sudoers_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IRGRP);
+	if (-1 == fd) {
+		LOG(MOD "Cannot open %s\n", sudoers_file);
+		return 1;
+	}
+
+	write(fd, data, strlen(data));
+	write(fd, "\n", 1);
+
+	close(fd);
+
+	return 0;
+}
+
+int write_ssh_key(const gchar* ssh_key, const gchar* username) {
+	int fd;
+	gchar auth_keys_path[PATH_MAX];
+	struct passwd *pw;
+
+	pw = getpwnam(username);
+
+	if (pw && pw->pw_dir) {
+		g_snprintf(auth_keys_path, PATH_MAX, "%s/.ssh", pw->pw_dir);
+
+		if (make_dir(auth_keys_path, S_IRWXU) != 0) {
+			LOG(MOD "Cannot create %s.\n", auth_keys_path);
+			return 1;
+		}
+
+		if (chown_path(auth_keys_path, username, username) != 0) {
+			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_path);
+			return 1;
+		}
+
+		g_strlcat(auth_keys_path, "/authorized_keys", PATH_MAX);
+		fd = open(auth_keys_path, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR);
+		if (-1 == fd) {
+			LOG(MOD "Cannot open %s.\n", auth_keys_path);
+			return 1;
+		}
+
+		LOG(MOD "Using %s\n", auth_keys_path);
+		LOG(MOD "Writing %s\n", ssh_key);
+		write(fd, ssh_key, strlen(ssh_key));
+		write(fd, "\n", 1);
+		close(fd);
+
+		if (chown_path(auth_keys_path, username, username) != 0) {
+			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_path);
+			return 1;
+		}
+	}
+	return 0;
 }
