@@ -1,0 +1,62 @@
+#cloud-config
+package_upgrade: true
+package_upgrade: false
+apt_upgrade: false
+write_files:
+  -
+    content: |
+        A test file
+    path: /tmp/cloud-init-test-1
+    owner: nobody.nogroup
+    permissions: 0644
+  -
+    content: |
+        Another test file
+    path: /tmp/cloud-init-test-2
+    owner: root.root
+    permissions: 0600
+packages:
+  - openstack-configure
+  - perl-basic
+  - os-core-dev
+  - [kernel-kvm, kvm-host]
+groups:
+  - cloud-init: [nobody, games]
+runcmd:
+  - [ ls, -l, / ]
+  - [ sh, -xc, "echo $(date) ': hello world!'" ]
+  - [ sh, -c, echo "=========hello world'=========" ]
+  - ls -l /root
+  - [ wget, "http://slashdot.org", -O, /tmp/index.html ]
+users:
+  - name: foobar
+    gecos: Foo B. Bar
+    homedir: /home/foobar
+    primary-group: foobar
+    groups: users
+    selinux-user: staff_u
+    lock-passwd: false
+    ssh-import-id: foobar
+    inactive: true
+    passwd: $6$j212wezy$7H/1LT4f9/N3wpgNunhsIqtMj62OKiS3nyNwuizouQc3u7MbYCarYeAHWYPYb2FT.lbioDm2RrkJPb9BZMN1O/
+    no-create-home: true
+    no-user-group: true
+    no-log-init: true
+    expiredate: 2015-12-31
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDmHRP+1o+vBSg+ej714Y3iO5Osbr29dHL/WZQlsj
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC9GNA2I6IU+II1qoKP1Ttn/eNv8zquEDNii+EA5m
+    sudo:
+      - [ "ALL=(ALL) NOPASSWD:ALL", "ALL=(ALL) NOPASSWD:/bin/mysql" ]
+      - ALL=(ALL) NOPASSWD:ALL
+    system: true
+ssh_authorized_keys:
+  - ssh-rsa BBBBB3NzaC1yc2EAAAADAQABAAABAQDmHRP+0000000000000000000000000000000000
+  - ssh-rsa BBBBB3NzaC1yc2EAAAADAQABAAABAQC9GNA21111111111111111111111111111111111
+service:
+  - start: dbus0
+  - start: [ foo1, bar2 ]
+  - stop:
+      - foo3
+      - bar4
+      - [ foo5, bar6 ]

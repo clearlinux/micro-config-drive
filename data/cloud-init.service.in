@@ -1,0 +1,19 @@
+[Unit]
+Description=Initial cloud-init job (metadata service crawler)
+After=local-fs.target network.target
+Before=sshd.service sshd-keygen.service
+Requires=network.target
+Wants=local-fs.target sshd.service sshd-keygen.service
+ConditionFirstBoot=yes
+
+[Service]
+Type=oneshot
+ExecStart=@prefix@/bin/cloud-init --first-boot
+RemainAfterExit=yes
+TimeoutSec=0
+
+# Output needs to appear in instance console output
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,96 @@
+'\" t
+.TH "CLOUDINIT" "1" "" "cloud-init 1" "cloud-init"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+cloud\-init \- Configures a cloud instance
+
+.SH "SYNOPSIS"
+.HP \w'\fBcloud-init\fR\ 'u
+\fBcloud-init\fR [OPTIONS...]
+
+.SH "DESCRIPTION"
+.PP
+\fBcloud-init\fR
+is run during first boot of a new cloud instance, with the purpose of
+configuring the cloud instance for use for the end user.
+.PP
+Various tasks can be performed, and all are optional. cloud-init parses
+the provided user-data and can create user accounds, user groups, register
+ssh keys, write content to files, perform software update or install new
+software, and more.
+.RE
+
+.SH "OPTIONS"
+.PP
+The following options are understood:
+.PP
+\fB\-h\fR, \fB\-\-help\fR
+.RS 4
+Prints a help message\&.
+.RE
+.PP
+\fB\-u\fR FILE, \fB\-\-user\-data\-file\fR FILE
+.RS 4
+Path to a cloud-config user data file\&. If omitted, \fBcloud-init\fR will
+attempt to fetch user-data from the openstack link-local connected data
+service URL.
+.RE
+.PP
+\fB\-b\fR, \fB\-\-first\-boot\fR
+.RS 4
+Performs various actions that are required to be performed during the
+first boot of the cloud instance, including (but not exclusively) the
+creation of a default user account ("clear").
+.RE
+.PP
+\fB\-v\fR, \fB\-\-version\fR
+.RS 4
+Prints version information\&.
+.RE
+
+.SH "EXIT STATUS"
+.PP
+On success, 0 is returned, a non\-zero failure code otherwise\&.
+
+.SH "COPYRIGHT"
+.PP
+Copyright 2015 Intel Corporation\&. License: Creative Commons
+Attribution\-ShareAlike 3.0 Unported\s-2\u[1]\d\s+2\&.
+
+.SH "SEE ALSO"
+.PP
+This project is a limited-functionality implementation of the cloud-init
+specification. The full documentation of the generic implementation is
+available online and can be referenced here:
+.RS 4
+\fBhttps://cloudinit.readthedocs.org/en/latest/\fR
+.RE
+.PP
+The cloud-config format that \fBcloud-init\fR(1) supports is documented
+in \fBcloud-config\fR(5). This lists the options that are supported,
+their structure and function.
+
+.SH "NOTES"
+.IP " 1." 4
+Creative Commons Attribution\-ShareAlike 3.0 Unported
+.RS 4
+\%http://creativecommons.org/licenses/by-sa/3.0/
+.RE
