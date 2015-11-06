@@ -45,6 +45,7 @@
 #define BUFFER_SIZE 1024
 
 static void users_add_username(GNode* node, char* command, gpointer data);
+static void users_add_groups(GNode* node, char* command, gpointer data);
 static void users_add_option_format(GNode* node, char* command, gpointer data);
 static void users_add_option(GNode* node, char* command, gpointer data);
 static gboolean users_sudo_item(GNode* node, gpointer data);
@@ -63,7 +64,7 @@ static struct users_options_data users_options[] = {
 	{"gecos",		users_add_option_format,	" -c '%s' "	},
 	{"homedir",		users_add_option_format,	" -d %s "	},
 	{"primary-group",	users_add_option_format,	" -g %s "	},
-	{"groups",		users_add_option_format,	" -G %s "	},
+	{"groups",		users_add_groups,	        NULL    	},
 	{"lock-passwd",		NULL,				NULL		},
 	{"inactive",		NULL,				NULL		},
 	{"passwd",		users_add_option_format,	" -p %s "	},
@@ -86,6 +87,22 @@ static void users_add_username(GNode* node, char* command, gpointer data) {
 
 	if (!cloud_config_get_global("first_user")) {
 		cloud_config_set_global("first_user", g_strdup(users_current_username));
+	}
+}
+
+static void users_add_groups(GNode* node, char* command, gpointer data) {
+	GNode* group;
+	if (node->data) {
+		users_add_option_format(node, command, " -G %s ");
+	} else if (node->children) {
+		g_strlcat(command, " -G '", COMMAND_SIZE);
+		for(group=node->children; group; group=group->next) {
+			g_strlcat(command, group->data, COMMAND_SIZE);
+			g_strlcat(command, ",", COMMAND_SIZE);
+		}
+		/* remove last , and add '*/
+		command[strlen(command)-1] = 0;
+		g_strlcat(command, "' ", COMMAND_SIZE);
 	}
 }
 
@@ -154,7 +171,6 @@ static void users_item(GNode* node, gpointer data) {
 		}
 
 		LOG(MOD "Adding %s user...\n", users_current_username);
-		LOGD("Command: %s", command);
 		exec_task(command);
 
 		CLOUD_CONFIG_KEY(LOCK_PASSWD, "lock-passwd");
@@ -169,7 +185,6 @@ static void users_item(GNode* node, gpointer data) {
 				LOG(MOD "Locking %s user.\n", users_current_username);
 				g_snprintf(command, COMMAND_SIZE, "passwd -l %s",
 					users_current_username);
-				LOGD("Command: %s\n", command);
 				exec_task(command);
 			}
 		}
@@ -181,7 +196,6 @@ static void users_item(GNode* node, gpointer data) {
 				LOG(MOD "Deactivating %s user...\n", users_current_username);
 				g_snprintf(command, COMMAND_SIZE, "usermod --expiredate 1 %s",
 					users_current_username);
-				LOGD("Command: %s\n", command);
 				exec_task(command);
 			}
 		}

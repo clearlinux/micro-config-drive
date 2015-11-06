@@ -44,21 +44,21 @@
 #define MOD "groups: "
 #define COMMAND_SIZE 256
 
-static gboolean groups_item(GNode* node, gpointer data) {
+static void groups_item(GNode* node, gpointer data) {
 	gchar command_groupadd[COMMAND_SIZE];
 	gchar command_usermod[COMMAND_SIZE];
 
 	if (!node->data) {
 		/* null placeholder */
 		g_node_children_foreach(node, G_TRAVERSE_ALL,
-			(GNodeForeachFunc)groups_item, NULL);
+			groups_item, data);
 	} else if (!data) {
 		/* add new group */
 		LOG(MOD "Adding %s group...\n", (char*)node->data);
 		g_snprintf(command_groupadd, COMMAND_SIZE, "groupadd -f %s",
 			(char*)node->data);
 		exec_task(command_groupadd);
-		g_node_traverse(node, G_IN_ORDER, G_TRAVERSE_LEAVES, -1,
+		g_node_children_foreach(node, G_TRAVERSE_ALL,
 			groups_item, node->data);
 	} else {
 		/* add user to new group */
@@ -67,13 +67,12 @@ static gboolean groups_item(GNode* node, gpointer data) {
 			(char*)data, (char*)node->data);
 		exec_task(command_usermod);
 	}
-	return false;
 }
 
 void groups_handler(GNode *node) {
 	LOG(MOD "Groups Handler running...\n");
 	g_node_children_foreach(node, G_TRAVERSE_ALL,
-		(GNodeForeachFunc)groups_item, NULL);
+		groups_item, NULL);
 }
 
 struct cc_module_handler_struct groups_cc_module = {
