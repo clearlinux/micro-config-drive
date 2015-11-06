@@ -33,9 +33,6 @@
 ***/
 
 #include <stdbool.h>
-#include <pwd.h>
-#include <fcntl.h>
-#include <unistd.h>
 
 #include <glib.h>
 
@@ -50,8 +47,8 @@
 static void users_add_username(GNode* node, char* command, gpointer data);
 static void users_add_option_format(GNode* node, char* command, gpointer data);
 static void users_add_option(GNode* node, char* command, gpointer data);
-static gboolean users_write_sudo(GNode* node, gpointer data);
-extern gboolean ssh_authorized_keys_item(GNode* node, gpointer username);
+static gboolean users_sudo_item(GNode* node, gpointer data);
+static gboolean users_ssh_key_item(GNode* node, gpointer data);
 
 struct users_options_data {
 	const gchar* key;
@@ -115,26 +112,17 @@ static void users_add_option(GNode* node, char* command, gpointer data) {
 	g_strfreev(tokens);
 }
 
-static gboolean users_write_sudo(GNode* node, gpointer data) {
-	int fd;
-	gchar sudoers_file[PATH_MAX];
-	g_snprintf(sudoers_file, PATH_MAX, "/etc/sudoers.d");
-	if (make_dir(sudoers_file, S_IRUSR|S_IWUSR) != 0) {
-		return false;
+static gboolean users_sudo_item(GNode* node, gpointer data) {
+	if (write_sudo_string("users-cloud-init", node->data) != 0) {
+		return true; /* stop g_node_traverse */
 	}
+	return false;
+}
 
-	g_strlcat(sudoers_file, "/cloud-init", PATH_MAX);
-	fd = open(sudoers_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR);
-	if (-1 == fd) {
-		LOG(MOD "Cannot open %s\n", sudoers_file);
-		return false;
+static gboolean users_ssh_key_item(GNode* node, gpointer username) {
+	if (write_ssh_key(node->data, username) != 0) {
+		return true; /* stop g_node_traverse */
 	}
-
-	write(fd, node->data, strlen(node->data));
-	write(fd, "\n", 1);
-
-	close(fd);
-
 	return false;
 }
 
@@ -201,13 +189,13 @@ static void users_item(GNode* node, gpointer data) {
 		item = cloud_config_find(node, SSH_AUTH_KEYS);
 		if (item) {
 			g_node_traverse(item->parent, G_IN_ORDER, G_TRAVERSE_LEAVES,
-				-1, ssh_authorized_keys_item, users_current_username);
+				-1, users_ssh_key_item, users_current_username);
 		}
 
 		item = cloud_config_find(node, SUDO);
 		if (item) {
 			g_node_traverse(item->parent, G_IN_ORDER, G_TRAVERSE_LEAVES,
-				-1, users_write_sudo, NULL);
+				-1, users_sudo_item, NULL);
 		}
 	}
 }

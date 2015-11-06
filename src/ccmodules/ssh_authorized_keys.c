@@ -49,53 +49,12 @@
 #define MOD "SSH authorized keys: "
 
 
-gboolean ssh_authorized_keys_write_ssh_key(const gchar* ssh_key, const gchar* username) {
-	int fd;
-	gchar auth_keys_path[PATH_MAX];
-	struct passwd *pw;
-
-	pw = getpwnam(username);
-
-	if (pw && pw->pw_dir) {
-		g_snprintf(auth_keys_path, PATH_MAX, "%s/.ssh", pw->pw_dir);
-
-		if (make_dir(auth_keys_path, S_IRWXU) != 0) {
-			LOG(MOD "Cannot create %s.\n", auth_keys_path);
-			return false;
-		}
-
-		if (chown_path(auth_keys_path, username, username) != 0) {
-			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_path);
-			return false;
-		}
-
-		g_strlcat(auth_keys_path, "/authorized_keys", PATH_MAX);
-		fd = open(auth_keys_path, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR);
-		if (-1 == fd) {
-			LOG(MOD "Cannot open %s.\n", auth_keys_path);
-			return false;
-		}
-
-		LOG(MOD "Using %s\n", auth_keys_path);
-		LOG(MOD "Writing %s\n", ssh_key);
-		write(fd, ssh_key, strlen(ssh_key));
-		write(fd, "\n", 1);
-		close(fd);
-
-		if (chown_path(auth_keys_path, username, username) != 0) {
-			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_path);
-			return false;
-		}
-	}
-	return true;
-}
-
 gboolean ssh_authorized_keys_item(GNode* node, gpointer username) {
-	if (ssh_authorized_keys_write_ssh_key(node->data, username)) {
-		return false;
+	if (write_ssh_key(node->data, username) != 0) {
+		return true; /* stop g_node_traverse */
 	}
 
-	return true;
+	return false;
 }
 
 void ssh_authorized_keys_handler(GNode *node) {
