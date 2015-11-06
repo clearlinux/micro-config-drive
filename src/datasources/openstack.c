@@ -193,7 +193,7 @@ static void openstack_metadata_keys(GNode* node) {
 	while (node) {
 		if (g_strcmp0("data", node->data) == 0) {
 			LOG(MOD "keys processing %s\n", (char*)node->data);
-			ssh_authorized_keys_write_ssh_key(node->children->data, DEFAULT_USER_USERNAME);
+			write_ssh_key(node->children->data, DEFAULT_USER_USERNAME);
 		} else {
 			LOG(MOD "keys nothing to do with %s\n", (char*)node->data);
 		}

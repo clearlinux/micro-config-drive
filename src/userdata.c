@@ -62,6 +62,5 @@ int userdata_process_file(const gchar* filename) {
 	}
 
 	LOG(MOD "No interpreter found for %s\n", shebang);
-	//FIXME define return codes, not use magic numbers
-	return 1;
+	return EXIT_FAILURE;
 }

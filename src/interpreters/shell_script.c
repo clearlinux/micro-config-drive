@@ -57,7 +57,7 @@ int shell_script_main(const gchar* filename) {
 	}
 
 	exec_task(full_path);
-	return 0; //FIXME replace with defined constants
+	return EXIT_SUCCESS;
 }
 
 struct interpreter_handler_struct shell_script_interpreter = {
