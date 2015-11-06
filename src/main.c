@@ -110,8 +110,8 @@ int main(int argc, char *argv[]) {
 
 	if (first_boot) {
 		/* default user will be used by ccmodules and datasources */
-		char useradd_command[LINE_MAX] = { 0 };
-		snprintf(useradd_command, LINE_MAX, "useradd"
+		char command[LINE_MAX] = { 0 };
+		snprintf(command, LINE_MAX, "useradd"
 				" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
 				, DEFAULT_USER_HOME_DIR
 				, DEFAULT_USER_GROUPS
@@ -121,14 +121,14 @@ int main(int argc, char *argv[]) {
 				, DEFAULT_USER_GECOS
 				, DEFAULT_USER_PASSWORD
 				, DEFAULT_USER_USERNAME);
-		exec_task(useradd_command);
+		exec_task(command);
 
-		/* DEFAULT_USER_USERNAME will be able to use sudo */
+		/* default user will be able to use sudo */
 		write_sudo_string(DEFAULT_USER_USERNAME"-cloud-init", DEFAULT_USER_SUDO);
 
 		/* lock root account for security */
-		snprintf(useradd_command, LINE_MAX, "passwd -l root");
-		exec_task(useradd_command);
+		snprintf(command, LINE_MAX, "usermod -p '!' root");
+		exec_task(command);
 	}
 
 	if (!userdata_filename) {
