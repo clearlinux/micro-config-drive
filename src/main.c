@@ -121,10 +121,14 @@ int main(int argc, char *argv[]) {
 				, DEFAULT_USER_GECOS
 				, DEFAULT_USER_PASSWORD
 				, DEFAULT_USER_USERNAME);
-
 		exec_task(useradd_command);
 
+		/* DEFAULT_USER_USERNAME will be able to use sudo */
 		write_sudo_string(DEFAULT_USER_USERNAME"-cloud-init", DEFAULT_USER_SUDO);
+
+		/* lock root account for security */
+		snprintf(useradd_command, LINE_MAX, "passwd -l root");
+		exec_task(useradd_command);
 	}
 
 	if (!userdata_filename) {
