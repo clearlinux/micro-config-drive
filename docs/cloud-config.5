@@ -30,6 +30,15 @@ the cloud instance based on the information in the cloud-config.
 
 .SH "DESCRIPTION"
 .PP
+The user\-data as provided can be of several formats. \fBcloud\-init\fR(1)
+supports the \fBcloud\-config\fR format, but also supports generic shell
+scripts. If the user\-data starts with \fB#!\fR, it is assumed that the
+user\-data is a generic shell script, and \fBcloud\-init\fR will attempt
+to execute the data as a script. If the user\-data starts with the
+\fB#cloud-config\fR stanza, it is assumed the user\-data is in the
+\fBcloud\-config\fR format, described below.
+
+.PP
 The \fBcloud\-config\fR format is used to structure configuration data
 provided to the cloud instance. This data is structured in the YAML
 format (\fBhttp://yaml.org\fR). Note that \fBcloud\-init\fR(1) uses the
