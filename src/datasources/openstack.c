@@ -34,6 +34,8 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <string.h>
 
 #include <glib.h>
 #include <json-glib/json-glib.h>
@@ -61,9 +63,6 @@ static gboolean openstack_node_free(GNode* node, gpointer data);
 static void openstack_metadata_not_implemented(GNode* node);
 static void openstack_metadata_keys(GNode* node);
 static void openstack_metadata_hostname(GNode* node);
-static void openstack_metadata_public_keys(GNode* node);
-static void openstack_metadata_name(GNode* node);
-
 
 extern gboolean ssh_authorized_keys_write_ssh_key(const gchar* node, const gchar* username);
 
@@ -79,9 +78,9 @@ static struct openstack_metadata_data openstack_metadata_options[] = {
 	{"keys",	        openstack_metadata_keys                 },
 	{"hostname",		openstack_metadata_hostname             },
 	{"launch_index",	openstack_metadata_not_implemented      },
-	{"public_keys",	        openstack_metadata_public_keys          },
+	{"public_keys",	        openstack_metadata_not_implemented      },
 	{"project_id",	        openstack_metadata_not_implemented      },
-	{"name",	        openstack_metadata_name                 },
+	{"name",	        openstack_metadata_not_implemented      },
 	{"files",	        openstack_metadata_not_implemented      },
 	{"meta",	        openstack_metadata_not_implemented      },
 	{NULL}
@@ -219,14 +218,7 @@ static void openstack_metadata_keys(GNode* node) {
 }
 
 static void openstack_metadata_hostname(GNode* node) {
-	LOG(MOD "Metadata hostname not implemented yet\n");
+	gchar command[LINE_MAX];
+	g_snprintf(command, LINE_MAX, "hostnamectl set-hostname '%s'", (char*)node->data);
+	exec_task(command);
 }
-
-static void openstack_metadata_public_keys(GNode* node) {
-	LOG(MOD "Metadata public_keys not implemented yet\n");
-}
-
-static void openstack_metadata_name(GNode* node) {
-	LOG(MOD "Metadata name not implemented yet\n");
-}
-

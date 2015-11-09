@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 
 		case 'h':
 			LOG("Usage: %s [options]\n", argv[0]);
-			LOG("-u, --user-data-file [file]	        specify a custom user data file\n");
+			LOG("-u, --user-data-file [file]            specify a custom user data file\n");
 			LOG("-o, --openstack-metadata-file [file]   specify an Openstack metadata file\n");
 			LOG("-h, --help                             display this help message\n");
 			LOG("-v, --version                          display the version number of this program\n");
