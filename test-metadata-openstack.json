@@ -1,0 +1,38 @@
+{
+    "random_seed": "QUP/fxkRLAjZ2dUkMQ8qmvNDtGkh599dkfNOMuILX16zutFFgQVHpw/m1EXjmFgEooz0+6OLzz8v0qLPdND9EkzwezvNTDnvVlGhldvon6+BRSeC/4TSUCAJ54vAFs36vzkYOtFlVNbo9J1xwklKwmTPvXFq4O29Oi1HhDjXRLDLr7Iqtxk8r3liJHP3vxL0bXn+hPss7Yki0QS1sMqV3XCFWgd4JXmfvF/2W8CD9i7OFlrQEATQYCxq7Ep1Wy+G7BBsH5KlbWzxbsjZ0ugJm/NDojgJeS2y9+m0Bqdo2E957zMcqVg9b6SkPLucPDdqvL7e0EogMi0LDWp8aJcdpnzas04xdxHn69UVdvgfdsGgZJIdT3S2S+wHXL6Y5whWDpoPg98z0VF/0S6waLTsIyjidADyMlHsc69O1HnsQmUmEXYvuHGbm2gMjfSOmFs73F4CYuv+Ig12iX3RDnE7aBPXpmh9NAu16FmeiBVg7wKe30hYCUpXX2cV0VCUhj+5fE1kSURjtWVK/ywjR2oD/WKQ56/jKfjtXbXkZPZNaBGZaikff+SrzZpLVWh78W4kcMRGTOLwr3v5PWHQQtkRs0N2hC1TMqX+DX1gcFhFphm8N+h4UqZKPYKkfi/q1X2Zz0pLZ2J9TwZ38k+Nb+62ptsc+6YHlZYL708ZbCNuSGQ=",
+    "uuid": "d3de2c67-22e6-4f08-97c0-0e5370e6205b",
+    "availability_zone": "nova",
+    "files": [
+        {
+            "content_path": "/content/0000",
+            "path": "/etc/network/interfaces"
+        },
+        {
+            "content_path": "/content/0001",
+            "path": "known_hosts"
+        }
+    ],
+    "meta": {
+        "role": "webservers",
+        "essential": "false"
+    },
+    "keys": [
+        {
+            "data": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCzDSFIGUGWQwX0bthU+oK7F+jXyA0YzRPpUfQrMna4n+C6ozFmUYC7Z6ak4kFi90LylCGhMQb1IvxdnvV+Lk/wjRwWhLZh80TuVbrvYmbFRP+TjjNJ+jO5SMFGKy7l5MIF8iyF6RHJ6qiZMzQKEH8J1AVttsSxkeu/tRPhe88hBR8oQA+pl9CYbqpjtin4inMhRNus7CdLIC5gAjaGFYLtjPOEwFpCiOjgVnsTxjjAe7mf97dWAwP8/1Ea+gXMXLsnFdhF11bkQHbY6AYtYpFa2nM5woPBzfIIi5RKGmriA+3Tkkx2hWKp2J0yru8G4EBU7NKVrBICFtymbG8f2jIV root@clr\n",
+            "type": "ssh",
+            "name": "demo-key"
+        },
+		{
+            "data": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCzDSFIGUGWQwX0bthU+oK7F+jXyA0YzRPpUfQrMna4n+C6ozFmUYC7Z6ak4kFi90LylCGhMQb1IvxdnvV+Lk/wjRwWhLZh80TuVbrvYmbFRP+TjjNJ+jO5SMFGKy7l5MIF8iyF6RHJ6qiZMzQKEH8J1AVttsSxkeu/tRPhe88hBR8oQA+pl9CYbqpjtin4inMhRNus7CdLIC5gAjaGFYLtjPOEwFpCiOjgVnsTxjjAe7mf97dWAwP8/1Ea+gXMXLsnFdhF11bkQHbY6AYtYpFa2nM5woPBzfIIi5RKGmriA+3Tkkx2hWKp2J0yru8G4EBU7NKVrBICFtymbG8f2jIV root@clr\n",
+            "type": "ssh",
+            "name": "demo-key"
+        }
+    ],
+    "hostname": "clr-cloud-init-dev.novalocal",
+    "launch_index": 0,
+    "public_keys": {
+        "demo-key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCzDSFIGUGWQwX0bthU+oK7F+jXyA0YzRPpUfQrMna4n+C6ozFmUYC7Z6ak4kFi90LylCGhMQb1IvxdnvV+Lk/wjRwWhLZh80TuVbrvYmbFRP+TjjNJ+jO5SMFGKy7l5MIF8iyF6RHJ6qiZMzQKEH8J1AVttsSxkeu/tRPhe88hBR8oQA+pl9CYbqpjtin4inMhRNus7CdLIC5gAjaGFYLtjPOEwFpCiOjgVnsTxjjAe7mf97dWAwP8/1Ea+gXMXLsnFdhF11bkQHbY6AYtYpFa2nM5woPBzfIIi5RKGmriA+3Tkkx2hWKp2J0yru8G4EBU7NKVrBICFtymbG8f2jIV root@clr\n"
+    },
+    "project_id": "25ab73ec706c4cf8955574b135882afa",
+    "name": "clr-cloud-init-dev"
+}

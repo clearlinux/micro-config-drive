@@ -1,5 +1,5 @@
 
-AM_CPPFLAGS = -I $(top_srcdir)/src -I $(top_srcdir)/src/interpreters
+AM_CPPFLAGS = -I $(top_srcdir)/src -I $(top_srcdir)/src/interpreters -I $(top_srcdir)/src/datasources
 AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wstrict-prototypes -Wundef -fno-common \
 	-Werror-implicit-function-declaration \

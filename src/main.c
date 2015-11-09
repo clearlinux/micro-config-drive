@@ -50,24 +50,28 @@
 #include "userdata.h"
 #include "datasources.h"
 #include "default_user.h"
+#include "openstack.h"
 
 static struct option opts[] = {
-	{ "user-data-file", 1, NULL, 'u' },
-	{ "help",           0, NULL, 'h' },
-	{ "version",        0, NULL, 'v' },
-	{ "first-boot",     0, NULL, 'b' },
+	{ "user-data-file",             1, NULL, 'u' },
+	{ "openstack-metadata-file",    1, NULL, 'o' },
+	{ "help",                       0, NULL, 'h' },
+	{ "version",                    0, NULL, 'v' },
+	{ "first-boot",                 0, NULL, 'b' },
 	{ NULL, 0, NULL, 0 }
 };
 
 int main(int argc, char *argv[]) {
 	int result_code = EXIT_SUCCESS;
 	gchar *userdata_filename = NULL;
+	gchar *metadata_filename = NULL;
 	bool first_boot = false;
+	bool openstack_mf = false;
 	int c;
 	int i;
 
 	while (true) {
-		c = getopt_long(argc, argv, "u:hvb", opts, &i);
+		c = getopt_long(argc, argv, "u:o:hvb", opts, &i);
 
 		if (c == -1) {
 			break;
@@ -79,12 +83,18 @@ int main(int argc, char *argv[]) {
 			userdata_filename = g_strdup(optarg);
 			break;
 
+		case 'o':
+			metadata_filename = g_strdup(optarg);
+			openstack_mf = true;
+			break;
+
 		case 'h':
 			LOG("Usage: %s [options]\n", argv[0]);
-			LOG("-u, --user-data-file [file]        specify a custom user data file\n");
-			LOG("-h, --help                         display this help message\n");
-			LOG("-v, --version                      display the version number of this program\n");
-			LOG("-b, --first-boot                   set up the system in its first boot (create default user, etc)\n");
+			LOG("-u, --user-data-file [file]	        specify a custom user data file\n");
+			LOG("-o, --openstack-metadata-file [file]   specify an Openstack metadata file\n");
+			LOG("-h, --help                             display this help message\n");
+			LOG("-v, --version                          display the version number of this program\n");
+			LOG("-b, --first-boot                       set up the system in its first boot (create default user, etc)\n");
 			exit(EXIT_FAILURE);
 			break;
 
@@ -131,7 +141,17 @@ int main(int argc, char *argv[]) {
 		exec_task(command);
 	}
 
-	if (!userdata_filename) {
+	if (userdata_filename) {
+		result_code = userdata_process_file(userdata_filename);
+	}
+
+	if (metadata_filename) {
+		if (openstack_mf) {
+			result_code = openstack_process_metadata(metadata_filename);
+		}
+	}
+
+	if (!userdata_filename && !metadata_filename) {
 		/* get/process userdata and metadata from datasources */
 		for (i = 0; cloud_structs[i] != NULL; ++i) {
 			result_code = cloud_structs[i]->handler(first_boot);
@@ -139,8 +159,6 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 		}
-	} else {
-		result_code = userdata_process_file(userdata_filename);
 	}
 
 	exit(result_code);
