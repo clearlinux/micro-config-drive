@@ -38,6 +38,7 @@
 #include <glib.h>
 #include <json-glib/json-glib.h>
 
+#include "openstack.h"
 #include "handlers.h"
 #include "curl.h"
 #include "lib.h"
@@ -55,6 +56,7 @@ static int openstack_metadata(CURL* curl);
 static int openstack_userdata(CURL* curl);
 
 static void openstack_item(GNode* node, gpointer data);
+static gboolean openstack_node_free(GNode* node, gpointer data);
 
 static void openstack_metadata_not_implemented(GNode* node);
 static void openstack_metadata_keys(GNode* node);
@@ -118,6 +120,34 @@ clean:
 	return result_code;
 }
 
+int openstack_process_metadata(const gchar* filename) {
+	GError* error = NULL;
+	JsonParser* parser = NULL;
+	GNode* node = NULL;
+	int result_code = EXIT_FAILURE;
+
+	parser = json_parser_new();
+	json_parser_load_from_file(parser, filename, &error);
+	if (error) {
+		LOG(MOD "Unable to parse '%s': %s\n", filename, error->message);
+		g_error_free(error);
+		goto fail;
+	}
+
+	node = g_node_new(g_strdup(filename));
+	json_parse(json_parser_get_root(parser), node, false);
+	cloud_config_dump(node);
+
+	g_node_children_foreach(node, G_TRAVERSE_ALL, openstack_item, NULL);
+	g_node_traverse(node, G_POST_ORDER, G_TRAVERSE_ALL, -1, openstack_node_free, NULL);
+	result_code = EXIT_SUCCESS;
+
+fail:
+	g_object_unref(parser);
+	g_node_destroy(node);
+	return result_code;
+}
+
 static int openstack_userdata(CURL* curl) {
 	int result_code;
 	gchar* data_filename = NULL;
@@ -135,40 +165,27 @@ static int openstack_userdata(CURL* curl) {
 }
 
 static int openstack_metadata(CURL* curl) {
-	GError* error = NULL;
-	JsonParser* parser = NULL;
 	gchar* data_filename = NULL;
-	GNode* node = NULL;
-	int result_code = EXIT_FAILURE;
+	int result_code;
 
-	parser = json_parser_new();
 	LOG(MOD "Fetching metadata file URL %s\n", METADATA_URL );
 	data_filename = curl_fetch_file(curl, METADATA_URL, 10, 300000);
 	if (!data_filename) {
 		LOG(MOD "Fetch metadata failed\n");
-		goto fail1;
+		return EXIT_FAILURE;
 	}
 
-	json_parser_load_from_file(parser, data_filename, &error);
-	if (error) {
-		LOG(MOD "Unable to parse '%s': %s\n", data_filename, error->message);
-		g_error_free(error);
-		goto fail2;
-	}
-
-	node = g_node_new(g_strdup(data_filename));
-	json_parse(json_parser_get_root(parser), node, false);
-	cloud_config_dump(node);
-
-	g_node_children_foreach(node, G_TRAVERSE_ALL, openstack_item, NULL);
-
-	result_code = EXIT_SUCCESS;
-
-fail2:
-	g_object_unref(parser);
-	g_node_destroy(node);
-fail1:
+	result_code = openstack_process_metadata(data_filename);
+	g_free(data_filename);
 	return result_code;
+}
+
+static gboolean openstack_node_free(GNode* node, gpointer data) {
+	if (node->data) {
+		g_free(node->data);
+	}
+
+	return false;
 }
 
 static void openstack_item(GNode* node, gpointer data) {
