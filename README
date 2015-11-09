@@ -89,6 +89,11 @@ tracker and git sources on github.com/clearlinux/clr-cloud-init. For
 mailing lists, subscribe to dev@lists.clearlinux.org (via
 lists.clearlinux.org).
 
+When submitting bug reports, it may be relevant to include the
+log output of clouds- init. This can be done with the following
+command: `journalctl -b -u cloud-init`. Omit the `-b` option if
+you want output from prior to the last boot event.
+
 This project has many contributors. Not all may be mentioned in the
 AUTHORS file.
 
