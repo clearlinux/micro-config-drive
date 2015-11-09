@@ -32,6 +32,7 @@ cloud_init_SOURCES = \
 	src/curl.h \
 	src/datasources.h \
 	src/datasources/openstack.c \
+	src/datasources/openstack.h \
 	src/debug.h \
 	src/default_user.h \
 	src/handlers.h \
