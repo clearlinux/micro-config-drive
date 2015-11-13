@@ -52,26 +52,33 @@
 #include "default_user.h"
 #include "openstack.h"
 
+
+/* Long options */
+enum {
+	OPT_OPENSTACK_METADATA_FILE=1001,
+};
+
 static struct option opts[] = {
-	{ "user-data-file",             1, NULL, 'u' },
-	{ "openstack-metadata-file",    1, NULL, 'o' },
-	{ "help",                       0, NULL, 'h' },
-	{ "version",                    0, NULL, 'v' },
-	{ "first-boot",                 0, NULL, 'b' },
+	{ "user-data-file",             required_argument, NULL, 'u' },
+	{ "openstack-metadata-file",    required_argument, NULL, OPT_OPENSTACK_METADATA_FILE },
+	{ "help",                       no_argument, NULL, 'h' },
+	{ "version",                    no_argument, NULL, 'v' },
+	{ "first-boot",                 no_argument, NULL, 'b' },
 	{ NULL, 0, NULL, 0 }
 };
 
 int main(int argc, char *argv[]) {
 	int result_code = EXIT_SUCCESS;
 	gchar *userdata_filename = NULL;
-	gchar *metadata_filename = NULL;
+	gchar *tmp_metafile = NULL;
+	gchar metadata_filename[PATH_MAX] = { 0 };
 	bool first_boot = false;
 	bool openstack_mf = false;
 	int c;
 	int i;
 
 	while (true) {
-		c = getopt_long(argc, argv, "u:o:hvb", opts, &i);
+		c = getopt_long(argc, argv, "u:hvb", opts, &i);
 
 		if (c == -1) {
 			break;
@@ -83,30 +90,45 @@ int main(int argc, char *argv[]) {
 			userdata_filename = g_strdup(optarg);
 			break;
 
-		case 'o':
-			metadata_filename = g_strdup(optarg);
-			openstack_mf = true;
-			break;
-
 		case 'h':
 			LOG("Usage: %s [options]\n", argv[0]);
 			LOG("-u, --user-data-file [file]            specify a custom user data file\n");
-			LOG("-o, --openstack-metadata-file [file]   specify an Openstack metadata file\n");
+			LOG("    --openstack-metadata-file [file]   specify an Openstack metadata file\n");
 			LOG("-h, --help                             display this help message\n");
 			LOG("-v, --version                          display the version number of this program\n");
-			LOG("-b, --first-boot                       set up the system in its first boot (create default user, etc)\n");
-			exit(EXIT_FAILURE);
+			LOG("-b, --first-boot                       set up the system in its first boot\n");
+			LOG("\nIf you do not specify a userdata or metadata file then %s\n", argv[0]);
+			LOG("will try to get them form datasources.\n");
+			exit(EXIT_SUCCESS);
 			break;
 
 		case 'v':
 			fprintf(stdout, PACKAGE_NAME " " PACKAGE_VERSION "\n");
-			exit(EXIT_FAILURE);
+			exit(EXIT_SUCCESS);
 			break;
 
 		case 'b':
 			first_boot = true;
 			break;
+
+		case '?':
+			exit(EXIT_FAILURE);
+			break;
+
+		case OPT_OPENSTACK_METADATA_FILE:
+			tmp_metafile = g_strdup(optarg);
+			openstack_mf = true;
+			break;
 		}
+	}
+
+	/* check if metadata file exists */
+	if (tmp_metafile) {
+		if (!realpath(tmp_metafile, metadata_filename)) {
+			LOG("Failed to open file '%s': No such file or directory\n", tmp_metafile);
+			exit(EXIT_FAILURE);
+		}
+		g_free(tmp_metafile);
 	}
 
 	#ifdef HAVE_CONFIG_H
@@ -145,13 +167,13 @@ int main(int argc, char *argv[]) {
 		result_code = userdata_process_file(userdata_filename);
 	}
 
-	if (metadata_filename) {
+	if (metadata_filename[0]) {
 		if (openstack_mf) {
 			result_code = openstack_process_metadata(metadata_filename);
 		}
 	}
 
-	if (!userdata_filename && !metadata_filename) {
+	if (!userdata_filename && !metadata_filename[0]) {
 		/* get/process userdata and metadata from datasources */
 		for (i = 0; cloud_structs[i] != NULL; ++i) {
 			result_code = cloud_structs[i]->handler(first_boot);
