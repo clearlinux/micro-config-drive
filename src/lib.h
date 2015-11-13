@@ -54,3 +54,4 @@ int make_dir(const char* pathname, mode_t mode);
 int chown_path(const char* pathname, const char* ownername, const char* groupname);
 int write_sudo_string(const gchar* filename, const gchar* data);
 int write_ssh_key(const gchar* ssh_key, const gchar* username);
+gboolean get_partition(const gchar* mountpoint, gchar* partition, guint partition_len) ;
