@@ -20,6 +20,7 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.24.1])
 PKG_CHECK_MODULES([YAML], [yaml-0.1 >= 0.1.4])
 PKG_CHECK_MODULES([CURL], [libcurl])
 PKG_CHECK_MODULES([JSON_GLIB], [json-glib-1.0])
+PKG_CHECK_MODULES([PARTED], [libparted = 3.2])
 
 # Checks for header files.
 AC_CHECK_HEADERS([errno.h])
@@ -42,6 +43,12 @@ AS_IF([test "x$enable_debug" = "xyes"],
 	[AC_DEFINE([DEBUG], [1], [Debugging mode enabled])],
 	[AC_DEFINE([NDEBUG], [1], [Debugging and assertions disabled])])
 AM_CONDITIONAL([DEBUG], [test x$enable_debug = x"yes"])
+
+# Checks for commands
+AC_CHECK_PROG([RESIZE2FS], [resize2fs], [yes])
+if test x"$RESIZE2FS" != x"yes" ; then
+   AC_MSG_ERROR([Please install resize2fs.])
+fi
 
 # Options
 AC_ARG_WITH([systemdsystemunitdir], AS_HELP_STRING([--with-systemdsystemunitdir=DIR],

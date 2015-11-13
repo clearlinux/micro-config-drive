@@ -39,11 +39,14 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <getopt.h>
 
 #include <glib.h>
+#include <parted/device.h>
+#include <parted/exception.h>
 
 #include "handlers.h"
 #include "lib.h"
@@ -56,7 +59,10 @@
 /* Long options */
 enum {
 	OPT_OPENSTACK_METADATA_FILE=1001,
+	OPT_NO_GROWPART,
 };
+
+static gboolean resize_fs;
 
 static struct option opts[] = {
 	{ "user-data-file",             required_argument, NULL, 'u' },
@@ -64,8 +70,24 @@ static struct option opts[] = {
 	{ "help",                       no_argument, NULL, 'h' },
 	{ "version",                    no_argument, NULL, 'v' },
 	{ "first-boot",                 no_argument, NULL, 'b' },
+	{ "no-growpart",                no_argument, NULL, OPT_NO_GROWPART },
 	{ NULL, 0, NULL, 0 }
 };
+
+static PedExceptionOption parted_exception_handler(PedException* ex) {
+	gchar* warning_message = "Not all of the space available";
+	LOG("Warning: %s\n", ex->message);
+	if (strncmp(ex->message, warning_message, strlen(warning_message)) == 0) {
+		if (PED_EXCEPTION_WARNING == ex->type && ex->options & PED_EXCEPTION_FIX) {
+			LOG("Handling warning\n");
+			/* filesystem must be resized */
+			resize_fs = true;
+			return PED_EXCEPTION_FIX;
+		}
+	}
+	LOG("Warning was not handled\n");
+	return PED_EXCEPTION_UNHANDLED;
+}
 
 int main(int argc, char *argv[]) {
 	int result_code = EXIT_SUCCESS;
@@ -74,8 +96,13 @@ int main(int argc, char *argv[]) {
 	gchar metadata_filename[PATH_MAX] = { 0 };
 	bool first_boot = false;
 	bool openstack_mf = false;
+	bool no_growpart = false;
 	int c;
 	int i;
+	PedDevice* dev;
+	gchar root_partition[PATH_MAX];
+	resize_fs = false;
+	gchar command[LINE_MAX];
 
 	while (true) {
 		c = getopt_long(argc, argv, "u:hvb", opts, &i);
@@ -97,6 +124,8 @@ int main(int argc, char *argv[]) {
 			LOG("-h, --help                             display this help message\n");
 			LOG("-v, --version                          display the version number of this program\n");
 			LOG("-b, --first-boot                       set up the system in its first boot\n");
+			LOG("    --no-growpart                      Do not verify disk partitions.\n");
+			LOG("                                       %s will not resize the filesystem\n", argv[0]);
 			LOG("\nIf you do not specify a userdata or metadata file then %s\n", argv[0]);
 			LOG("will try to get them form datasources.\n");
 			exit(EXIT_SUCCESS);
@@ -119,6 +148,10 @@ int main(int argc, char *argv[]) {
 			tmp_metafile = g_strdup(optarg);
 			openstack_mf = true;
 			break;
+
+		case OPT_NO_GROWPART:
+			no_growpart = true;
+			break;
 		}
 	}
 
@@ -140,9 +173,24 @@ int main(int argc, char *argv[]) {
 		LOG("%s isn't running as root, this will most likely fail!\n", argv[0]);
 	}
 
+	if (!no_growpart) {
+		ped_exception_set_handler(parted_exception_handler);
+		if (get_partition("/", root_partition, PATH_MAX)) {
+			dev = ped_device_get(root_partition);
+			/* verify disk partition */
+			if (dev && ped_disk_new(dev)) {
+				if (resize_fs) {
+					command[0] = 0;
+					g_snprintf(command, LINE_MAX, "resize2fs %s", root_partition);
+					exec_task(command);
+				}
+			}
+		}
+	}
+
 	if (first_boot) {
 		/* default user will be used by ccmodules and datasources */
-		char command[LINE_MAX] = { 0 };
+		command[0] = 0;
 		snprintf(command, LINE_MAX, "useradd"
 				" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
 				, DEFAULT_USER_HOME_DIR
@@ -163,10 +211,12 @@ int main(int argc, char *argv[]) {
 		exec_task(command);
 	}
 
+	/* process userdata file */
 	if (userdata_filename) {
 		result_code = userdata_process_file(userdata_filename);
 	}
 
+	/* process metadata file */
 	if (metadata_filename[0]) {
 		if (openstack_mf) {
 			result_code = openstack_process_metadata(metadata_filename);
