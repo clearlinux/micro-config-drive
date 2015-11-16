@@ -121,5 +121,7 @@ gchar* curl_fetch_file(CURL* curl, gchar* url, int attempts, useconds_t u_sleep)
 		}
 		usleep(u_sleep);
 	}
+
+	return NULL;
 }
 
