@@ -31,7 +31,6 @@ AC_CHECK_HEADERS([stdbool.h])
 AC_CHECK_HEADERS([stdio.h])
 AC_CHECK_HEADERS([string.h])
 AC_CHECK_HEADERS([stdlib.h])
-AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([sys/types.h])
 AC_CHECK_HEADERS([unistd.h])
 
