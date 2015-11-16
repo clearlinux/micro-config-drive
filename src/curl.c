@@ -96,11 +96,13 @@ gchar* curl_fetch_file(CURL* curl, gchar* url, int attempts, useconds_t u_sleep)
 
 	if (curl_easy_setopt(curl, CURLOPT_URL, url) != CURLE_OK) {
 		LOG(MOD "set url failed");
-		goto fail1;
+		fclose(file);
+		return NULL;
 	}
 	if (curl_easy_setopt(curl, CURLOPT_WRITEDATA, file) != CURLE_OK) {
 		LOG(MOD "set write data failed");
-		goto fail2;
+		fclose(file);
+		return NULL;
 	}
 
 	for (int i = 0; i < attempts; ++i) {
@@ -111,10 +113,5 @@ gchar* curl_fetch_file(CURL* curl, gchar* url, int attempts, useconds_t u_sleep)
 		}
 		usleep(u_sleep);
 	}
-
-fail2:
-	fclose(file);
-fail1:
-	return NULL;
 }
 
