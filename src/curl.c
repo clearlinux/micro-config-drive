@@ -40,6 +40,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <errno.h>
+#include <string.h>
 
 #include <curl/curl.h>
 #include <glib.h>
@@ -91,7 +93,13 @@ gchar* curl_fetch_file(CURL* curl, gchar* url, int attempts, useconds_t u_sleep)
 	FILE* file;
 	gchar *filename;
 	filename = g_strdup("/tmp/cloud-init-XXXXXX");
+
 	fd = mkstemp(filename);
+	if (fd < 0) {
+		LOG(MOD "mkstemp failed with: %s\n", strerror(errno));
+		return NULL;
+	}
+
 	file = fdopen(fd, "w");
 
 	if (curl_easy_setopt(curl, CURLOPT_URL, url) != CURLE_OK) {
