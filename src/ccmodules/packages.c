@@ -46,7 +46,7 @@
 
 static gboolean packages_item(GNode* node, gpointer data) {
 	gchar command[COMMAND_SIZE];
-	g_snprintf(command, COMMAND_SIZE, "/usr/bin/clr_bundle_add %s",
+	g_snprintf(command, COMMAND_SIZE, "/usr/bin/swupd bundle-add %s",
 		(char*)node->data);
 	LOG(MOD "Installing %s..\n", (char*)node->data);
 	exec_task(command);
