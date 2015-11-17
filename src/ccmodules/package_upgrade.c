@@ -57,7 +57,7 @@ void package_upgrade_handler(GNode *node) {
 	}
 	if (do_upgrade) {
 		LOG(MOD "Performing system software update.\n");
-		exec_task("/usr/bin/swupd_update");
+		exec_task("/usr/bin/swupd update");
 	} else {
 		LOG(MOD "Skipping system software update.\n");
 	}
