@@ -36,6 +36,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+#include <libgen.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -77,6 +80,25 @@ static void write_files_item(GNode* node, gpointer data) {
 
 	permissions = cloud_config_find(node, PERMISSIONS);
 	owner = cloud_config_find(node, OWNER);
+
+	/* assure the folder exists, and create if nexessary */
+	char* dir = strdup((char *)path->data);
+	dir = dirname(dir);
+	int r = access(dir, W_OK);
+	if (r == -1) {
+		if (errno & ENOENT) {
+			LOG(MOD "Creating part or all of %s\n", dir);
+			gchar command[LINE_MAX];
+			command[0] = 0;
+			g_snprintf(command, LINE_MAX, "mkdir -p %s", dir);
+			exec_task(command);
+		} else {
+			LOG(MOD "Path error: %s", strerror(errno));
+			free(dir);
+			return;
+		}
+	}
+	free(dir);
 
 	LOG(MOD "Writing to file %s: %s\n", (char*)path->data, (char*)content->data);
 

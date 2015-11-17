@@ -33,6 +33,7 @@ AC_CHECK_HEADERS([string.h])
 AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([sys/types.h])
 AC_CHECK_HEADERS([unistd.h])
+AC_CHECK_HEADERS([libgen.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
