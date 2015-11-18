@@ -126,8 +126,10 @@ int main(int argc, char *argv[]) {
 			LOG("-b, --first-boot                       set up the system in its first boot\n");
 			LOG("    --no-growpart                      Do not verify disk partitions.\n");
 			LOG("                                       %s will not resize the filesystem\n", argv[0]);
-			LOG("\nIf you do not specify a userdata or metadata file then %s\n", argv[0]);
-			LOG("will try to get them form datasources.\n");
+			LOG("\nIf no user data or metadata is provided on the command line,\n");
+			LOG("%s will fetch these through the datasources API's.\n", argv[0]);
+
+
 			exit(EXIT_SUCCESS);
 			break;
 
@@ -158,8 +160,7 @@ int main(int argc, char *argv[]) {
 	/* check if metadata file exists */
 	if (tmp_metafile) {
 		if (!realpath(tmp_metafile, metadata_filename)) {
-			LOG("Failed to open file '%s': No such file or directory\n", tmp_metafile);
-			exit(EXIT_FAILURE);
+			LOG("Unable to determine real file path for '%s'\n", tmp_metafile);
 		}
 		g_free(tmp_metafile);
 	}
