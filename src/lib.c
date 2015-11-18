@@ -180,27 +180,28 @@ gboolean get_partition(const gchar* mountpoint, gchar* partition, guint partitio
 	gboolean partition_found = false;
 
 	file = fopen("/proc/self/mountinfo", "r");
-	if (file == NULL) {
+	if (!file) {
 		LOG(MOD "Error opening /proc/self/mountinfo\n");
 		return false;
 	}
 
-	while (fgets(buffer, LINE_MAX, file) != NULL) {
+	while (fgets(buffer, LINE_MAX, file)) {
 		/* ignore first two tokens */
 		strtok_r(buffer, "\n\t ", &s);
 		strtok_r(NULL, "\n\t ", &s);
 		/* major and minor, i.e 0:23 */
 		token = strtok_r(NULL, "\n\t ", &s);
-		if (token) {
-			g_strlcpy(major_minor_mountpoint, token, sizeof(major_minor_mountpoint));
-			/*ignore separator / */
-			strtok_r(NULL, "\n\t ", &s);
-			/* mount point, i.e / */
-			token = strtok_r(NULL, "\n\t ", &s);
-			if (g_strcmp0(mountpoint, token) == 0) {
-				mountpoint_found = true;
-				break;
-			}
+		if (!token) {
+			continue;
+		}
+		g_strlcpy(major_minor_mountpoint, token, sizeof(major_minor_mountpoint));
+		/*ignore separator / */
+		strtok_r(NULL, "\n\t ", &s);
+		/* mount point, i.e / */
+		token = strtok_r(NULL, "\n\t ", &s);
+		if (g_strcmp0(mountpoint, token) == 0) {
+			mountpoint_found = true;
+			break;
 		}
 	}
 
@@ -221,21 +222,23 @@ gboolean get_partition(const gchar* mountpoint, gchar* partition, guint partitio
 	while (fgets(buffer, LINE_MAX, file) != NULL) {
 		/* major */
 		token = strtok_r(buffer, "\n\t ", &s);
-		if (token) {
-			g_snprintf(major_minor_partition, sizeof(major_minor_partition), "%s:", token);
-			/* minor */
+		if (!token) {
+			continue;
+		}
+		g_snprintf(major_minor_partition, sizeof(major_minor_partition), "%s:", token);
+		/* minor */
+		token = strtok_r(NULL, "\n\t ", &s);
+		if (!token) {
+			continue;
+		}
+		g_strlcat(major_minor_partition, token, sizeof(major_minor_partition));
+		if (g_strcmp0(major_minor_mountpoint, major_minor_partition) == 0) {
+			/* partition, i.e vda2 */
 			token = strtok_r(NULL, "\n\t ", &s);
-			if (token) {
-				g_strlcat(major_minor_partition, token, sizeof(major_minor_partition));
-				if (g_strcmp0(major_minor_mountpoint, major_minor_partition) == 0) {
-					/* partition, i.e vda2 */
-					token = strtok_r(NULL, "\n\t ", &s);
-					memset(partition, 0, partition_len);
-					snprintf(partition, partition_len, "/dev/%s", token);
-					partition_found = true;
-					break;
-				}
-			}
+			memset(partition, 0, partition_len);
+			snprintf(partition, partition_len, "/dev/%s", token);
+			partition_found = true;
+			break;
 		}
 	}
 
