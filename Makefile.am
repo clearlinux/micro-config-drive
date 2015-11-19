@@ -46,7 +46,9 @@ cloud_init_SOURCES = \
 	src/lib.h \
 	src/main.c \
 	src/userdata.c \
-	src/userdata.h
+	src/userdata.h \
+	src/disk.c \
+	src/disk.h
 
 
 if DEBUG
@@ -54,8 +56,8 @@ AM_CFLAGS += -ggdb3 -O0
 cloud_init_SOURCES += src/debug.c
 endif
 
-cloud_init_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS) $(YAML_CFLAGS) $(JSON_GLIB_CFLAGS) $(PARTED_CFLAGS)
-cloud_init_LDADD = $(GLIB_LIBS) $(YAML_LIBS) $(CURL_LIBS) $(JSON_GLIB_LIBS)  $(PARTED_LIBS)
+cloud_init_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS) $(YAML_CFLAGS) $(JSON_GLIB_CFLAGS) $(PARTED_CFLAGS) $(BLKID_CFLAGS)
+cloud_init_LDADD = $(GLIB_LIBS) $(YAML_LIBS) $(CURL_LIBS) $(JSON_GLIB_LIBS) $(PARTED_LIBS) $(BLKID_LIBS)
 SYSTEMD_DIR=$(prefix)/lib/systemd/system/
 systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
 systemdsystemunit_DATA = data/cloud-init.service
