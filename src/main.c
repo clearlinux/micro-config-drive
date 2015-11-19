@@ -45,10 +45,9 @@
 #include <getopt.h>
 
 #include <glib.h>
-#include <parted/device.h>
-#include <parted/exception.h>
 
 #include "handlers.h"
+#include "disk.h"
 #include "lib.h"
 #include "userdata.h"
 #include "datasources.h"
@@ -62,8 +61,6 @@ enum {
 	OPT_NO_GROWPART,
 };
 
-static gboolean resize_fs;
-
 static struct option opts[] = {
 	{ "user-data-file",             required_argument, NULL, 'u' },
 	{ "openstack-metadata-file",    required_argument, NULL, OPT_OPENSTACK_METADATA_FILE },
@@ -74,35 +71,18 @@ static struct option opts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
-static PedExceptionOption parted_exception_handler(PedException* ex) {
-	gchar* warning_message = "Not all of the space available";
-	LOG("Warning: %s\n", ex->message);
-	if (strncmp(ex->message, warning_message, strlen(warning_message)) == 0) {
-		if (PED_EXCEPTION_WARNING == ex->type && ex->options & PED_EXCEPTION_FIX) {
-			LOG("Handling warning\n");
-			/* filesystem must be resized */
-			resize_fs = true;
-			return PED_EXCEPTION_FIX;
-		}
-	}
-	LOG("Warning was not handled\n");
-	return PED_EXCEPTION_UNHANDLED;
-}
-
 int main(int argc, char *argv[]) {
 	int result_code = EXIT_SUCCESS;
-	gchar *userdata_filename = NULL;
-	gchar *tmp_metafile = NULL;
-	gchar metadata_filename[PATH_MAX] = { 0 };
 	bool first_boot = false;
 	bool openstack_mf = false;
 	bool no_growpart = false;
 	int c;
 	int i;
-	PedDevice* dev;
-	gchar root_partition[PATH_MAX];
-	resize_fs = false;
+	gchar* userdata_filename = NULL;
+	gchar* tmp_metafile = NULL;
+	gchar metadata_filename[PATH_MAX] = { 0 };
 	gchar command[LINE_MAX];
+	gchar* root_disk;
 
 	while (true) {
 		c = getopt_long(argc, argv, "u:hvb", opts, &i);
@@ -128,8 +108,6 @@ int main(int argc, char *argv[]) {
 			LOG("                                       %s will not resize the filesystem\n", argv[0]);
 			LOG("\nIf no user data or metadata is provided on the command line,\n");
 			LOG("%s will fetch these through the datasources API's.\n", argv[0]);
-
-
 			exit(EXIT_SUCCESS);
 			break;
 
@@ -175,17 +153,13 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!no_growpart) {
-		ped_exception_set_handler(parted_exception_handler);
-		if (get_partition("/", root_partition, PATH_MAX)) {
-			dev = ped_device_get(root_partition);
-			/* verify disk partition */
-			if (dev && ped_disk_new(dev)) {
-				if (resize_fs) {
-					command[0] = 0;
-					g_snprintf(command, LINE_MAX, "resize2fs %s", root_partition);
-					exec_task(command);
-				}
+		root_disk = disk_for_path("/");
+		if (root_disk) {
+			if (!disk_resize_grow(root_disk)) {
+				LOG("Resizing and growing disk '%s' failed\n", root_disk);
 			}
+		} else {
+			LOG("Root disk not found\n");
 		}
 	}
 
