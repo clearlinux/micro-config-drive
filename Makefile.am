@@ -9,6 +9,7 @@ AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 EXTRA_DIST = \
 	LICENSE \
 	COPYING \
+	data/cloud-init-firstboot.service.in
 	data/cloud-init.service.in
 
 DISTCHECK_CONFIGURE_FLAGS =  \
@@ -60,7 +61,7 @@ cloud_init_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS) $(YAML_CFLAGS) $(JSON_GLIB_CFLAG
 cloud_init_LDADD = $(GLIB_LIBS) $(YAML_LIBS) $(CURL_LIBS) $(JSON_GLIB_LIBS) $(PARTED_LIBS) $(BLKID_LIBS)
 SYSTEMD_DIR=$(prefix)/lib/systemd/system/
 systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
-systemdsystemunit_DATA = data/cloud-init.service
+systemdsystemunit_DATA = data/cloud-init-firstboot.service data/cloud-init.service
 
 systemdsystemunit-install-local:
 	mkdir -p $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/

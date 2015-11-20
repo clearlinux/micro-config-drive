@@ -1,14 +1,14 @@
 [Unit]
-Description=cloud-init job
+Description=Initial cloud-init job (firstboot)
 After=local-fs.target network.target
 Before=sshd.service sshd-keygen.service
 Requires=network.target
 Wants=local-fs.target sshd.service sshd-keygen.service
-ConditionFirstBoot=no
+ConditionFirstBoot=yes
 
 [Service]
 Type=oneshot
-ExecStart=@prefix@/bin/cloud-init
+ExecStart=@prefix@/bin/cloud-init --first-boot
 RemainAfterExit=yes
 TimeoutSec=0
 
