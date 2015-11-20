@@ -12,6 +12,8 @@ args="\
 --prefix=/usr \
 --enable-silent-rules"
 
-set -x
-./configure CFLAGS='-g -O0' $args "$@"
-make clean
+if test -z "${NOCONFIGURE}"; then
+  set -x
+  ./configure CFLAGS='-g -O0' $args "$@"
+  make clean
+fi
