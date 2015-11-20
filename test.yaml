@@ -60,3 +60,4 @@ service:
       - foo3
       - bar4
       - [ foo5, bar6 ]
+hostname: "localhost"
