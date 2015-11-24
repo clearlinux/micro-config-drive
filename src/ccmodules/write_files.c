@@ -50,7 +50,7 @@
 
 #define MOD "write_files: "
 
-static void write_files_item(GNode* node, gpointer data) {
+static void write_files_item(GNode* node, __unused__ gpointer data) {
 	const GNode* content;
 	const GNode* path;
 	const GNode* permissions;

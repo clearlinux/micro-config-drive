@@ -179,7 +179,7 @@ static int openstack_metadata(CURL* curl) {
 	return result_code;
 }
 
-static gboolean openstack_node_free(GNode* node, gpointer data) {
+static gboolean openstack_node_free(GNode* node, __unused__ gpointer data) {
 	if (node->data) {
 		g_free(node->data);
 	}
@@ -187,7 +187,7 @@ static gboolean openstack_node_free(GNode* node, gpointer data) {
 	return false;
 }
 
-static void openstack_item(GNode* node, gpointer data) {
+static void openstack_item(GNode* node, __unused__ gpointer data) {
 	size_t i;
 	if (node->data) {
 		for (i = 0; openstack_metadata_options[i].key != NULL; ++i) {
@@ -201,7 +201,7 @@ static void openstack_item(GNode* node, gpointer data) {
 	}
 }
 
-static void openstack_metadata_not_implemented(GNode* node) {
+static void openstack_metadata_not_implemented(__unused__ GNode* node) {
 	LOG(MOD "Not implemented yet\n");
 }
 

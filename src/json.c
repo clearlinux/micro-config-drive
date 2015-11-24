@@ -75,7 +75,7 @@ void json_parse(JsonNode* root, GNode* node, bool parsing_array) {
 		JsonObject *object = json_node_get_object(root);
 
 		if (object) {
-			int j;
+			guint j;
 			guint size;
 			GList* keys, *key = NULL;
 			GList* values, *value = NULL;
