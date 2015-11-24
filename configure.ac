@@ -21,7 +21,7 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.24.1])
 PKG_CHECK_MODULES([YAML], [yaml-0.1 >= 0.1.4])
 PKG_CHECK_MODULES([CURL], [libcurl])
 PKG_CHECK_MODULES([JSON_GLIB], [json-glib-1.0])
-PKG_CHECK_MODULES([PARTED], [libparted >= 3.2])
+PKG_CHECK_MODULES([PARTED], [libparted >= 3.1])
 PKG_CHECK_MODULES([BLKID], [blkid >= 2.25.0])
 
 # Checks for header files.
