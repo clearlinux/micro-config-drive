@@ -67,10 +67,12 @@ systemdsystemunit_DATA = data/cloud-init-firstboot.service data/cloud-init.servi
 systemdsystemunit-install-local:
 	mkdir -p $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/
 	ln -sf ../cloud-init.service $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/cloud-init.service
+	ln -sf ../cloud-init-firstboot.service $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/cloud-init-firstboot.service
 
 install-data-local: systemdsystemunit-install-local
 
 systemdsystemunit-uninstall-local:
 	rm -f $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/cloud-init.service
+	rm -f $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/cloud-init-firstboot.service
 
 uninstall-local: systemdsystemunit-uninstall-local
