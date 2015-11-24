@@ -206,10 +206,12 @@ static void openstack_metadata_not_implemented(__unused__ GNode* node) {
 }
 
 static void openstack_metadata_keys(GNode* node) {
+	__unused__ bool b;
 	while (node) {
 		if (g_strcmp0("data", node->data) == 0) {
 			LOG(MOD "keys processing %s\n", (char*)node->data);
-			write_ssh_key(node->children->data, DEFAULT_USER_USERNAME);
+			/* TODO: If this fails we should break or similar */
+			b = write_ssh_key(node->children->data, DEFAULT_USER_USERNAME);
 		} else {
 			LOG(MOD "keys nothing to do with %s\n", (char*)node->data);
 		}
