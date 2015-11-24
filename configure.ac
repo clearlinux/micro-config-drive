@@ -48,10 +48,12 @@ AS_IF([test "x$enable_debug" = "xyes"],
 AM_CONDITIONAL([DEBUG], [test x$enable_debug = x"yes"])
 
 # Checks for commands
-AC_CHECK_PROG([RESIZE2FS], [resize2fs], [yes])
-if test x"$RESIZE2FS" != x"yes" ; then
+AC_PATH_PROG([RESIZE2FS], [resize2fs], [no], [$PATH:/sbin:/usr/sbin])
+if test x"$RESIZE2FS" == x"no" ; then
    AC_MSG_ERROR([Please install resize2fs.])
 fi
+AC_SUBST(RESIZE2FS)
+AC_DEFINE_UNQUOTED([RESIZEFS_PATH], ["$RESIZE2FS"], [Path to resize2fs binary])
 
 # Options
 AC_ARG_WITH([systemdsystemunitdir], AS_HELP_STRING([--with-systemdsystemunitdir=DIR],
