@@ -55,5 +55,5 @@ bool exec_task(const gchar* command_line);
 void LOG(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 int make_dir(const char* pathname, mode_t mode) __warn_unused_result__;
 int chown_path(const char* pathname, const char* ownername, const char* groupname) __warn_unused_result__;
-int write_sudo_string(const gchar* filename, const gchar* data);
+bool write_sudo_string(const gchar* filename, const gchar* data) __warn_unused_result__;
 int write_ssh_key(const gchar* ssh_key, const gchar* username);

@@ -179,7 +179,9 @@ int main(int argc, char *argv[]) {
 		exec_task(command);
 
 		/* default user will be able to use sudo */
-		write_sudo_string(DEFAULT_USER_USERNAME"-cloud-init", DEFAULT_USER_SUDO);
+		if (!write_sudo_string(DEFAULT_USER_USERNAME"-cloud-init", DEFAULT_USER_SUDO)) {
+			LOG("Failed to enable sudo rule for user: %s\n", DEFAULT_USER_SUDO);
+		}
 
 		/* lock root account for security */
 		snprintf(command, LINE_MAX, "usermod -p '!' root");
