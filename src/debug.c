@@ -41,8 +41,10 @@
 
 #include <glib.h>
 
+#include "lib.h"
+
 #ifdef DEBUG
-static gboolean node_dump(GNode *node, gpointer data) {
+static gboolean node_dump(GNode *node, __unused__ gpointer data) {
 	fprintf(stderr, "debug: ");
 	for (guint i = 0; i < g_node_depth(node); i++)
 		fprintf(stderr, "    ");
