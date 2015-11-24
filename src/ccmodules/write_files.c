@@ -126,7 +126,9 @@ static void write_files_item(GNode* node, __unused__ gpointer data) {
 			if (tokens_size > 1) {
 				groupname = tokens[1];
 			}
-			chown_path(path->data, username, groupname);
+			if ((r = chown_path(path->data, username, groupname)) < 0) {
+				LOG(MOD "Failed to chown %s: %s\n", (char*)path->data, strerror(errno));
+			}
 		}
 		g_strfreev(tokens);
 	}

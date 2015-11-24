@@ -49,10 +49,11 @@
 #endif /* DEBUG */
 
 #define __unused__ __attribute__((unused))
+#define __warn_unused_result__ __attribute__ ((warn_unused_result))
 
 void exec_task(const gchar* task);
 void LOG(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-int make_dir(const char* pathname, mode_t mode);
-int chown_path(const char* pathname, const char* ownername, const char* groupname);
+int make_dir(const char* pathname, mode_t mode) __warn_unused_result__;
+int chown_path(const char* pathname, const char* ownername, const char* groupname) __warn_unused_result__;
 int write_sudo_string(const gchar* filename, const gchar* data);
 int write_ssh_key(const gchar* ssh_key, const gchar* username);
