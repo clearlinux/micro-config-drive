@@ -21,7 +21,7 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.24.1])
 PKG_CHECK_MODULES([YAML], [yaml-0.1 >= 0.1.4])
 PKG_CHECK_MODULES([CURL], [libcurl])
 PKG_CHECK_MODULES([JSON_GLIB], [json-glib-1.0])
-PKG_CHECK_MODULES([PARTED], [libparted >= 3.2])
+PKG_CHECK_MODULES([PARTED], [libparted >= 3.1])
 PKG_CHECK_MODULES([BLKID], [blkid >= 2.25.0])
 
 # Checks for header files.
@@ -48,10 +48,12 @@ AS_IF([test "x$enable_debug" = "xyes"],
 AM_CONDITIONAL([DEBUG], [test x$enable_debug = x"yes"])
 
 # Checks for commands
-AC_CHECK_PROG([RESIZE2FS], [resize2fs], [yes])
-if test x"$RESIZE2FS" != x"yes" ; then
+AC_PATH_PROG([RESIZE2FS], [resize2fs], [no], [$PATH:/sbin:/usr/sbin])
+if test x"$RESIZE2FS" == x"no" ; then
    AC_MSG_ERROR([Please install resize2fs.])
 fi
+AC_SUBST(RESIZE2FS)
+AC_DEFINE_UNQUOTED([RESIZEFS_PATH], ["$RESIZE2FS"], [Path to resize2fs binary])
 
 # Options
 AC_ARG_WITH([systemdsystemunitdir], AS_HELP_STRING([--with-systemdsystemunitdir=DIR],

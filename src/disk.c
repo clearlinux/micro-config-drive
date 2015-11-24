@@ -32,6 +32,9 @@
  files in the program, then also delete it here.
 ***/
 
+#ifdef HAVE_CONFIG_H
+	#include "config.h"
+#endif
 
 #include <sys/stat.h>
 
@@ -178,7 +181,7 @@ gboolean disk_resize_grow(const gchar* disk_path) {
 	}
 
 	//FIXME using libparted algorithms
-	snprintf(command, LINE_MAX, "resize2fs %s", partition_path);
+	snprintf(command, LINE_MAX, RESIZEFS_PATH " %s", partition_path);
 	exec_task(command);
 
 	result = true;

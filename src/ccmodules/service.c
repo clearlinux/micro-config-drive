@@ -50,7 +50,7 @@ static gboolean service_action(GNode* node, gpointer data) {
 	return false;
 }
 
-static void service_item(GNode* node, gpointer data) {
+static void service_item(GNode* node, __unused__ gpointer data) {
 	if (!node->data) {
 		node = node->children;
 	} else {
