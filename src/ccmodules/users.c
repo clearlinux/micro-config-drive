@@ -130,7 +130,7 @@ static void users_add_option(GNode* node, char* command, gpointer data) {
 }
 
 static gboolean users_sudo_item(GNode* node, __unused__ gpointer data) {
-	if (write_sudo_string("users-cloud-init", node->data) != 0) {
+	if (!write_sudo_string("users-cloud-init", node->data)) {
 		return true; /* stop g_node_traverse */
 	}
 	return false;

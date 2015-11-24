@@ -100,19 +100,19 @@ int chown_path(const char* pathname, const char* ownername, const char* groupnam
 	return chown(pathname, owner_id, group_id);
 }
 
-int write_sudo_string(const gchar* filename, const gchar* data) {
+bool write_sudo_string(const gchar* filename, const gchar* data) {
 	int fd;
 	gchar sudoers_file[PATH_MAX];
 	g_snprintf(sudoers_file, PATH_MAX, "/etc/sudoers.d/");
 	if (make_dir(sudoers_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
-		return 1;
+		return false;
 	}
 
 	g_strlcat(sudoers_file, filename, PATH_MAX);
 	fd = open(sudoers_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IRGRP);
 	if (-1 == fd) {
 		LOG(MOD "Cannot open %s\n", sudoers_file);
-		return 1;
+		return false;
 	}
 
 	write(fd, data, strlen(data));
@@ -120,7 +120,7 @@ int write_sudo_string(const gchar* filename, const gchar* data) {
 
 	close(fd);
 
-	return 0;
+	return true;
 }
 
 int write_ssh_key(const gchar* ssh_key, const gchar* username) {
