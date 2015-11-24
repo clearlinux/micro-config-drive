@@ -137,7 +137,7 @@ static gboolean users_sudo_item(GNode* node, __unused__ gpointer data) {
 }
 
 static gboolean users_ssh_key_item(GNode* node, gpointer username) {
-	if (write_ssh_key(node->data, username) != 0) {
+	if (!write_ssh_key(node->data, username)) {
 		return true; /* stop g_node_traverse */
 	}
 	return false;

@@ -50,7 +50,7 @@
 
 
 gboolean ssh_authorized_keys_item(GNode* node, gpointer username) {
-	if (write_ssh_key(node->data, username) != 0) {
+	if (!write_ssh_key(node->data, username)) {
 		return true; /* stop g_node_traverse */
 	}
 
