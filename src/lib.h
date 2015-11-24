@@ -48,6 +48,8 @@
 	#define cloud_config_dump(...)
 #endif /* DEBUG */
 
+#define __unused__ __attribute__((unused))
+
 bool exec_task(const gchar* command_line);
 void LOG(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 int make_dir(const char* pathname, mode_t mode);
