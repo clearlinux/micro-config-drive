@@ -82,8 +82,8 @@ static void write_files_item(GNode* node, __unused__ gpointer data) {
 	owner = cloud_config_find(node, OWNER);
 
 	/* assure the folder exists, and create if nexessary */
-	char* dir = strdup((char *)path->data);
-	dir = dirname(dir);
+	char* dirp = strdup((char *)path->data);
+	char *dir = dirname(dirp);
 	int r = access(dir, W_OK);
 	if (r == -1) {
 		if (errno & ENOENT) {
@@ -94,11 +94,11 @@ static void write_files_item(GNode* node, __unused__ gpointer data) {
 			exec_task(command);
 		} else {
 			LOG(MOD "Path error: %s", strerror(errno));
-			free(dir);
+			free(dirp);
 			return;
 		}
 	}
-	free(dir);
+	free(dirp);
 
 	LOG(MOD "Writing to file %s: %s\n", (char*)path->data, (char*)content->data);
 
