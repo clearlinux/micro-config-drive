@@ -69,6 +69,8 @@ considering used libraries, the resulting binary is small.
 Currently, cloud-init requires the following prerequisites:
 - glib-2.0 >= 2.24.1
 - yaml-0.1 >= 0.1.4
+- libparted >= 3.1
+- blkid >= 2.25.0
 - libcurl
 - json-glib-1.0
 
