@@ -62,13 +62,43 @@ void LOG(const char *fmt, ...) {
 	va_end(args);
 }
 
-void exec_task(const gchar* task) {
-	/*
-	 * execute a process externally in a secured and limited enviroment,
-	 * handle return values gracefully
-	 */
-	LOG(MOD "Executing: %s\n", task);
-	system(task);
+bool exec_task(const gchar* command_line) {
+	gchar* standard_output = NULL;
+	gchar* standard_error = NULL;
+	GError* error = NULL;
+	gint exit_status = 0;
+	gboolean result;
+
+	LOG(MOD "Executing: %s\n", command_line);
+	result = g_spawn_command_line_sync(command_line,
+		&standard_output,
+		&standard_error,
+		&exit_status,
+		&error);
+
+	if (!result || exit_status != 0) {
+		LOG(MOD "Command failed\n");
+		if (error) {
+			LOG(MOD "Error: %s\n", (char*)error->message);
+		}
+		if (standard_error) {
+			LOG(MOD "STD Error: %s\n", (char*)standard_error);
+		}
+	}
+
+	if (standard_output) {
+		g_free(standard_output);
+	}
+
+	if (standard_error) {
+		g_free(standard_error);
+	}
+
+	if (error) {
+		g_error_free(error);
+	}
+
+	return result;
 }
 
 int make_dir(const char* pathname, mode_t mode) {
