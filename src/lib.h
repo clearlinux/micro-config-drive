@@ -48,9 +48,12 @@
 	#define cloud_config_dump(...)
 #endif /* DEBUG */
 
-gboolean exec_task(const gchar* command_line);
+#define __unused__ __attribute__((unused))
+#define __warn_unused_result__ __attribute__ ((warn_unused_result))
+
+bool exec_task(const gchar* command_line);
 void LOG(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-int make_dir(const char* pathname, mode_t mode);
-int chown_path(const char* pathname, const char* ownername, const char* groupname);
-int write_sudo_string(const gchar* filename, const gchar* data);
-int write_ssh_key(const gchar* ssh_key, const gchar* username);
+int make_dir(const char* pathname, mode_t mode) __warn_unused_result__;
+int chown_path(const char* pathname, const char* ownername, const char* groupname) __warn_unused_result__;
+bool write_sudo_string(const gchar* filename, const gchar* data) __warn_unused_result__;
+bool write_ssh_key(const gchar* ssh_key, const gchar* username) __warn_unused_result__;

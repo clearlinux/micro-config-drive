@@ -17,3 +17,6 @@ stamp-h1
 data/cloud-init*.service
 clr-cloud-init-*.tar.xz
 clr-cloud-init-*/
+
+# scan-build
+*.plist

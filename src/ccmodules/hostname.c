@@ -41,7 +41,7 @@
 
 #define MOD "hostname: "
 
-static gboolean hostname_item(GNode *node, gpointer data) {
+static gboolean hostname_item(GNode *node, __unused__ gpointer data) {
 	gchar command[LINE_MAX];
 	g_snprintf(command, LINE_MAX, "hostnamectl set-hostname '%s'", (char*)node->data);
 	exec_task(command);

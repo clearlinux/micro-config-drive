@@ -247,7 +247,7 @@ static bool cloud_config_parse(yaml_parser_t *parser, GNode *node, int state) {
 	return true;
 }
 
-static gboolean cloud_config_free(GNode *node, gpointer data) {
+static gboolean cloud_config_free(GNode *node, __unused__ gpointer data) {
 	if (node->data) {
 		g_free(node->data);
 	}
@@ -282,7 +282,7 @@ static void cloud_config_process(GNode *userdata, GList *handlers) {
 	}
 }
 
-static gboolean cloud_config_simplify(GNode *node, gpointer data) {
+static gboolean cloud_config_simplify(GNode *node, __unused__ gpointer data) {
 	if (node->data) {
 		return false;
 	}

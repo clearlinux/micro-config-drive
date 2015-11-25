@@ -44,7 +44,7 @@
 #define MOD "packages: "
 #define COMMAND_SIZE 256
 
-static gboolean packages_item(GNode* node, gpointer data) {
+static gboolean packages_item(GNode* node, __unused__ gpointer data) {
 	gchar command[COMMAND_SIZE];
 	g_snprintf(command, COMMAND_SIZE, "/usr/bin/swupd bundle-add %s",
 		(char*)node->data);

@@ -179,7 +179,7 @@ static int openstack_metadata(CURL* curl) {
 	return result_code;
 }
 
-static gboolean openstack_node_free(GNode* node, gpointer data) {
+static gboolean openstack_node_free(GNode* node, __unused__ gpointer data) {
 	if (node->data) {
 		g_free(node->data);
 	}
@@ -187,7 +187,7 @@ static gboolean openstack_node_free(GNode* node, gpointer data) {
 	return false;
 }
 
-static void openstack_item(GNode* node, gpointer data) {
+static void openstack_item(GNode* node, __unused__ gpointer data) {
 	size_t i;
 	if (node->data) {
 		for (i = 0; openstack_metadata_options[i].key != NULL; ++i) {
@@ -201,15 +201,17 @@ static void openstack_item(GNode* node, gpointer data) {
 	}
 }
 
-static void openstack_metadata_not_implemented(GNode* node) {
+static void openstack_metadata_not_implemented(__unused__ GNode* node) {
 	LOG(MOD "Not implemented yet\n");
 }
 
 static void openstack_metadata_keys(GNode* node) {
+	__unused__ bool b;
 	while (node) {
 		if (g_strcmp0("data", node->data) == 0) {
 			LOG(MOD "keys processing %s\n", (char*)node->data);
-			write_ssh_key(node->children->data, DEFAULT_USER_USERNAME);
+			/* TODO: If this fails we should break or similar */
+			b = write_ssh_key(node->children->data, DEFAULT_USER_USERNAME);
 		} else {
 			LOG(MOD "keys nothing to do with %s\n", (char*)node->data);
 		}

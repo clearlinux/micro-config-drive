@@ -130,19 +130,19 @@ int chown_path(const char* pathname, const char* ownername, const char* groupnam
 	return chown(pathname, owner_id, group_id);
 }
 
-int write_sudo_string(const gchar* filename, const gchar* data) {
+bool write_sudo_string(const gchar* filename, const gchar* data) {
 	int fd;
 	gchar sudoers_file[PATH_MAX];
 	g_snprintf(sudoers_file, PATH_MAX, "/etc/sudoers.d/");
 	if (make_dir(sudoers_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
-		return 1;
+		return false;
 	}
 
 	g_strlcat(sudoers_file, filename, PATH_MAX);
 	fd = open(sudoers_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IRGRP);
 	if (-1 == fd) {
 		LOG(MOD "Cannot open %s\n", sudoers_file);
-		return 1;
+		return false;
 	}
 
 	write(fd, data, strlen(data));
@@ -150,10 +150,10 @@ int write_sudo_string(const gchar* filename, const gchar* data) {
 
 	close(fd);
 
-	return 0;
+	return true;
 }
 
-int write_ssh_key(const gchar* ssh_key, const gchar* username) {
+bool write_ssh_key(const gchar* ssh_key, const gchar* username) {
 	int fd;
 	gchar auth_keys_path[PATH_MAX];
 	struct passwd *pw;
@@ -165,19 +165,19 @@ int write_ssh_key(const gchar* ssh_key, const gchar* username) {
 
 		if (make_dir(auth_keys_path, S_IRWXU) != 0) {
 			LOG(MOD "Cannot create %s.\n", auth_keys_path);
-			return 1;
+			return false;
 		}
 
 		if (chown_path(auth_keys_path, username, username) != 0) {
 			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_path);
-			return 1;
+			return false;
 		}
 
 		g_strlcat(auth_keys_path, "/authorized_keys", PATH_MAX);
 		fd = open(auth_keys_path, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR);
 		if (-1 == fd) {
 			LOG(MOD "Cannot open %s.\n", auth_keys_path);
-			return 1;
+			return false;
 		}
 
 		LOG(MOD "Using %s\n", auth_keys_path);
@@ -188,8 +188,8 @@ int write_ssh_key(const gchar* ssh_key, const gchar* username) {
 
 		if (chown_path(auth_keys_path, username, username) != 0) {
 			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_path);
-			return 1;
+			return false;
 		}
 	}
-	return 0;
+	return true;
 }

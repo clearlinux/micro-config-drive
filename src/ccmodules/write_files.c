@@ -50,7 +50,7 @@
 
 #define MOD "write_files: "
 
-static void write_files_item(GNode* node, gpointer data) {
+static void write_files_item(GNode* node, __unused__ gpointer data) {
 	const GNode* content;
 	const GNode* path;
 	const GNode* permissions;
@@ -82,8 +82,8 @@ static void write_files_item(GNode* node, gpointer data) {
 	owner = cloud_config_find(node, OWNER);
 
 	/* assure the folder exists, and create if nexessary */
-	char* dir = strdup((char *)path->data);
-	dir = dirname(dir);
+	char* dirp = strdup((char *)path->data);
+	char *dir = dirname(dirp);
 	int r = access(dir, W_OK);
 	if (r == -1) {
 		if (errno & ENOENT) {
@@ -94,11 +94,11 @@ static void write_files_item(GNode* node, gpointer data) {
 			exec_task(command);
 		} else {
 			LOG(MOD "Path error: %s", strerror(errno));
-			free(dir);
+			free(dirp);
 			return;
 		}
 	}
-	free(dir);
+	free(dirp);
 
 	LOG(MOD "Writing to file %s: %s\n", (char*)path->data, (char*)content->data);
 
@@ -126,7 +126,9 @@ static void write_files_item(GNode* node, gpointer data) {
 			if (tokens_size > 1) {
 				groupname = tokens[1];
 			}
-			chown_path(path->data, username, groupname);
+			if ((r = chown_path(path->data, username, groupname)) < 0) {
+				LOG(MOD "Failed to chown %s: %s\n", (char*)path->data, strerror(errno));
+			}
 		}
 		g_strfreev(tokens);
 	}

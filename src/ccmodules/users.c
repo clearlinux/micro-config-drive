@@ -90,7 +90,7 @@ static void users_add_username(GNode* node, char* command, gpointer data) {
 	}
 }
 
-static void users_add_groups(GNode* node, char* command, gpointer data) {
+static void users_add_groups(GNode* node, char* command, __unused__ gpointer data) {
 	GNode* group;
 	if (node->data) {
 		users_add_option_format(node, command, " -G %s ");
@@ -129,15 +129,15 @@ static void users_add_option(GNode* node, char* command, gpointer data) {
 	g_strfreev(tokens);
 }
 
-static gboolean users_sudo_item(GNode* node, gpointer data) {
-	if (write_sudo_string("users-cloud-init", node->data) != 0) {
+static gboolean users_sudo_item(GNode* node, __unused__ gpointer data) {
+	if (!write_sudo_string("users-cloud-init", node->data)) {
 		return true; /* stop g_node_traverse */
 	}
 	return false;
 }
 
 static gboolean users_ssh_key_item(GNode* node, gpointer username) {
-	if (write_ssh_key(node->data, username) != 0) {
+	if (!write_ssh_key(node->data, username)) {
 		return true; /* stop g_node_traverse */
 	}
 	return false;
