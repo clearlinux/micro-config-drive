@@ -48,7 +48,7 @@
 	#define cloud_config_dump(...)
 #endif /* DEBUG */
 
-gboolean exec_task(const gchar* command_line);
+bool exec_task(const gchar* command_line);
 void LOG(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 int make_dir(const char* pathname, mode_t mode);
 int chown_path(const char* pathname, const char* ownername, const char* groupname);
