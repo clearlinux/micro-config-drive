@@ -1,3 +1,6 @@
+SUBDIRS = . tests
+
+ACLOCAL_AMFLAGS=-I m4
 
 AM_CPPFLAGS = -I $(top_srcdir)/src -I $(top_srcdir)/src/interpreters -I $(top_srcdir)/src/datasources
 AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
