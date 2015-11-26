@@ -87,6 +87,7 @@ bool exec_task(const gchar* command_line) {
 	}
 
 	if (standard_output) {
+		LOG(MOD "STD output: %s\n", (char*)standard_output);
 		g_free(standard_output);
 	}
 
