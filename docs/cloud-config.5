@@ -75,6 +75,7 @@ service              Perform system service configuration  no    no
 ssh_authorized_keys  Provision SSH public keys             yes   yes
 users                Configure user accounts               yes   yes
 write_files          Write content to arbitrary files      yes   yes
+hostname             Define the system's hostname          yes   yes
 _
 .TE
 .RE
@@ -156,9 +157,9 @@ lb    lb lb lb
 lfCW  l  l l l.
 Option     Type      Required     Function
 _
-*          string[]  no           Executes a script or program. The script
-                                  schould be prepended with a standard
-                                  shebang stanza to indicate interpreter
+*          string[]  no           Executes a command, if the item is a list,
+                                  the list will be converted to a string
+                                  and executed as a command line.
 .TE
 .RE
 
@@ -170,7 +171,7 @@ lb    lb lb lb
 lfCW  l  l l l.
 Option     Type      Required     Function
 _
-*          string[]  yes          Defines the system's hostname
+*          string    yes          Defines the system's hostname
 .TE
 .RE
 
