@@ -34,6 +34,9 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include <check.h>
 
@@ -46,15 +49,46 @@ START_TEST(test_lib_exec_task)
 }
 END_TEST
 
+START_TEST(test_lib_chown_path)
+{
+	int fd;
+	char template[] = "/tmp/fileXXXXXX";
+	uid_t user_id;
+	gid_t group_id;
+	struct passwd *pswd;
+	struct group *grp;
+
+	fd = mkstemp(template);
+	ck_assert(fd != -1);
+
+	user_id = getuid();
+	group_id = getgid();
+
+	pswd = getpwuid(user_id);
+	ck_assert(pswd != NULL);
+
+	grp = getgrgid(group_id);
+	ck_assert(grp != NULL);
+
+	ck_assert(chown_path(template, pswd->pw_name, grp->gr_name) == 0);
+}
+END_TEST
+
 Suite* make_lib_suite(void) {
 	Suite *s;
-	TCase *tc;
+	TCase *tc_exec_task;
+	TCase *tc_chown_path;
 
 	s = suite_create("lib");
-	tc = tcase_create("tcase");
 
-	tcase_add_test(tc, test_lib_exec_task);
-	suite_add_tcase(s, tc);
+	tc_exec_task = tcase_create("tc_exec_task");
+	tcase_add_test(tc_exec_task, test_lib_exec_task);
+
+	tc_chown_path = tcase_create("tc_chown_path");
+	tcase_add_test(tc_chown_path, test_lib_chown_path);
+
+	suite_add_tcase(s, tc_exec_task);
+	suite_add_tcase(s, tc_chown_path);
 
 	return s;
 }
