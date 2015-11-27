@@ -1,5 +1,9 @@
 *.o
+*.lo
 *~
+*.log
+*.trs
+*.la
 .deps
 .dirstamp
 /Makefile
@@ -17,6 +21,9 @@ stamp-h1
 data/cloud-init*.service
 clr-cloud-init-*.tar.xz
 clr-cloud-init-*/
+tests/Makefile
+tests/.libs/
+tests/lib_test
 
 # scan-build
 *.plist
