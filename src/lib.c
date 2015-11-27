@@ -82,12 +82,12 @@ bool exec_task(const gchar* command_line) {
 			LOG(MOD "Error: %s\n", (char*)error->message);
 		}
 		if (standard_error) {
-			LOG(MOD "STD Error: %s\n", (char*)standard_error);
+			LOG(MOD "STD Error: %s", (char*)standard_error);
 		}
 	}
 
 	if (standard_output) {
-		LOG(MOD "STD output: %s\n", (char*)standard_output);
+		LOG(MOD "STD output: %s", (char*)standard_output);
 		g_free(standard_output);
 	}
 
