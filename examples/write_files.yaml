@@ -1,0 +1,14 @@
+#cloud-config
+write_files:
+  -
+    content: |
+        A test file
+    path: /tmp/cloud-init-test-1
+    owner: nobody.nogroup
+    permissions: 0644
+  -
+    content: |
+        Another test file
+    path: /tmp/cloud-init-test-2
+    owner: root.root
+    permissions: 0600

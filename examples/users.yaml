@@ -1,0 +1,23 @@
+#cloud-config
+users:
+  - name: foobar
+    gecos: Foo B. Bar
+    homedir: /home/foobar
+    primary-group: foobar
+    groups: users
+    selinux-user: staff_u
+    lock-passwd: false
+    ssh-import-id: foobar
+    inactive: true
+    passwd: $6$j212wezy$7H/1LT4f9/N3wpgNunhsIqtMj62OKiS3nyNwuizouQc3u7MbYCarYeAHWYPYb2FT.lbioDm2RrkJPb9BZMN1O/
+    no-create-home: true
+    no-user-group: true
+    no-log-init: true
+    expiredate: 2015-12-31
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDmHRP+1o+vBSg+ej714Y3iO5Osbr29dHL/WZQlsj
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC9GNA2I6IU+II1qoKP1Ttn/eNv8zquEDNii+EA5m
+    sudo:
+      - [ "ALL ALL=(ALL) NOPASSWD:ALL", "ALL ALL=(ALL) NOPASSWD:/bin/mysql" ]
+      - ALL ALL=(ALL) NOPASSWD:ALL
+    system: true

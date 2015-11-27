@@ -1,0 +1,6 @@
+#cloud-config
+packages:
+  - openstack-configure
+  - perl-basic
+  - os-core-dev
+  - [kernel-kvm, kvm-host]

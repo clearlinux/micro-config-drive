@@ -1,0 +1,4 @@
+#cloud-config
+groups:
+  - cloud-init: [nobody, games]
+  - cloud
