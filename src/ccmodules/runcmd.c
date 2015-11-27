@@ -1,7 +1,6 @@
 /***
  Copyright (C) 2015 Intel Corporation
 
- Author: Auke-jan H. Kok <auke-jan.h.kok@intel.com>
  Author: Julio Montes <julio.montes@intel.com>
 
  This file is part of clr-cloud-init.
@@ -33,32 +32,36 @@
  files in the program, then also delete it here.
 ***/
 
-/*
- * List existing modules so they can be registered from main.c
- */
+#include <stdbool.h>
 
-#pragma once
+#include <glib.h>
 
-extern struct cc_module_handler_struct package_upgrade_cc_module;
-extern struct cc_module_handler_struct write_files_cc_module;
-extern struct cc_module_handler_struct packages_cc_module;
-extern struct cc_module_handler_struct groups_cc_module;
-extern struct cc_module_handler_struct users_cc_module;
-extern struct cc_module_handler_struct ssh_authorized_keys_cc_module;
-extern struct cc_module_handler_struct service_cc_module;
-extern struct cc_module_handler_struct hostname_cc_module;
-extern struct cc_module_handler_struct runcmd_cc_module;
+#include "lib.h"
+#include "handlers.h"
 
-struct cc_module_handler_struct *cc_module_structs[] =  {
-	&package_upgrade_cc_module,
-	&write_files_cc_module,
-	&packages_cc_module,
-	&groups_cc_module,
-	&users_cc_module,
-	&ssh_authorized_keys_cc_module,
-	&service_cc_module,
-	&hostname_cc_module,
-	&runcmd_cc_module,
-	NULL
+#define MOD "runcmd: "
+
+#define COMMAND_SIZE 4096
+
+static void runcmd_item(GNode* node, gpointer data) {
+	gchar command_line[COMMAND_SIZE] = { 0 };
+	if (!node->data) {
+		g_node_children_foreach(node, G_TRAVERSE_ALL, runcmd_item, command_line);
+		if (!exec_task(command_line)) {
+			LOG(MOD "Execute command failed\n");
+		}
+	} else {
+		g_strlcat(data, node->data,COMMAND_SIZE);
+		g_strlcat(data, " ", COMMAND_SIZE);
+	}
+}
+
+void runcmd_handler(GNode *node) {
+	LOG(MOD "Runcmd Handler running...\n");
+	g_node_children_foreach(node, G_TRAVERSE_ALL, runcmd_item, NULL);
+}
+
+struct cc_module_handler_struct runcmd_cc_module = {
+	.name = "runcmd",
+	.handler = &runcmd_handler
 };
-

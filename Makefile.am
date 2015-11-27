@@ -35,6 +35,7 @@ cloud_init_SOURCES = \
 	src/ccmodules/users.c \
 	src/ccmodules/write_files.c \
 	src/ccmodules/hostname.c \
+	src/ccmodules/runcmd.c \
 	src/curl.c \
 	src/curl.h \
 	src/datasources.h \
