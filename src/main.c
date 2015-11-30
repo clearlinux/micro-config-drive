@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
 	gchar metadata_filename[PATH_MAX] = { 0 };
 	gchar command[LINE_MAX];
 	gchar* root_disk;
+	GString* sudo_directives = NULL;
 
 	while (true) {
 		c = getopt_long(argc, argv, "u:hvb", opts, &i);
@@ -179,9 +180,11 @@ int main(int argc, char *argv[]) {
 		exec_task(command);
 
 		/* default user will be able to use sudo */
-		if (!write_sudo_string(DEFAULT_USER_USERNAME"-cloud-init", DEFAULT_USER_SUDO)) {
+		sudo_directives = g_string_new(DEFAULT_USER_SUDO);
+		if (!write_sudo_directives(sudo_directives, DEFAULT_USER_USERNAME"-cloud-init")) {
 			LOG("Failed to enable sudo rule for user: %s\n", DEFAULT_USER_SUDO);
 		}
+		g_string_free(sudo_directives, true);
 
 		/* lock root account for security */
 		snprintf(command, LINE_MAX, "usermod -p '!' root");

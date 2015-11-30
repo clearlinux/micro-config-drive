@@ -117,6 +117,29 @@ int make_dir(const char* pathname, mode_t mode) {
 	return 0;
 }
 
+static bool write_file(const GString* data, const gchar* file_path, int oflags, mode_t mode) {
+	int fd;
+	bool result = true;
+
+	fd = open(file_path, oflags, mode);
+	if (-1 == fd) {
+		LOG(MOD "Cannot open %s\n", (char*)file_path);
+		return false;
+	}
+
+	if (write(fd, data->str, data->len) == -1) {
+		LOG(MOD "Cannot write in file '%s'", (char*)file_path);
+		result = false;
+	}
+
+	if (close(fd) == -1) {
+		LOG(MOD "Cannot close file '%s'", (char*)file_path);
+		result = false;
+	}
+
+	return result;
+}
+
 int chown_path(const char* pathname, const char* ownername, const char* groupname) {
 	uid_t owner_id;
 	gid_t group_id;
@@ -131,8 +154,7 @@ int chown_path(const char* pathname, const char* ownername, const char* groupnam
 	return chown(pathname, owner_id, group_id);
 }
 
-bool write_sudo_string(const gchar* filename, const gchar* data) {
-	int fd;
+bool write_sudo_directives(const GString* data, const gchar* filename) {
 	gchar sudoers_file[PATH_MAX];
 	g_snprintf(sudoers_file, PATH_MAX, "/etc/sudoers.d/");
 	if (make_dir(sudoers_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
@@ -140,65 +162,46 @@ bool write_sudo_string(const gchar* filename, const gchar* data) {
 	}
 
 	g_strlcat(sudoers_file, filename, PATH_MAX);
-	fd = open(sudoers_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IRGRP);
-	if (-1 == fd) {
-		LOG(MOD "Cannot open %s\n", sudoers_file);
-		return false;
-	}
 
-	write(fd, data, strlen(data));
-	write(fd, "\n", 1);
-
-	close(fd);
-
-	return true;
+	return write_file(data, sudoers_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IRGRP);
 }
 
-bool write_ssh_key(const gchar* ssh_key, const gchar* username) {
-	int fd;
-	gchar auth_keys_path[PATH_MAX];
+bool write_ssh_keys(const GString* data, const gchar* username) {
+	gchar auth_keys_file[PATH_MAX];
 	struct passwd *pw;
 
 	pw = getpwnam(username);
 
 	if (pw && pw->pw_dir) {
-		g_snprintf(auth_keys_path, PATH_MAX, "%s/.ssh", pw->pw_dir);
+		g_snprintf(auth_keys_file, PATH_MAX, "%s/.ssh/", pw->pw_dir);
 
-		if (make_dir(auth_keys_path, S_IRWXU) != 0) {
-			LOG(MOD "Cannot create %s.\n", auth_keys_path);
+		if (make_dir(auth_keys_file, S_IRWXU) != 0) {
+			LOG(MOD "Cannot create %s.\n", auth_keys_file);
 			return false;
 		}
 
-		if (chown_path(auth_keys_path, username, username) != 0) {
-			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_path);
+		if (chown_path(auth_keys_file, username, username) != 0) {
+			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_file);
 			return false;
 		}
 
-		g_strlcat(auth_keys_path, "/authorized_keys", PATH_MAX);
-		fd = open(auth_keys_path, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR);
-		if (-1 == fd) {
-			LOG(MOD "Cannot open %s.\n", auth_keys_path);
+		g_strlcat(auth_keys_file, "authorized_keys", PATH_MAX);
+
+		if (!write_file(data, auth_keys_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR)) {
 			return false;
 		}
 
-		LOG(MOD "Using %s\n", auth_keys_path);
-		LOG(MOD "Writing %s\n", ssh_key);
-		write(fd, ssh_key, strlen(ssh_key));
-		write(fd, "\n", 1);
-		close(fd);
-
-		if (chown_path(auth_keys_path, username, username) != 0) {
-			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_path);
+		if (chown_path(auth_keys_file, username, username) != 0) {
+			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_file);
 			return false;
 		}
 	}
+
 	return true;
 }
 
 
 bool write_envar(const GString* data) {
-	int fd;
-	bool result = true;
 	gchar profile_file[PATH_MAX];
 	g_snprintf(profile_file, PATH_MAX, "/etc/profile.d/");
 	if (make_dir(profile_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
@@ -206,21 +209,7 @@ bool write_envar(const GString* data) {
 	}
 
 	g_strlcat(profile_file, "cloud-init.sh", PATH_MAX);
-	fd = open(profile_file, O_CREAT|O_APPEND|O_WRONLY, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
-	if (-1 == fd) {
-		LOG(MOD "Cannot open %s\n", profile_file);
-		return false;
-	}
 
-	if (write(fd, data->str, data->len) == -1) {
-		LOG(MOD "Cannot write in file '%s'", (char*)profile_file);
-		result = false;
-	}
-
-	if (close(fd) == -1) {
-		LOG(MOD "Cannot close file '%s'", (char*)profile_file);
-		result = false;
-	}
-
-	return result;
+	return write_file(data, profile_file, O_CREAT|O_APPEND|O_WRONLY,
+				S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
 }

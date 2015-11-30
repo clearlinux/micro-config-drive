@@ -64,8 +64,6 @@ static void openstack_metadata_not_implemented(GNode* node);
 static void openstack_metadata_keys(GNode* node);
 static void openstack_metadata_hostname(GNode* node);
 
-extern gboolean ssh_authorized_keys_write_ssh_key(const gchar* node, const gchar* username);
-
 struct openstack_metadata_data {
 	const gchar* key;
 	void (*func)(GNode* node);
@@ -206,12 +204,15 @@ static void openstack_metadata_not_implemented(__unused__ GNode* node) {
 }
 
 static void openstack_metadata_keys(GNode* node) {
-	__unused__ bool b;
+	GString* ssh_key;
 	while (node) {
 		if (g_strcmp0("data", node->data) == 0) {
 			LOG(MOD "keys processing %s\n", (char*)node->data);
-			/* TODO: If this fails we should break or similar */
-			b = write_ssh_key(node->children->data, DEFAULT_USER_USERNAME);
+			ssh_key = g_string_new(node->children->data);
+			if (!write_ssh_keys(ssh_key, DEFAULT_USER_USERNAME)) {
+				LOG(MOD "Cannot Write ssh key\n");
+			}
+			g_string_free(ssh_key, true);
 		} else {
 			LOG(MOD "keys nothing to do with %s\n", (char*)node->data);
 		}

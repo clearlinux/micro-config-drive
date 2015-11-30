@@ -49,15 +49,13 @@
 #define MOD "SSH authorized keys: "
 
 
-gboolean ssh_authorized_keys_item(GNode* node, gpointer username) {
-	if (!write_ssh_key(node->data, username)) {
-		return true; /* stop g_node_traverse */
-	}
-
+static gboolean ssh_authorized_keys_item(GNode* node, gpointer data) {
+	g_string_append_printf((GString*)data, "%s\n", (char*)node->data);
 	return false;
 }
 
 void ssh_authorized_keys_handler(GNode *node) {
+	GString* ssh_keys = NULL;
 	LOG(MOD "SSH authorized keys Handler running...\n");
 	gchar *username = cloud_config_get_global("first_user");
 	if (!username) {
@@ -65,8 +63,13 @@ void ssh_authorized_keys_handler(GNode *node) {
 	}
 
 	LOG(MOD "User %s\n", (char*)username);
+	ssh_keys = g_string_new("");
 	g_node_traverse(node, G_IN_ORDER, G_TRAVERSE_LEAVES,
-			-1, ssh_authorized_keys_item, username);
+			-1, ssh_authorized_keys_item, ssh_keys);
+	if (!write_ssh_keys(ssh_keys, username)) {
+		LOG(MOD "Cannot write ssh keys\n");
+	}
+	g_string_free(ssh_keys, true);
 }
 
 struct cc_module_handler_struct ssh_authorized_keys_cc_module = {

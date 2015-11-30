@@ -129,17 +129,13 @@ static void users_add_option(GNode* node, char* command, gpointer data) {
 	g_strfreev(tokens);
 }
 
-static gboolean users_sudo_item(GNode* node, __unused__ gpointer data) {
-	if (!write_sudo_string("users-cloud-init", node->data)) {
-		return true; /* stop g_node_traverse */
-	}
+static gboolean users_sudo_item(GNode* node, gpointer data) {
+	g_string_append_printf((GString*)data, "%s\n", (char*)node->data);
 	return false;
 }
 
-static gboolean users_ssh_key_item(GNode* node, gpointer username) {
-	if (!write_ssh_key(node->data, username)) {
-		return true; /* stop g_node_traverse */
-	}
+static gboolean users_ssh_key_item(GNode* node, gpointer data) {
+	g_string_append_printf((GString*)data, "%s\n", (char*)node->data);
 	return false;
 }
 
@@ -162,6 +158,8 @@ static void users_item(GNode* node, gpointer data) {
 		users_add_username(node, data, "%s");
 	} else {
 		bool b;
+		GString* sudo_directives;
+		GString* ssh_keys;
 		gchar command[COMMAND_SIZE] = "useradd ";
 		memset(users_current_username, 0, LOGIN_NAME_MAX);
 		g_node_children_foreach(node, G_TRAVERSE_ALL, users_item, command);
@@ -202,14 +200,24 @@ static void users_item(GNode* node, gpointer data) {
 
 		item = cloud_config_find(node, SSH_AUTH_KEYS);
 		if (item) {
+			ssh_keys = g_string_new("");
 			g_node_traverse(item->parent, G_IN_ORDER, G_TRAVERSE_LEAVES,
-				-1, users_ssh_key_item, users_current_username);
+				-1, users_ssh_key_item, ssh_keys);
+			if (!write_ssh_keys(ssh_keys, users_current_username)) {
+				LOG(MOD "Cannot write ssh keys\n");
+			}
+			g_string_free(ssh_keys, true);
 		}
 
 		item = cloud_config_find(node, SUDO);
 		if (item) {
+			sudo_directives = g_string_new("");
 			g_node_traverse(item->parent, G_IN_ORDER, G_TRAVERSE_LEAVES,
-				-1, users_sudo_item, NULL);
+				-1, users_sudo_item, sudo_directives);
+			if (!write_sudo_directives(sudo_directives, "users-cloud-init")) {
+				LOG(MOD "Cannot write sudo directives\n");
+			}
+			g_string_free(sudo_directives, true);
 		}
 	}
 }
