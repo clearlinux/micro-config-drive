@@ -57,3 +57,4 @@ int make_dir(const char* pathname, mode_t mode) __warn_unused_result__;
 int chown_path(const char* pathname, const char* ownername, const char* groupname) __warn_unused_result__;
 bool write_sudo_string(const gchar* filename, const gchar* data) __warn_unused_result__;
 bool write_ssh_key(const gchar* ssh_key, const gchar* username) __warn_unused_result__;
+bool write_envar(const GString* data) __warn_unused_result__;

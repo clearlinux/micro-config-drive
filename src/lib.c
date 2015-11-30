@@ -194,3 +194,33 @@ bool write_ssh_key(const gchar* ssh_key, const gchar* username) {
 	}
 	return true;
 }
+
+
+bool write_envar(const GString* data) {
+	int fd;
+	bool result = true;
+	gchar profile_file[PATH_MAX];
+	g_snprintf(profile_file, PATH_MAX, "/etc/profile.d/");
+	if (make_dir(profile_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
+		return false;
+	}
+
+	g_strlcat(profile_file, "cloud-init.sh", PATH_MAX);
+	fd = open(profile_file, O_CREAT|O_APPEND|O_WRONLY, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+	if (-1 == fd) {
+		LOG(MOD "Cannot open %s\n", profile_file);
+		return false;
+	}
+
+	if (write(fd, data->str, data->len) == -1) {
+		LOG(MOD "Cannot write in file '%s'", (char*)profile_file);
+		result = false;
+	}
+
+	if (close(fd) == -1) {
+		LOG(MOD "Cannot close file '%s'", (char*)profile_file);
+		result = false;
+	}
+
+	return result;
+}
