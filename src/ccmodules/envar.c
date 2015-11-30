@@ -1,7 +1,6 @@
 /***
  Copyright (C) 2015 Intel Corporation
 
- Author: Auke-jan H. Kok <auke-jan.h.kok@intel.com>
  Author: Julio Montes <julio.montes@intel.com>
 
  This file is part of clr-cloud-init.
@@ -33,34 +32,45 @@
  files in the program, then also delete it here.
 ***/
 
-/*
- * List existing modules so they can be registered from main.c
- */
+#include <stdbool.h>
+#include <string.h>
 
-#pragma once
+#include <glib.h>
 
-extern struct cc_module_handler_struct package_upgrade_cc_module;
-extern struct cc_module_handler_struct write_files_cc_module;
-extern struct cc_module_handler_struct packages_cc_module;
-extern struct cc_module_handler_struct groups_cc_module;
-extern struct cc_module_handler_struct users_cc_module;
-extern struct cc_module_handler_struct ssh_authorized_keys_cc_module;
-extern struct cc_module_handler_struct service_cc_module;
-extern struct cc_module_handler_struct hostname_cc_module;
-extern struct cc_module_handler_struct runcmd_cc_module;
-extern struct cc_module_handler_struct envar_cc_module;
+#include "handlers.h"
+#include "lib.h"
 
-struct cc_module_handler_struct *cc_module_structs[] =  {
-	&package_upgrade_cc_module,
-	&write_files_cc_module,
-	&packages_cc_module,
-	&groups_cc_module,
-	&users_cc_module,
-	&ssh_authorized_keys_cc_module,
-	&service_cc_module,
-	&hostname_cc_module,
-	&runcmd_cc_module,
-	&envar_cc_module,
-	NULL
+#define MOD "envar: "
+
+static GString* buffer_envar = NULL;
+
+static void envar_item(GNode* node, gpointer data) {
+	if (!node->data || !data) {
+		g_node_children_foreach(node, G_TRAVERSE_ALL,
+			envar_item, node->data ? node->data : data);
+	} else {
+		g_string_append_printf(buffer_envar, "export %s=\"%s\"\n",
+			(char*)data, (char*)node->data );
+		g_setenv(data, node->data, true);
+	}
+}
+
+void envar_handler(GNode *node) {
+	buffer_envar = g_string_new("");
+
+	LOG(MOD "Groups Handler running...\n");
+	g_node_children_foreach(node, G_TRAVERSE_ALL,
+		envar_item, NULL);
+
+	if (!write_envar(buffer_envar)) {
+		LOG(MOD "Cannot write environment variables\n");
+	}
+
+	g_string_free(buffer_envar, true);
+	buffer_envar = NULL;
+}
+
+struct cc_module_handler_struct envar_cc_module = {
+	.name = "envar",
+	.handler = &envar_handler
 };
-

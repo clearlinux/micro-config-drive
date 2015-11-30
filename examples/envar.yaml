@@ -1,0 +1,8 @@
+#cloud-config
+envar:
+  - http_proxy : www.com:123
+  - rsync_proxy : www.com:123
+  - ftp_proxy : www.com:123
+  - https_proxy : www.com:123
+  - socks_proxy : www.com:123
+  - no_proxy : com,.com,localhost

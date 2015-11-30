@@ -76,6 +76,7 @@ ssh_authorized_keys  Provision SSH public keys             yes   yes
 users                Configure user accounts               yes   yes
 write_files          Write content to arbitrary files      yes   yes
 hostname             Define the system's hostname          yes   yes
+envar                Set environment variables             no    no
 _
 .TE
 .RE
@@ -268,6 +269,19 @@ owner       string    no           Username and optionally group name, separated
 permissions octal     no           Octal value describing the file permissions
                                    default value is influenced according to
                                    \fBumask\fR
+.TE
+.RE
+
+.PP
+\fBenvar\fR
+.RS 4
+.TS
+lb    lb lb lb
+lfCW  l  l l l.
+Option     Type      Required     Function
+_
+*          string    yes          Add environment variables to /etc/profile.d/cloud-init.sh
+                                  and to current cloud-init process
 .TE
 .RE
 
