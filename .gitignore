@@ -24,6 +24,10 @@ clr-cloud-init-*/
 tests/Makefile
 tests/.libs/
 tests/lib_test
-
+libtool
+ltmain.sh
+m4/
+test-driver
+			
 # scan-build
 *.plist
