@@ -54,6 +54,8 @@
 
 #define MOD "lib: "
 
+#define SUDOERS_PATH SYSCONFDIR "/sudoers.d/"
+
 void LOG(const char *fmt, ...) {
 	va_list args;
 
@@ -155,8 +157,8 @@ int chown_path(const char* pathname, const char* ownername, const char* groupnam
 }
 
 bool write_sudo_directives(const GString* data, const gchar* filename) {
-	gchar sudoers_file[PATH_MAX];
-	g_snprintf(sudoers_file, PATH_MAX, "/etc/sudoers.d/");
+	gchar sudoers_file[PATH_MAX] = { 0 };
+	g_strlcpy(sudoers_file, SUDOERS_PATH, PATH_MAX);
 	if (make_dir(sudoers_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
 		return false;
 	}

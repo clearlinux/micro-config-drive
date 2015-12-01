@@ -67,7 +67,7 @@ void envar_handler(GNode *node) {
 	g_node_children_foreach(node, G_TRAVERSE_ALL,
 		envar_item, NULL);
 
-	g_strlcat(profile_file, PROFILE_PATH, PATH_MAX);
+	g_strlcpy(profile_file, PROFILE_PATH, PATH_MAX);
 	if (make_dir(profile_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
 		LOG(MOD "Cannot create directory '%s'\n", (char*)profile_file);
 		goto fail;
