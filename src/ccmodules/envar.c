@@ -34,6 +34,8 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <glib.h>
 
@@ -41,6 +43,8 @@
 #include "lib.h"
 
 #define MOD "envar: "
+
+#define PROFILE_PATH SYSCONFDIR "/profile.d"
 
 static GString* buffer_envar = NULL;
 
@@ -56,16 +60,28 @@ static void envar_item(GNode* node, gpointer data) {
 }
 
 void envar_handler(GNode *node) {
+	gchar profile_file[PATH_MAX] = { 0 };
 	buffer_envar = g_string_new("");
 
 	LOG(MOD "Groups Handler running...\n");
 	g_node_children_foreach(node, G_TRAVERSE_ALL,
 		envar_item, NULL);
 
-	if (!write_envar(buffer_envar)) {
-		LOG(MOD "Cannot write environment variables\n");
+	g_strlcat(profile_file, PROFILE_PATH, PATH_MAX);
+	if (make_dir(profile_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
+		LOG(MOD "Cannot create directory '%s'\n", (char*)profile_file);
+		goto fail;
 	}
 
+	g_strlcat(profile_file, "/cloud-init.sh", PATH_MAX);
+
+	if (!write_file(buffer_envar, profile_file, O_CREAT|O_APPEND|O_WRONLY,
+			S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)) {
+		LOG(MOD "Cannot write environment variables\n");
+		goto fail;
+	}
+
+fail:
 	g_string_free(buffer_envar, true);
 	buffer_envar = NULL;
 }

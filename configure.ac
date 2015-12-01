@@ -20,6 +20,9 @@ AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 
+# Add definitions
+AC_DEFINE_UNQUOTED([SYSCONFDIR], ["$sysconfdir"], [Path to system configuration directory])
+
 # Add options
 AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug], [enable debug mode @<:@default=no@:>@]),
 	      [], [enable_debug=no])

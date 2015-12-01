@@ -117,7 +117,7 @@ int make_dir(const char* pathname, mode_t mode) {
 	return 0;
 }
 
-static bool write_file(const GString* data, const gchar* file_path, int oflags, mode_t mode) {
+bool write_file(const GString* data, const gchar* file_path, int oflags, mode_t mode) {
 	int fd;
 	bool result = true;
 
@@ -198,18 +198,4 @@ bool write_ssh_keys(const GString* data, const gchar* username) {
 	}
 
 	return true;
-}
-
-
-bool write_envar(const GString* data) {
-	gchar profile_file[PATH_MAX];
-	g_snprintf(profile_file, PATH_MAX, "/etc/profile.d/");
-	if (make_dir(profile_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
-		return false;
-	}
-
-	g_strlcat(profile_file, "cloud-init.sh", PATH_MAX);
-
-	return write_file(data, profile_file, O_CREAT|O_APPEND|O_WRONLY,
-				S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
 }
