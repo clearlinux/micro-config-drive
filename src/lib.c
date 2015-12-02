@@ -47,6 +47,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <time.h>
 
 #include <glib.h>
 
@@ -58,9 +59,13 @@
 
 void LOG(const char *fmt, ...) {
 	va_list args;
+	struct timespec now;
 
 	va_start(args, fmt);
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	fprintf(stderr, "[%f] ", ((double)now.tv_sec + ((double)now.tv_nsec / 1000000000.0)));
 	vfprintf(stderr, fmt, args);
+
 	va_end(args);
 }
 
