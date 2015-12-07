@@ -8,7 +8,7 @@ ConditionFirstBoot=yes
 
 [Service]
 Type=oneshot
-ExecStart=@prefix@/bin/cloud-init --first-boot
+ExecStart=@prefix@/bin/cloud-init --first-boot --openstack-user-data --openstack-metadata
 RemainAfterExit=yes
 TimeoutSec=0
 
