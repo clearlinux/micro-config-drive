@@ -51,8 +51,10 @@
 #define MOD "openstack: "
 #define USERDATA_URL "http://169.254.169.254/openstack/latest/user_data"
 #define METADATA_URL "http://169.254.169.254/openstack/latest/meta_data.json"
+#define ATTEMPTS 10
+#define U_SLEEP 300000
 
-int openstack_main(bool first_boot);
+int openstack_main(struct datasource_options_struct* opts);
 
 static int openstack_metadata(CURL* curl);
 static int openstack_userdata(CURL* curl);
@@ -89,7 +91,7 @@ struct datasource_handler_struct openstack_datasource = {
 	.handler=&openstack_main
 };
 
-int openstack_main(bool first_boot) {
+int openstack_main(struct datasource_options_struct* opts) {
 	int result_code = EXIT_FAILURE;
 	CURL* curl = NULL;
 
@@ -98,7 +100,7 @@ int openstack_main(bool first_boot) {
 		goto clean;
 	}
 
-	if (first_boot) {
+	if (opts->metadata) {
 		if (openstack_metadata(curl) != EXIT_SUCCESS) {
 			LOG(MOD "Get and process metadata fail\n");
 			goto clean;
@@ -107,11 +109,12 @@ int openstack_main(bool first_boot) {
 
 	result_code = EXIT_SUCCESS;
 
-	if (openstack_userdata(curl) != EXIT_SUCCESS) {
-		LOG(MOD "No userdata provided to this machine\n");
-		goto clean;
+	if (opts->user_data) {
+		if (openstack_userdata(curl) != EXIT_SUCCESS) {
+			LOG(MOD "No userdata provided to this machine\n");
+			goto clean;
+		}
 	}
-
 clean:
 	curl_easy_cleanup(curl);
 	return result_code;
@@ -150,7 +153,7 @@ static int openstack_userdata(CURL* curl) {
 	gchar* data_filename = NULL;
 
 	LOG(MOD "Fetching userdata file URL %s\n", USERDATA_URL );
-	data_filename = curl_fetch_file(curl, USERDATA_URL, 1, 0);
+	data_filename = curl_fetch_file(curl, USERDATA_URL, ATTEMPTS, U_SLEEP);
 	if (!data_filename) {
 		LOG(MOD "Fetch userdata failed\n");
 		return EXIT_FAILURE;
@@ -166,7 +169,7 @@ static int openstack_metadata(CURL* curl) {
 	int result_code;
 
 	LOG(MOD "Fetching metadata file URL %s\n", METADATA_URL );
-	data_filename = curl_fetch_file(curl, METADATA_URL, 10, 300000);
+	data_filename = curl_fetch_file(curl, METADATA_URL, ATTEMPTS, U_SLEEP);
 	if (!data_filename) {
 		LOG(MOD "Fetch metadata failed\n");
 		return EXIT_FAILURE;

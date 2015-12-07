@@ -37,9 +37,14 @@
 
 #include <glib.h>
 
+struct datasource_options_struct {
+	bool user_data;
+	bool metadata;
+};
+
 struct cc_module_handler_struct {
 	gchar *name;
-	void (*handler)(GNode *node);
+	void (*handler)(GNode* node);
 };
 
 struct interpreter_handler_struct {
@@ -49,5 +54,5 @@ struct interpreter_handler_struct {
 
 struct datasource_handler_struct {
 	gchar *datasource;
-	int (*handler)(bool first_boot);
+	int (*handler)(struct datasource_options_struct* opts);
 };

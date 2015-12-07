@@ -29,13 +29,16 @@ cloud\-init \- Configures a cloud instance
 .SH "DESCRIPTION"
 .PP
 \fBcloud-init\fR
-is run during first boot of a new cloud instance, with the purpose of
-configuring the cloud instance for use for the end user.
+has two services: cloud-init-firstboot and cloud-init.
+cloud-init-fistboot service runs during first boot of a new cloud intance,
+with the purpose of configuring the cloud instance for use of the end user.
+cloud-init service runs in each boot after first boot, with the purpose of
+maintaining the cloud instance in a right state (resize/fix partitions and/or
+filesystems, reprocess user data and/or metadata, and more).
 .PP
-Various tasks can be performed, and all are optional. cloud-init parses
-the provided user-data and can create user accounds, user groups, register
-ssh keys, write content to files, perform software update or install new
-software, and more.
+Various tasks can be performed, and all are optional. cloud-init can create
+user accounts, user groups, register ssh keys, write content to files,
+perform software update or install new software, and more.
 .RE
 
 .SH "OPTIONS"
@@ -61,10 +64,20 @@ attempt to fetch metadata from the openstack link-local connected data
 service URL.
 .RE
 .PP
+\fB\-\-openstack\-user\-data\fR
+.RS 4
+Get and process user data from Openstack metadata service.
+.RE
+.PP
+\fB\-\-openstack\-metadata\fR
+.RS 4
+Get and process metadata from Openstack metadata service.
+.RE
+.PP
 \fB\-\-no\-growpart\fR
 .RS 4
 Do not verify disk partitions. \fBcloud-init\fR
-will not resize/grow up partitions or filesystems.
+will not resize/fix partitions and/or filesystems.
 .RE
 .PP
 \fB\-b\fR, \fB\-\-first\-boot\fR

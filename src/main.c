@@ -58,12 +58,16 @@
 /* Long options */
 enum {
 	OPT_OPENSTACK_METADATA_FILE=1001,
+	OPT_OPENSTACK_USER_DATA,
+	OPT_OPENSTACK_METADATA,
 	OPT_NO_GROWPART,
 };
 
 static struct option opts[] = {
 	{ "user-data-file",             required_argument, NULL, 'u' },
 	{ "openstack-metadata-file",    required_argument, NULL, OPT_OPENSTACK_METADATA_FILE },
+	{ "openstack-user-data",        no_argument, NULL, OPT_OPENSTACK_USER_DATA },
+	{ "openstack-metadata",         no_argument, NULL, OPT_OPENSTACK_METADATA },
 	{ "help",                       no_argument, NULL, 'h' },
 	{ "version",                    no_argument, NULL, 'v' },
 	{ "first-boot",                 no_argument, NULL, 'b' },
@@ -72,12 +76,13 @@ static struct option opts[] = {
 };
 
 int main(int argc, char *argv[]) {
-	int result_code = EXIT_SUCCESS;
-	bool first_boot = false;
-	bool openstack_mf = false;
-	bool no_growpart = false;
 	int c;
 	int i;
+	int result_code = EXIT_SUCCESS;
+	bool no_growpart = false;
+	bool openstack_flag = false;
+	bool first_boot = false;
+	struct datasource_options_struct datasource_opts = { 0 };
 	gchar* userdata_filename = NULL;
 	gchar* tmp_metafile = NULL;
 	gchar metadata_filename[PATH_MAX] = { 0 };
@@ -102,12 +107,16 @@ int main(int argc, char *argv[]) {
 			LOG("Usage: %s [options]\n", argv[0]);
 			LOG("-u, --user-data-file [file]            specify a custom user data file\n");
 			LOG("    --openstack-metadata-file [file]   specify an Openstack metadata file\n");
+			LOG("    --openstack-user-data              get and process user data from Openstack\n");
+			LOG("                                       metadata service\n");
+			LOG("    --openstack-metadata               get and process metadata from Openstack\n");
+			LOG("                                       metadata service\n");
 			LOG("-h, --help                             display this help message\n");
 			LOG("-v, --version                          display the version number of this program\n");
 			LOG("-b, --first-boot                       set up the system in its first boot\n");
-			LOG("    --no-growpart                      Do not verify disk partitions.\n");
+			LOG("    --no-growpart                      do not verify disk partitions.\n");
 			LOG("                                       %s will not resize the filesystem\n", argv[0]);
-			LOG("\nIf no user data or metadata is provided on the command line,\n");
+			LOG("If no user data or metadata is provided on the command line,\n");
 			LOG("%s will fetch these through the datasources API's.\n", argv[0]);
 			exit(EXIT_SUCCESS);
 			break;
@@ -126,8 +135,18 @@ int main(int argc, char *argv[]) {
 			break;
 
 		case OPT_OPENSTACK_METADATA_FILE:
+			openstack_flag = true;
 			tmp_metafile = g_strdup(optarg);
-			openstack_mf = true;
+			break;
+
+		case OPT_OPENSTACK_USER_DATA:
+			openstack_flag = true;
+			datasource_opts.user_data = true;
+			break;
+
+		case OPT_OPENSTACK_METADATA:
+			openstack_flag = true;
+			datasource_opts.metadata = true;
 			break;
 
 		case OPT_NO_GROWPART:
@@ -198,7 +217,7 @@ int main(int argc, char *argv[]) {
 
 	/* process metadata file */
 	if (metadata_filename[0]) {
-		if (openstack_mf) {
+		if (openstack_flag) {
 			result_code = openstack_process_metadata(metadata_filename);
 		}
 	}
@@ -206,7 +225,7 @@ int main(int argc, char *argv[]) {
 	if (!userdata_filename && !metadata_filename[0]) {
 		/* get/process userdata and metadata from datasources */
 		for (i = 0; cloud_structs[i] != NULL; ++i) {
-			result_code = cloud_structs[i]->handler(first_boot);
+			result_code = cloud_structs[i]->handler(&datasource_opts);
 			if (EXIT_SUCCESS == result_code) {
 				break;
 			}
