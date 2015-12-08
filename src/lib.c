@@ -75,13 +75,18 @@ bool exec_task(const gchar* command_line) {
 	GError* error = NULL;
 	gint exit_status = 0;
 	gboolean result;
+	GString* command;
+	command = g_string_new("");
+	g_string_printf(command, SHELL_PATH " -c '%s'", (char*)command_line );
 
-	LOG(MOD "Executing: %s\n", command_line);
-	result = g_spawn_command_line_sync(command_line,
+	LOG(MOD "Executing: %s\n", command->str);
+	result = g_spawn_command_line_sync(command->str,
 		&standard_output,
 		&standard_error,
 		&exit_status,
 		&error);
+
+	g_string_free(command, true);
 
 	if (!result || exit_status != 0) {
 		LOG(MOD "Command failed\n");
@@ -89,12 +94,12 @@ bool exec_task(const gchar* command_line) {
 			LOG(MOD "Error: %s\n", (char*)error->message);
 		}
 		if (standard_error) {
-			LOG(MOD "STD Error: %s", (char*)standard_error);
+			LOG(MOD "STD Error: %s\n", (char*)standard_error);
 		}
 	}
 
 	if (standard_output) {
-		LOG(MOD "STD output: %s", (char*)standard_output);
+		LOG(MOD "STD output: %s\n", (char*)standard_output);
 		g_free(standard_output);
 	}
 

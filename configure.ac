@@ -74,6 +74,13 @@ fi
 AC_SUBST(RESIZE2FS)
 AC_DEFINE_UNQUOTED([RESIZEFS_PATH], ["$RESIZE2FS"], [Path to resize2fs binary])
 
+AC_PATH_PROG([SHELL], [sh], [no], [$PATH:/sbin:/usr/sbin])
+if test x"$SHELL" == x"no" ; then
+   AC_MSG_ERROR([Please install sh.])
+fi
+AC_SUBST(SHELL)
+AC_DEFINE_UNQUOTED([SHELL_PATH], ["$SHELL"], [Path to sh binary])
+
 AC_PATH_PROG([HOSTNAMECTL], [hostnamectl], [no], [$PATH:/sbin:/usr/sbin])
 if test x"$HOSTNAMECTL" == x"no" ; then
    AC_MSG_ERROR([Please install hostnamectl.])
