@@ -74,6 +74,48 @@ fi
 AC_SUBST(RESIZE2FS)
 AC_DEFINE_UNQUOTED([RESIZEFS_PATH], ["$RESIZE2FS"], [Path to resize2fs binary])
 
+AC_PATH_PROG([HOSTNAMECTL], [hostnamectl], [no], [$PATH:/sbin:/usr/sbin])
+if test x"$HOSTNAMECTL" == x"no" ; then
+   AC_MSG_ERROR([Please install hostnamectl.])
+fi
+AC_SUBST(HOSTNAMECTL)
+AC_DEFINE_UNQUOTED([HOSTNAMECTL_PATH], ["$HOSTNAMECTL"], [Path to hostnamectl binary])
+
+AC_PATH_PROG([SYSTEMCTL], [systemctl], [no], [$PATH:/sbin:/usr/sbin])
+if test x"$SYSTEMCTL" == x"no" ; then
+   AC_MSG_ERROR([Please install systemctl.])
+fi
+AC_SUBST(SYSTEMCTL)
+AC_DEFINE_UNQUOTED([SYSTEMCTL_PATH], ["$SYSTEMCTL"], [Path to systemctl binary])
+
+AC_PATH_PROG([PASSWD], [passwd], [no], [$PATH:/sbin:/usr/sbin])
+if test x"$PASSWD" == x"no" ; then
+   AC_MSG_ERROR([Please install passwd.])
+fi
+AC_SUBST(PASSWD)
+AC_DEFINE_UNQUOTED([PASSWD_PATH], ["$PASSWD"], [Path to passwd binary])
+
+AC_PATH_PROG([GROUPADD], [groupadd], [/usr/sbin/groupadd], [$PATH:/sbin:/usr/sbin])
+if ! test -f "$GROUPADD" ; then
+   AC_MSG_ERROR([Please install groupadd.])
+fi
+AC_SUBST(GROUPADD)
+AC_DEFINE_UNQUOTED([GROUPADD_PATH], ["$GROUPADD"], [Path to groupadd binary])
+
+AC_PATH_PROG([USERMOD], [usermod], [/usr/sbin/usermod], [$PATH:/sbin:/usr/sbin])
+if ! test -f "$USERMOD" ; then
+   AC_MSG_ERROR([Please install usermod.])
+fi
+AC_SUBST(USERMOD)
+AC_DEFINE_UNQUOTED([USERMOD_PATH], ["$USERMOD"], [Path to usermod binary])
+
+AC_PATH_PROG([USERADD], [useradd], [/usr/sbin/useradd], [$PATH:/sbin:/usr/sbin])
+if ! test -f "$USERADD" ; then
+   AC_MSG_ERROR([Please install useradd.])
+fi
+AC_SUBST(USERADD)
+AC_DEFINE_UNQUOTED([USERADD_PATH], ["$USERADD"], [Path to useradd binary])
+
 # Options
 AC_ARG_WITH([systemdsystemunitdir], AS_HELP_STRING([--with-systemdsystemunitdir=DIR],
 	[path to systemd system service directory]), [path_systemdsystemunit=${withval}],

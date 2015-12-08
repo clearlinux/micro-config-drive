@@ -225,6 +225,6 @@ static void openstack_metadata_keys(GNode* node) {
 
 static void openstack_metadata_hostname(GNode* node) {
 	gchar command[LINE_MAX];
-	g_snprintf(command, LINE_MAX, "hostnamectl set-hostname '%s'", (char*)node->data);
+	g_snprintf(command, LINE_MAX, HOSTNAMECTL_PATH " set-hostname '%s'", (char*)node->data);
 	exec_task(command);
 }

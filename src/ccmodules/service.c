@@ -45,7 +45,7 @@
 
 static gboolean service_action(GNode* node, gpointer data) {
 	gchar c[COMMAND_SIZE];
-	g_snprintf(c, COMMAND_SIZE, "systemctl %s %s", (char*)data, (char*)node->data);
+	g_snprintf(c, COMMAND_SIZE, SYSTEMCTL_PATH " %s %s", (char*)data, (char*)node->data);
 	exec_task(c);
 	return false;
 }

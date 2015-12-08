@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
 	if (first_boot) {
 		/* default user will be used by ccmodules and datasources */
 		command[0] = 0;
-		snprintf(command, LINE_MAX, "useradd"
+		snprintf(command, LINE_MAX, USERADD_PATH
 				" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
 				, DEFAULT_USER_HOME_DIR
 				, DEFAULT_USER_GROUPS
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
 		g_string_free(sudo_directives, true);
 
 		/* lock root account for security */
-		snprintf(command, LINE_MAX, "usermod -p '!' root");
+		snprintf(command, LINE_MAX, USERMOD_PATH " -p '!' root");
 		exec_task(command);
 	}
 

@@ -160,7 +160,7 @@ static void users_item(GNode* node, gpointer data) {
 		bool b;
 		GString* sudo_directives;
 		GString* ssh_keys;
-		gchar command[COMMAND_SIZE] = "useradd ";
+		gchar command[COMMAND_SIZE] = USERADD_PATH " ";
 		memset(users_current_username, 0, LOGIN_NAME_MAX);
 		g_node_children_foreach(node, G_TRAVERSE_ALL, users_item, command);
 		if (0 == strlen(users_current_username)) {
@@ -181,7 +181,7 @@ static void users_item(GNode* node, gpointer data) {
 			cloud_config_bool(item, &b);
 			if (b) {
 				LOG(MOD "Locking %s user.\n", users_current_username);
-				g_snprintf(command, COMMAND_SIZE, "passwd -l %s",
+				g_snprintf(command, COMMAND_SIZE, PASSWD_PATH " -l %s",
 					users_current_username);
 				exec_task(command);
 			}
@@ -192,7 +192,7 @@ static void users_item(GNode* node, gpointer data) {
 			cloud_config_bool(item, &b);
 			if (b) {
 				LOG(MOD "Deactivating %s user...\n", users_current_username);
-				g_snprintf(command, COMMAND_SIZE, "usermod --expiredate 1 %s",
+				g_snprintf(command, COMMAND_SIZE, USERMOD_PATH " --expiredate 1 %s",
 					users_current_username);
 				exec_task(command);
 			}
