@@ -58,16 +58,16 @@
 /* Long options */
 enum {
 	OPT_OPENSTACK_METADATA_FILE=1001,
-	OPT_OPENSTACK_USER_DATA,
-	OPT_OPENSTACK_METADATA,
+	OPT_USER_DATA,
+	OPT_METADATA,
 	OPT_NO_GROWPART,
 };
 
 static struct option opts[] = {
 	{ "user-data-file",             required_argument, NULL, 'u' },
 	{ "openstack-metadata-file",    required_argument, NULL, OPT_OPENSTACK_METADATA_FILE },
-	{ "openstack-user-data",        no_argument, NULL, OPT_OPENSTACK_USER_DATA },
-	{ "openstack-metadata",         no_argument, NULL, OPT_OPENSTACK_METADATA },
+	{ "user-data",                  no_argument, NULL, OPT_USER_DATA },
+	{ "metadata",                   no_argument, NULL, OPT_METADATA },
 	{ "help",                       no_argument, NULL, 'h' },
 	{ "version",                    no_argument, NULL, 'v' },
 	{ "first-boot",                 no_argument, NULL, 'b' },
@@ -107,17 +107,13 @@ int main(int argc, char *argv[]) {
 			LOG("Usage: %s [options]\n", argv[0]);
 			LOG("-u, --user-data-file [file]            specify a custom user data file\n");
 			LOG("    --openstack-metadata-file [file]   specify an Openstack metadata file\n");
-			LOG("    --openstack-user-data              get and process user data from Openstack\n");
-			LOG("                                       metadata service\n");
-			LOG("    --openstack-metadata               get and process metadata from Openstack\n");
-			LOG("                                       metadata service\n");
+			LOG("    --user-data                        get and process user data from data sources\n");
+			LOG("    --metadata                         get and process metadata from data sources\n");
 			LOG("-h, --help                             display this help message\n");
 			LOG("-v, --version                          display the version number of this program\n");
 			LOG("-b, --first-boot                       set up the system in its first boot\n");
 			LOG("    --no-growpart                      do not verify disk partitions.\n");
 			LOG("                                       %s will not resize the filesystem\n", argv[0]);
-			LOG("If no user data or metadata is provided on the command line,\n");
-			LOG("%s will fetch these through the datasources API's.\n", argv[0]);
 			exit(EXIT_SUCCESS);
 			break;
 
@@ -139,13 +135,11 @@ int main(int argc, char *argv[]) {
 			tmp_metafile = g_strdup(optarg);
 			break;
 
-		case OPT_OPENSTACK_USER_DATA:
-			openstack_flag = true;
+		case OPT_USER_DATA:
 			datasource_opts.user_data = true;
 			break;
 
-		case OPT_OPENSTACK_METADATA:
-			openstack_flag = true;
+		case OPT_METADATA:
 			datasource_opts.metadata = true;
 			break;
 
@@ -222,7 +216,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (!userdata_filename && !metadata_filename[0]) {
+	if (datasource_opts.user_data || datasource_opts.metadata) {
 		/* get/process userdata and metadata from datasources */
 		for (i = 0; cloud_structs[i] != NULL; ++i) {
 			result_code = cloud_structs[i]->handler(&datasource_opts);
