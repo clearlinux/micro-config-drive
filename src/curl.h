@@ -37,6 +37,7 @@
 
 #include <unistd.h>
 
+#include <glib.h>
 #include <curl/curl.h>
 
 /*
