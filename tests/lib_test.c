@@ -45,20 +45,42 @@
 
 START_TEST(test_lib_exec_task)
 {
-	ck_assert(exec_task("echo 'this is a test!'") == true);
+	int fd;
+	char filename[] = "/tmp/test_lib_exec_task-XXXXXX";
+	const char *text = "this is a test!";
+	char line[LINE_MAX] = { 0 };
+	FILE* file;
+
+	fd = mkstemp(filename);
+
+	ck_assert(fd != -1);
+
+	snprintf(line, LINE_MAX, "echo -n '%s' > %s", text, filename);
+
+	ck_assert(exec_task(line) == true);
+
+	file = fdopen(fd, "r");
+
+	fgets(line, LINE_MAX, file);
+
+	ck_assert_str_eq(line, text);
+
+	fclose(file);
+
+	ck_assert(remove(filename) != -1);
 }
 END_TEST
 
 START_TEST(test_lib_chown_path)
 {
 	int fd;
-	char template[] = "/tmp/fileXXXXXX";
+	char filename[] = "/tmp/test_lib_chown_path-XXXXXX";
 	uid_t user_id;
 	gid_t group_id;
 	struct passwd *pswd;
 	struct group *grp;
 
-	fd = mkstemp(template);
+	fd = mkstemp(filename);
 	ck_assert(fd != -1);
 
 	user_id = getuid();
@@ -70,7 +92,9 @@ START_TEST(test_lib_chown_path)
 	grp = getgrgid(group_id);
 	ck_assert(grp != NULL);
 
-	ck_assert(chown_path(template, pswd->pw_name, grp->gr_name) == 0);
+	ck_assert(chown_path(filename, pswd->pw_name, grp->gr_name) == 0);
+
+	ck_assert(remove(filename) == 0);
 }
 END_TEST
 
