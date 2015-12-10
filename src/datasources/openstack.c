@@ -66,6 +66,8 @@ static void openstack_metadata_not_implemented(GNode* node);
 static void openstack_metadata_keys(GNode* node);
 static void openstack_metadata_hostname(GNode* node);
 
+static struct datasource_options_struct* options;
+
 struct openstack_metadata_data {
 	const gchar* key;
 	void (*func)(GNode* node);
@@ -95,12 +97,14 @@ int openstack_main(struct datasource_options_struct* opts) {
 	int result_code = EXIT_FAILURE;
 	CURL* curl = NULL;
 
+	options = opts;
+
 	if (!curl_common_init(&curl)) {
 		LOG(MOD "Curl initialize failed\n");
 		goto clean;
 	}
 
-	if (opts->metadata) {
+	if (options->metadata) {
 		if (openstack_metadata(curl) != EXIT_SUCCESS) {
 			LOG(MOD "Get and process metadata fail\n");
 			goto clean;
@@ -109,7 +113,7 @@ int openstack_main(struct datasource_options_struct* opts) {
 
 	result_code = EXIT_SUCCESS;
 
-	if (opts->user_data) {
+	if (options->user_data) {
 		if (openstack_userdata(curl) != EXIT_SUCCESS) {
 			LOG(MOD "No userdata provided to this machine\n");
 			goto clean;
@@ -150,10 +154,22 @@ fail:
 
 static int openstack_userdata(CURL* curl) {
 	int result_code;
+	int attempts = ATTEMPTS;
+	useconds_t u_sleep = U_SLEEP;
 	gchar* data_filename = NULL;
 
+	/*
+	* if metadata was downloaded, then we do not need to wait
+	* for nova metadata service because at this point it is
+	* already up (running)
+	*/
+	if (options->metadata) {
+		attempts = 1;
+		u_sleep = 0;
+	}
+
 	LOG(MOD "Fetching userdata file URL %s\n", USERDATA_URL );
-	data_filename = curl_fetch_file(curl, USERDATA_URL, ATTEMPTS, U_SLEEP);
+	data_filename = curl_fetch_file(curl, USERDATA_URL, attempts, u_sleep);
 	if (!data_filename) {
 		LOG(MOD "Fetch userdata failed\n");
 		return EXIT_FAILURE;
