@@ -91,6 +91,8 @@ START_TEST(test_lib_write_file)
 	fgets(line, LINE_MAX, file);
 	ck_assert_str_eq(line, text->str);
 	ck_assert(fclose(file) != EOF);
+	g_string_free(text, true);
+
 
 	ck_assert(stat(filename, &buf) != -1);
 	ck_assert((buf.st_mode&S_IRWXU) == S_IRWXU);
