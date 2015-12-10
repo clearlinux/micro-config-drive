@@ -9,7 +9,7 @@ TESTS =
 check_PROGRAMS =
 
 check_LTLIBRARIES = libtest.la
-COMMON_CFLAGS = -std=gnu99 $(AM_CFLAGS) -I$(top_srcdir)/src $(CHECK_FLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS)
+COMMON_CFLAGS = -std=gnu99 -I$(top_srcdir)/src $(CHECK_FLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS)
 COMMON_LDADD = $(CHECK_LIBS) $(GLIB_LIBS) $(CURL_LIBS)
 
 libtest_la_SOURCES = \
