@@ -144,6 +144,11 @@ bool write_file(const GString* data, const gchar* file_path, int oflags, mode_t 
 		result = false;
 	}
 
+	if (fchmod(fd, mode) == -1) {
+		LOG(MOD "Cannot change mode file '%s'", (char*)file_path);
+		result = false;
+	}
+
 	if (close(fd) == -1) {
 		LOG(MOD "Cannot close file '%s'", (char*)file_path);
 		result = false;
