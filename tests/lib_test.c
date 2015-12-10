@@ -37,11 +37,12 @@
 #include <stdio.h>
 #include <pwd.h>
 #include <grp.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <check.h>
 
 #include "lib.h"
-
 
 START_TEST(test_lib_exec_task)
 {
@@ -52,20 +53,49 @@ START_TEST(test_lib_exec_task)
 	FILE* file;
 
 	fd = mkstemp(filename);
-
 	ck_assert(fd != -1);
 
 	snprintf(line, LINE_MAX, "echo -n '%s' > %s", text, filename);
-
 	ck_assert(exec_task(line) == true);
 
 	file = fdopen(fd, "r");
-
 	fgets(line, LINE_MAX, file);
-
 	ck_assert_str_eq(line, text);
+	ck_assert(fclose(file) != EOF);
 
-	fclose(file);
+	ck_assert(remove(filename) != -1);
+}
+END_TEST
+
+START_TEST(test_lib_write_file)
+{
+	int fd;
+	bool write_file_result;
+	char filename[] = "/tmp/test_lib_write_file-XXXXXX";
+	GString* text;
+	char line[LINE_MAX] = { 0 };
+	FILE* file;
+	struct stat buf;
+
+	text = g_string_new("this is a test!");
+
+	fd = mkstemp(filename);
+	ck_assert(fd != -1);
+
+	write_file_result = write_file(text, filename,
+		O_CREAT|O_WRONLY, S_IRWXU|S_IRWXG|S_IRWXO);
+	ck_assert(write_file_result == true);
+
+	file = fopen(filename, "r");
+	ck_assert(file != NULL);
+	fgets(line, LINE_MAX, file);
+	ck_assert_str_eq(line, text->str);
+	ck_assert(fclose(file) != EOF);
+
+	ck_assert(stat(filename, &buf) != -1);
+	ck_assert((buf.st_mode&S_IRWXU) == S_IRWXU);
+	ck_assert((buf.st_mode&S_IRWXG) == S_IRWXG);
+	ck_assert((buf.st_mode&S_IRWXO) == S_IRWXO);
 
 	ck_assert(remove(filename) != -1);
 }
@@ -84,11 +114,10 @@ START_TEST(test_lib_chown_path)
 	ck_assert(fd != -1);
 
 	user_id = getuid();
-	group_id = getgid();
-
 	pswd = getpwuid(user_id);
 	ck_assert(pswd != NULL);
 
+	group_id = getgid();
 	grp = getgrgid(group_id);
 	ck_assert(grp != NULL);
 
@@ -101,6 +130,7 @@ END_TEST
 Suite* make_lib_suite(void) {
 	Suite *s;
 	TCase *tc_exec_task;
+	TCase *tc_write_file;
 	TCase *tc_chown_path;
 
 	s = suite_create("lib");
@@ -108,10 +138,14 @@ Suite* make_lib_suite(void) {
 	tc_exec_task = tcase_create("tc_exec_task");
 	tcase_add_test(tc_exec_task, test_lib_exec_task);
 
+	tc_write_file = tcase_create("tc_write_file");
+	tcase_add_test(tc_write_file, test_lib_write_file);
+
 	tc_chown_path = tcase_create("tc_chown_path");
 	tcase_add_test(tc_chown_path, test_lib_chown_path);
 
 	suite_add_tcase(s, tc_exec_task);
+	suite_add_tcase(s, tc_write_file);
 	suite_add_tcase(s, tc_chown_path);
 
 	return s;
