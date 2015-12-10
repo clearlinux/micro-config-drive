@@ -77,7 +77,7 @@ bool exec_task(const gchar* command_line) {
 	gboolean result;
 	GString* command;
 	command = g_string_new("");
-	g_string_printf(command, SHELL_PATH " -c '%s'", (char*)command_line );
+	g_string_printf(command, SHELL_PATH " -c \"%s\"", (char*)command_line );
 
 	LOG(MOD "Executing: %s\n", command->str);
 	result = g_spawn_command_line_sync(command->str,
