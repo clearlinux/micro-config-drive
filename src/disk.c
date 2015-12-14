@@ -193,3 +193,63 @@ fail1:
 	ped_geometry_destroy (geometry_end);
 	return result;
 }
+
+gboolean disk_by_label(const gchar* label, gchar** device, gchar** type) {
+	gboolean result = false;
+	const char* devpath = NULL;
+	const char *devtype = NULL;
+	blkid_dev dev = NULL;
+	blkid_cache cache = NULL;
+	blkid_probe probe = NULL;
+
+	*device = NULL;
+	*type = NULL;
+
+	if (blkid_get_cache(&cache, "/dev/null") != 0) {
+		LOG(MOD "Cannot get cache!\n");
+		return false;
+	}
+
+	if (blkid_probe_all(cache) != 0) {
+		LOG(MOD "Probe all failed!\n");
+		return false;
+	}
+
+	dev = blkid_find_dev_with_tag(cache, "LABEL", label);
+	if (!dev) {
+		LOG(MOD "Device wiht label '%s' not found!\n", label);
+		return false;
+	}
+
+	devpath = blkid_dev_devname(dev);
+	if (!devpath) {
+		LOG(MOD "Cannot get device name!\n");
+		return false;
+	}
+
+	probe = blkid_new_probe_from_filename(devpath);
+	if(!probe) {
+		LOG(MOD "Probe from filename failed!\n");
+		return false;
+	}
+	if (blkid_probe_enable_partitions(probe, true) != 0) {
+		LOG(MOD "Enable partitions failed!\n");
+		goto fail;
+	}
+	if (blkid_do_fullprobe(probe) != 0) {
+		LOG(MOD "Fullprobe failed!\n");
+		goto fail;
+	}
+	if (blkid_probe_lookup_value(probe, "TYPE", &devtype, NULL) != 0) {
+		LOG(MOD "Lookup value failed!\n");
+		goto fail;
+	}
+
+	result = true;
+	*device = g_strdup(devpath);
+	*type = g_strdup(devtype);
+
+fail:
+	blkid_free_probe(probe);
+	return result;
+}

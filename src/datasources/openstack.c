@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/mount.h>
 
 #include <glib.h>
 #include <json-glib/json-glib.h>
@@ -47,17 +48,23 @@
 #include "userdata.h"
 #include "json.h"
 #include "default_user.h"
+#include "disk.h"
 
 #define MOD "openstack: "
 #define USERDATA_URL "http://169.254.169.254/openstack/latest/user_data"
 #define METADATA_URL "http://169.254.169.254/openstack/latest/meta_data.json"
+#define USERDATA_DRIVE_PATH "/openstack/latest/user_data"
+#define METADATA_DRIVE_PATH "/openstack/latest/meta_data.json"
 #define ATTEMPTS 10
 #define U_SLEEP 300000
 
 int openstack_main(struct datasource_options_struct* opts);
 
-static int openstack_metadata(CURL* curl);
-static int openstack_userdata(CURL* curl);
+static gboolean openstack_use_metadata_service(void);
+static gboolean openstack_use_config_drive(void);
+
+static gboolean openstack_metadata(CURL* curl);
+static gboolean openstack_userdata(CURL* curl);
 
 static void openstack_item(GNode* node, gpointer data);
 static gboolean openstack_node_free(GNode* node, gpointer data);
@@ -94,41 +101,24 @@ struct datasource_handler_struct openstack_datasource = {
 };
 
 int openstack_main(struct datasource_options_struct* opts) {
-	int result_code = EXIT_FAILURE;
-	CURL* curl = NULL;
-
 	options = opts;
 
-	if (!curl_common_init(&curl)) {
-		LOG(MOD "Curl initialize failed\n");
-		goto clean;
+	if (openstack_use_config_drive()) {
+		LOG(MOD "Metadata and userdata were processed using config drive\n");
+		return EXIT_SUCCESS;
+	} else if (openstack_use_metadata_service()) {
+		LOG(MOD "Metadata and userdata were processed using metadata service\n");
+		return EXIT_SUCCESS;
 	}
 
-	if (options->metadata) {
-		if (openstack_metadata(curl) != EXIT_SUCCESS) {
-			LOG(MOD "Get and process metadata fail\n");
-			goto clean;
-		}
-	}
-
-	result_code = EXIT_SUCCESS;
-
-	if (options->user_data) {
-		if (openstack_userdata(curl) != EXIT_SUCCESS) {
-			LOG(MOD "No userdata provided to this machine\n");
-			goto clean;
-		}
-	}
-clean:
-	curl_easy_cleanup(curl);
-	return result_code;
+	return EXIT_FAILURE;
 }
 
-int openstack_process_metadata(const gchar* filename) {
+gboolean openstack_process_metadata(const gchar* filename) {
 	GError* error = NULL;
 	JsonParser* parser = NULL;
 	GNode* node = NULL;
-	int result_code = EXIT_FAILURE;
+	gboolean result = false;
 
 	parser = json_parser_new();
 	json_parser_load_from_file(parser, filename, &error);
@@ -144,16 +134,97 @@ int openstack_process_metadata(const gchar* filename) {
 
 	g_node_children_foreach(node, G_TRAVERSE_ALL, openstack_item, NULL);
 	g_node_traverse(node, G_POST_ORDER, G_TRAVERSE_ALL, -1, openstack_node_free, NULL);
-	result_code = EXIT_SUCCESS;
+	result = true;
 
 fail:
 	g_object_unref(parser);
 	g_node_destroy(node);
-	return result_code;
+	return result;
 }
 
-static int openstack_userdata(CURL* curl) {
-	int result_code;
+
+static gboolean openstack_use_metadata_service(void) {
+	gboolean result = false;
+	CURL* curl = NULL;
+
+	if (!curl_common_init(&curl)) {
+		LOG(MOD "Curl initialize failed\n");
+		goto cleancurl;
+	}
+
+	if (options->metadata) {
+		if (!openstack_metadata(curl)) {
+			LOG(MOD "Get and process metadata failed\n");
+			goto cleancurl;
+		}
+	}
+
+	result = true;
+
+	if (options->user_data) {
+		if (!openstack_userdata(curl)) {
+			LOG(MOD "No userdata provided to this machine\n");
+		}
+	}
+cleancurl:
+	curl_easy_cleanup(curl);
+	return result;
+}
+
+static gboolean openstack_use_config_drive(void) {
+	char mountpoint[] = "/tmp/config-2-XXXXXX";
+	gboolean config_drive = false;
+	GString* metadata_drive_path;
+	GString* userdata_drive_path;
+	gchar* device;
+	gchar* devtype;
+	gboolean result = false;
+
+	config_drive = disk_by_label("config-2", &device, &devtype);
+
+	if (!config_drive) {
+		LOG(MOD "Config drive not found\n");
+		return false;
+	}
+
+	if (!mkdtemp(mountpoint)) {
+		LOG(MOD "Cannot create directory '%s'\n", mountpoint);
+		return false;
+	}
+
+	if (mount(device, mountpoint, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
+		LOG(MOD "Cannot mount config drive\n");
+		goto failcfgdrive1;
+	}
+
+	metadata_drive_path = g_string_new(mountpoint);
+	g_string_append(metadata_drive_path, METADATA_DRIVE_PATH);
+	userdata_drive_path = g_string_new(mountpoint);
+	g_string_append(userdata_drive_path, USERDATA_DRIVE_PATH);
+
+	if (!openstack_process_metadata(metadata_drive_path->str)) {
+		LOG(MOD "Using config drive get and process metadata failed\n");
+		goto failcfgdrive2;
+	}
+	result = true;
+
+	if (!userdata_process_file(userdata_drive_path->str)) {
+		LOG(MOD "Using config drive no userdata provided to this machine\n");
+	}
+
+failcfgdrive2:
+	g_string_free(metadata_drive_path, true);
+	g_string_free(userdata_drive_path, true);
+	if (umount(mountpoint) != 0) {
+		LOG(MOD "Using config drive cannot umount '%s'\n", mountpoint);
+	}
+failcfgdrive1:
+	rmdir(mountpoint);
+	return result;
+}
+
+static gboolean openstack_userdata(CURL* curl) {
+	gboolean result;
 	int attempts = ATTEMPTS;
 	useconds_t u_sleep = U_SLEEP;
 	gchar* data_filename = NULL;
@@ -172,28 +243,28 @@ static int openstack_userdata(CURL* curl) {
 	data_filename = curl_fetch_file(curl, USERDATA_URL, attempts, u_sleep);
 	if (!data_filename) {
 		LOG(MOD "Fetch userdata failed\n");
-		return EXIT_FAILURE;
+		return false;
 	}
 
-	result_code = userdata_process_file(data_filename);
+	result = userdata_process_file(data_filename);
 	g_free(data_filename);
-	return result_code;
+	return result;
 }
 
-static int openstack_metadata(CURL* curl) {
+static gboolean openstack_metadata(CURL* curl) {
 	gchar* data_filename = NULL;
-	int result_code;
+	gboolean result;
 
 	LOG(MOD "Fetching metadata file URL %s\n", METADATA_URL );
 	data_filename = curl_fetch_file(curl, METADATA_URL, ATTEMPTS, U_SLEEP);
 	if (!data_filename) {
 		LOG(MOD "Fetch metadata failed\n");
-		return EXIT_FAILURE;
+		return false;
 	}
 
-	result_code = openstack_process_metadata(data_filename);
+	result = openstack_process_metadata(data_filename);
 	g_free(data_filename);
-	return result_code;
+	return result;
 }
 
 static gboolean openstack_node_free(GNode* node, __unused__ gpointer data) {

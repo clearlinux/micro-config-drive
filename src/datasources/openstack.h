@@ -34,4 +34,4 @@
 
 #include <glib.h>
 
-int openstack_process_metadata(const gchar* filename);
+gboolean openstack_process_metadata(const gchar* filename);

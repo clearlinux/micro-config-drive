@@ -45,22 +45,32 @@
 
 #define MOD "userdata: "
 
-int userdata_process_file(const gchar* filename) {
+gboolean userdata_process_file(const gchar* filename) {
 	char shebang[LINE_MAX] = { 0 };
 
-	LOG(MOD "Looking for shebang file %s\n", filename);
 	FILE *userdata_file = fopen(filename, "rb");
+	if (!userdata_file) {
+		LOG(MOD "File not found '%s'\n", filename);
+		return false;
+	}
+
+	LOG(MOD "Looking for shebang file %s\n", filename);
 	fgets(shebang, LINE_MAX, userdata_file);
-	fclose(userdata_file);
+
+	if (fclose(userdata_file) == EOF) {
+		LOG(MOD "Cannot close file '%s'\n", filename);
+		return false;
+	}
+
 	LOG(MOD "Shebang found %s\n", shebang);
 
 	/* built-in interpreters */
 	for (int i = 0; interpreter_structs[i] != NULL; ++i) {
 		if (g_str_has_prefix(shebang, interpreter_structs[i]->shebang)) {
-			return interpreter_structs[i]->handler(filename);
+			return interpreter_structs[i]->handler(filename) != EXIT_SUCCESS ? false : true;
 		}
 	}
 
 	LOG(MOD "No interpreter found for %s\n", shebang);
-	return EXIT_FAILURE;
+	return false;
 }

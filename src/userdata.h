@@ -36,4 +36,4 @@
 
 #include <glib.h>
 
-int userdata_process_file(const gchar* filename);
+gboolean userdata_process_file(const gchar* filename);

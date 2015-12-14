@@ -33,8 +33,10 @@
 ***/
 
 #include <glib.h>
-
+#include <lib.h>
 
 gchar *disk_for_path(const gchar* path);
 
 gboolean disk_resize_grow(const gchar* disk_path);
+
+gboolean disk_by_label(const gchar* label, gchar** device, gchar** type);

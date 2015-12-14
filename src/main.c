@@ -206,13 +206,13 @@ int main(int argc, char *argv[]) {
 
 	/* process userdata file */
 	if (userdata_filename) {
-		result_code = userdata_process_file(userdata_filename);
+		result_code = userdata_process_file(userdata_filename) ? EXIT_SUCCESS : EXIT_FAILURE;
 	}
 
 	/* process metadata file */
 	if (metadata_filename[0]) {
 		if (openstack_flag) {
-			result_code = openstack_process_metadata(metadata_filename);
+			result_code = openstack_process_metadata(metadata_filename) ? EXIT_SUCCESS : EXIT_FAILURE;
 		}
 	}
 
