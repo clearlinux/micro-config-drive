@@ -23,8 +23,7 @@ clr-cloud-init-*.tar.xz
 clr-cloud-init-*/
 tests/Makefile
 tests/.libs/
-tests/lib_test
-tests/curl_test
+tests/*_test
 libtool
 ltmain.sh
 m4/
