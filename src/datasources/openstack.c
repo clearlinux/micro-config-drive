@@ -192,7 +192,7 @@ static gboolean openstack_use_config_drive(void) {
 		return false;
 	}
 
-	if (mount(device, mountpoint, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
+	if (mount(device, mountpoint, devtype, MS_NODEV, NULL) != 0) {
 		LOG(MOD "Cannot mount config drive\n");
 		goto failcfgdrive1;
 	}
