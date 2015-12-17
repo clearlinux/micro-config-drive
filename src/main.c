@@ -75,6 +75,20 @@ static struct option opts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
+static gpointer checkdisk(__unused__ gpointer data) {
+	gchar* root_disk;
+	root_disk = disk_for_path("/");
+	if (root_disk) {
+		if (!disk_resize_grow(root_disk)) {
+			LOG("Resizing and growing disk '%s' failed\n", root_disk);
+		}
+	} else {
+		LOG("Root disk not found\n");
+	}
+	g_thread_exit(0);
+	return 0;
+}
+
 int main(int argc, char *argv[]) {
 	int c;
 	int i;
@@ -87,8 +101,9 @@ int main(int argc, char *argv[]) {
 	gchar* tmp_metafile = NULL;
 	gchar metadata_filename[PATH_MAX] = { 0 };
 	gchar command[LINE_MAX];
-	gchar* root_disk;
 	GString* sudo_directives = NULL;
+	GError *error = NULL;
+	GThread* checkdisk_thread;
 
 	while (true) {
 		c = getopt_long(argc, argv, "u:hvb", opts, &i);
@@ -167,13 +182,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!no_growpart) {
-		root_disk = disk_for_path("/");
-		if (root_disk) {
-			if (!disk_resize_grow(root_disk)) {
-				LOG("Resizing and growing disk '%s' failed\n", root_disk);
+		checkdisk_thread = g_thread_try_new("checkdisk", checkdisk, NULL, &error);
+		if (!checkdisk_thread) {
+			LOG("Cannot create a thread to check the disk!");
+			if (error) {
+				LOG("Error: %s\n", (char*)error->message);
+				g_error_free(error);
+				error = NULL;
 			}
-		} else {
-			LOG("Root disk not found\n");
 		}
 	}
 
@@ -224,6 +240,11 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 		}
+	}
+
+	if (checkdisk_thread) {
+		g_thread_join(checkdisk_thread);
+		checkdisk_thread = NULL;
 	}
 
 	exit(result_code);
