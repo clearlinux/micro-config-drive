@@ -44,25 +44,36 @@
 
 START_TEST(test_userdata_process_file)
 {
-	int fd;
-	char filename[] = "/tmp/test_userdata_process_file-XXXXXX";
-	char* script_outfile = "/tmp/test_userdata_process_file-result";
-	GString* script = g_string_new("#!/bin/bash\necho \"this is a test!\" > ");
+	int fd_script;
+	int fd_script_outfile;
+	char script_file[] = "/tmp/test_userdata_process_file-XXXXXX";
+	char script_outfile[] = "/tmp/test_userdata_process_file-XXXXXX";
+	char *text = "this is a test!";
+	GString* script_text = g_string_new("#!/bin/bash\necho -n ");
 	FILE* file;
+	char line[LINE_MAX] = { 0 };
 	struct stat buf;
 
-	g_string_append(script, script_outfile);
+	fd_script_outfile = mkstemp(script_outfile);
+	ck_assert(fd_script_outfile != -1);
 
-	fd = mkstemp(filename);
-	ck_assert(fd != -1);
-	file = fdopen(fd, "w");
+	g_string_append_printf(script_text, "'%s' > %s\n", text, script_outfile);
+
+	fd_script = mkstemp(script_file);
+	ck_assert(fd_script != -1);
+	file = fdopen(fd_script, "w");
 	ck_assert(file != NULL);
-	fwrite(script->str, sizeof(script->str[0]), script->len, file);
+	fwrite(script_text->str, sizeof(script_text->str[0]), script_text->len, file);
+	g_string_free(script_text, true);
 	ck_assert(fclose(file) != EOF);
-	ck_assert(userdata_process_file(filename) == true);
-	ck_assert(remove(filename) != -1);
+	ck_assert(userdata_process_file(script_file) == true);
+	ck_assert(remove(script_file) != -1);
 
-	ck_assert(stat(script_outfile, &buf) != -1);
+	file = fdopen(fd_script_outfile, "r");
+	ck_assert(file != NULL);
+	fgets(line, LINE_MAX, file);
+	ck_assert_str_eq(line, text);
+	ck_assert(fclose(file) != EOF);
 	ck_assert(remove(script_outfile) != -1);
 }
 END_TEST

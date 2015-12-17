@@ -61,6 +61,7 @@ START_TEST(test_lib_exec_task)
 	ck_assert(exec_task(line) == true);
 
 	file = fdopen(fd, "r");
+	ck_assert(file != NULL);
 	fgets(line, LINE_MAX, file);
 	ck_assert_str_eq(line, text);
 	ck_assert(fclose(file) != EOF);
