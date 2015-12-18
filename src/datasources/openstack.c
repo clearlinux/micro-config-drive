@@ -173,12 +173,16 @@ cleancurl:
 
 static gboolean openstack_use_config_drive(void) {
 	char mountpoint[] = "/tmp/config-2-XXXXXX";
+	char userdata_file[] = "/tmp/cloud-init-userdata";
 	gboolean config_drive = false;
 	GString* metadata_drive_path;
 	GString* userdata_drive_path;
 	gchar* device;
 	gchar* devtype;
 	gboolean result = false;
+	gchar* content_userdata;
+	gssize length_userdata;
+	GError *error;
 
 	config_drive = disk_by_label("config-2", &device, &devtype);
 
@@ -192,7 +196,7 @@ static gboolean openstack_use_config_drive(void) {
 		return false;
 	}
 
-	if (mount(device, mountpoint, devtype, MS_NODEV, NULL) != 0) {
+	if (mount(device, mountpoint, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
 		LOG(MOD "Cannot mount config drive\n");
 		goto failcfgdrive1;
 	}
@@ -206,12 +210,25 @@ static gboolean openstack_use_config_drive(void) {
 		LOG(MOD "Using config drive get and process metadata failed\n");
 		goto failcfgdrive2;
 	}
+
 	result = true;
 
-	if (!userdata_process_file(userdata_drive_path->str)) {
+	if (!g_file_get_contents(userdata_drive_path->str, &content_userdata, (gsize*)&length_userdata, &error)) {
+		goto failcfgdrive2;
+	}
+
+	if (!g_file_set_contents(userdata_file, content_userdata, length_userdata, &error)) {
+		goto failcfgdrive3;
+	}
+
+	if (!userdata_process_file(userdata_file)) {
 		LOG(MOD "Using config drive no userdata provided to this machine\n");
 	}
 
+	remove(userdata_file);
+
+failcfgdrive3:
+	g_free(content_userdata);
 failcfgdrive2:
 	g_string_free(metadata_drive_path, true);
 	g_string_free(userdata_drive_path, true);
