@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
 	gchar command[LINE_MAX];
 	GString* sudo_directives = NULL;
 	GError *error = NULL;
-	GThread* checkdisk_thread;
+	GThread* checkdisk_thread = NULL;
 
 	while (true) {
 		c = getopt_long(argc, argv, "u:hvb", opts, &i);
