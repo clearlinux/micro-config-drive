@@ -37,6 +37,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/sendfile.h>
 
 #include <glib.h>
 #include <json-glib/json-glib.h>
@@ -173,16 +175,18 @@ cleancurl:
 
 static gboolean openstack_use_config_drive(void) {
 	char mountpoint[] = "/tmp/config-2-XXXXXX";
-	char userdata_file[] = "/tmp/cloud-init-userdata";
+	char userdata_file[] = "/tmp/userdata-XXXXXX";
+	int fd_userdata_in = 0;
+	int fd_userdata_out = 0;
+	off_t bytes_copied = 0;
+	ssize_t send_result = 0;
+	struct stat userdata_info = { 0 };
 	gboolean config_drive = false;
 	GString* metadata_drive_path;
 	GString* userdata_drive_path;
 	gchar* device;
 	gchar* devtype;
 	gboolean result = false;
-	gchar* content_userdata;
-	gssize length_userdata;
-	GError *error;
 
 	config_drive = disk_by_label("config-2", &device, &devtype);
 
@@ -193,7 +197,7 @@ static gboolean openstack_use_config_drive(void) {
 
 	if (!mkdtemp(mountpoint)) {
 		LOG(MOD "Cannot create directory '%s'\n", mountpoint);
-		return false;
+		goto failcfgdrive0;
 	}
 
 	if (mount(device, mountpoint, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
@@ -213,13 +217,33 @@ static gboolean openstack_use_config_drive(void) {
 
 	result = true;
 
-	if (!g_file_get_contents(userdata_drive_path->str, &content_userdata, (gsize*)&length_userdata, &error)) {
+	fd_userdata_in = open(userdata_drive_path->str, O_RDONLY);
+	if (-1 == fd_userdata_in) {
+		LOG(MOD "Cannot open file '%s'\n", userdata_drive_path->str);
 		goto failcfgdrive2;
 	}
 
-	if (!g_file_set_contents(userdata_file, content_userdata, length_userdata, &error)) {
+	if (fstat(fd_userdata_in, &userdata_info) == -1) {
+		LOG(MOD "Cannot get info from file '%s'\n", userdata_drive_path->str);
+		goto failcfgdrive3;
+    }
+
+	fd_userdata_out = mkstemp(userdata_file);
+	if (-1 == fd_userdata_out) {
+		LOG(MOD "Cannot create a temporal file\n");
 		goto failcfgdrive3;
 	}
+
+	send_result = sendfile(fd_userdata_out, fd_userdata_in, &bytes_copied, (size_t)userdata_info.st_size);
+	if (-1 == send_result) {
+		LOG(MOD "Cannot copy file from '%s' to '%s'\n", userdata_drive_path->str, userdata_file);
+		goto failcfgdrive4;
+	}
+
+	close(fd_userdata_out);
+	close(fd_userdata_in);
+	fd_userdata_out = 0;
+	fd_userdata_in = 0;
 
 	if (!userdata_process_file(userdata_file)) {
 		LOG(MOD "Using config drive no userdata provided to this machine\n");
@@ -227,8 +251,14 @@ static gboolean openstack_use_config_drive(void) {
 
 	remove(userdata_file);
 
+failcfgdrive4:
+	if (fd_userdata_out) {
+		close(fd_userdata_out);
+	}
 failcfgdrive3:
-	g_free(content_userdata);
+	if (fd_userdata_in) {
+		close(fd_userdata_in);
+	}
 failcfgdrive2:
 	g_string_free(metadata_drive_path, true);
 	g_string_free(userdata_drive_path, true);
@@ -237,6 +267,9 @@ failcfgdrive2:
 	}
 failcfgdrive1:
 	rmdir(mountpoint);
+failcfgdrive0:
+	g_free(device);
+	g_free(devtype);
 	return result;
 }
 
