@@ -39,6 +39,7 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/sendfile.h>
+#include <sys/sysinfo.h>
 
 #include <glib.h>
 #include <json-glib/json-glib.h>
@@ -68,7 +69,8 @@ static gboolean openstack_use_config_drive(void);
 static gboolean openstack_metadata(CURL* curl);
 static gboolean openstack_userdata(CURL* curl);
 
-static void openstack_item(GNode* node, gpointer data);
+static void openstack_run_handler(GNode *node, __unused__ gpointer user_data);
+static void openstack_item(GNode* node, GThreadPool* thread_pool);
 static gboolean openstack_node_free(GNode* node, gpointer data);
 
 static void openstack_metadata_not_implemented(GNode* node);
@@ -121,24 +123,35 @@ gboolean openstack_process_metadata(const gchar* filename) {
 	JsonParser* parser = NULL;
 	GNode* node = NULL;
 	gboolean result = false;
+	GThreadPool* thread_pool = NULL;
 
 	parser = json_parser_new();
 	json_parser_load_from_file(parser, filename, &error);
 	if (error) {
 		LOG(MOD "Unable to parse '%s': %s\n", filename, error->message);
 		g_error_free(error);
-		goto fail;
+		goto fail0;
 	}
 
 	node = g_node_new(g_strdup(filename));
 	json_parse(json_parser_get_root(parser), node, false);
 	cloud_config_dump(node);
 
-	g_node_children_foreach(node, G_TRAVERSE_ALL, openstack_item, NULL);
-	g_node_traverse(node, G_POST_ORDER, G_TRAVERSE_ALL, -1, openstack_node_free, NULL);
+	thread_pool = g_thread_pool_new((GFunc)openstack_run_handler, NULL, get_nprocs(), true, NULL);
+
+	if (!thread_pool) {
+		LOG(MOD "Cannot create thread pool\n");
+		goto fail1;
+	}
+
+	g_node_children_foreach(node, G_TRAVERSE_ALL, (GNodeForeachFunc)openstack_item, thread_pool);
+	g_thread_pool_free(thread_pool, false, true);
+
 	result = true;
 
-fail:
+fail1:
+	g_node_traverse(node, G_POST_ORDER, G_TRAVERSE_ALL, -1, openstack_node_free, NULL);
+fail0:
 	g_object_unref(parser);
 	g_node_destroy(node);
 	return result;
@@ -201,7 +214,7 @@ static gboolean openstack_use_config_drive(void) {
 	}
 
 	if (mount(device, mountpoint, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
-		LOG(MOD "Cannot mount config drive\n");
+		LOG(MOD "Cannot mount config drive '%s'\n", (char*)device);
 		goto failcfgdrive1;
 	}
 
@@ -325,22 +338,35 @@ static gboolean openstack_node_free(GNode* node, __unused__ gpointer data) {
 	return false;
 }
 
-static void openstack_item(GNode* node, __unused__ gpointer data) {
+static void openstack_run_handler(GNode *node, __unused__ gpointer user_data) {
 	size_t i;
+
 	if (node->data) {
 		for (i = 0; openstack_metadata_options[i].key != NULL; ++i) {
 			if (g_strcmp0(node->data, openstack_metadata_options[i].key) == 0) {
-				LOG(MOD "Metadata using %s handler\n", (char*)node->data);
+				LOG(MOD "Metadata using '%s' handler\n", (char*)node->data);
 				openstack_metadata_options[i].func(node->children);
 				return;
 			}
 		}
-		LOG(MOD "Metadata no handler for %s.\n", (char*)node->data);
+		LOG(MOD "Metadata no handler for '%s'.\n", (char*)node->data);
 	}
 }
 
-static void openstack_metadata_not_implemented(__unused__ GNode* node) {
-	LOG(MOD "Not implemented yet\n");
+static void openstack_item(GNode* node, GThreadPool* thread_pool) {
+	GError *error = NULL;
+
+	g_thread_pool_push(thread_pool, node, &error);
+
+	if (error) {
+		LOG(MOD "Cannot push a new thread: %s\n", (char*)error->message);
+		g_error_free(error);
+		error = NULL;
+	}
+}
+
+static void openstack_metadata_not_implemented(GNode* node) {
+	LOG(MOD "Metadata '%s' not implemented yet\n", (char*)node->parent->data);
 }
 
 static void openstack_metadata_keys(GNode* node) {
