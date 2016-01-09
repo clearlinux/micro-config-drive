@@ -43,6 +43,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <sys/sysinfo.h>
 
 #include <glib.h>
 
@@ -75,18 +76,109 @@ static struct option opts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
-static gpointer checkdisk(__unused__ gpointer data) {
+typedef bool (*async_task_function) (gpointer);
+
+static struct async_data {
+	GMainLoop* main_loop;
+	guint remaining;
+} async_data;
+
+static void async_process_watcher(GPid pid, gint status, gpointer _data) {
+	struct async_data* data = (struct async_data*)_data;
+
+	LOG("PID %d ends, exit status %d\n", pid, status);
+
+	--(data->remaining);
+
+	if (0 == data->remaining) {
+		LOG("Quit main loop\n");
+		g_main_loop_quit(data->main_loop);
+	}
+
+	g_spawn_close_pid(pid);
+}
+
+bool async_checkdisk(gpointer data) {
 	gchar* root_disk;
+
 	root_disk = disk_for_path("/");
 	if (root_disk) {
-		if (!disk_resize_grow(root_disk)) {
-			LOG("Resizing and growing disk '%s' failed\n", root_disk);
+		LOG("Checking disk %s\n", root_disk);
+		if (!disk_resize_grow(root_disk, async_process_watcher, data)) {
+			return false;
 		}
 	} else {
 		LOG("Root disk not found\n");
+		return false;
 	}
-	g_thread_exit(0);
-	return 0;
+	return true;
+}
+
+bool async_setup_first_boot(gpointer data) {
+	gchar command[LINE_MAX] = { 0 };
+	GString* sudo_directives = NULL;
+
+	/* default user will be able to use sudo */
+	sudo_directives = g_string_new(DEFAULT_USER_SUDO);
+	if (!write_sudo_directives(sudo_directives, DEFAULT_USER_USERNAME"-cloud-init")) {
+		LOG("Failed to enable sudo rule for user: %s\n", DEFAULT_USER_SUDO);
+	}
+	g_string_free(sudo_directives, true);
+
+	/* lock root account for security */
+	g_snprintf(command, LINE_MAX, USERMOD_PATH " -p '!' root");
+	return exec_task_async(command, async_process_watcher, data);
+}
+
+static void run_task(gpointer function, gpointer data) {
+	async_task_function func = *(async_task_function*)(&function);
+	if ( ! func(data) ) {
+		async_process_watcher(0, 0, data);
+	}
+}
+
+static void async_item(gpointer function, gpointer thread_pool) {
+	GError *error = NULL;
+
+	++(async_data.remaining);
+
+	g_thread_pool_push((GThreadPool*)thread_pool, function, &error);
+	if (error) {
+		LOG("Error pushing a new thread: %s\n", (char*)error->message);
+		g_error_free(error);
+	}
+}
+
+static gint run_async_tasks(GPtrArray* async_tasks_array) {
+	gint result_code = EXIT_FAILURE;
+	GThreadPool* thread_pool = NULL;
+
+	async_data.main_loop = g_main_loop_new(NULL, 0);
+	if (!async_data.main_loop) {
+		LOG("Cannot create a new main loop\n");
+		goto fail1;
+	}
+
+	thread_pool = g_thread_pool_new(run_task, &async_data, get_nprocs(), true, NULL);
+	if (!thread_pool) {
+		LOG("Cannot create a new thread pool\n");
+		goto fail2;
+	}
+
+	//push threads to pool
+	g_ptr_array_foreach(async_tasks_array, async_item, thread_pool);
+
+	//run main loop to wait the end of async tasks
+	g_main_loop_run(async_data.main_loop);
+
+	result_code = EXIT_SUCCESS;
+
+	g_thread_pool_free(thread_pool, false, true);
+
+fail2:
+	g_main_loop_unref(async_data.main_loop);
+fail1:
+	return result_code;
 }
 
 int main(int argc, char *argv[]) {
@@ -100,10 +192,11 @@ int main(int argc, char *argv[]) {
 	gchar* userdata_filename = NULL;
 	gchar* tmp_metafile = NULL;
 	gchar metadata_filename[PATH_MAX] = { 0 };
-	gchar command[LINE_MAX];
-	GString* sudo_directives = NULL;
-	GError *error = NULL;
-	GThread* checkdisk_thread = NULL;
+	GError* error = NULL;
+	GThread* async_tasks_thread = NULL;
+	async_task_function func = NULL;
+	gchar command[LINE_MAX] = { 0 };
+	GPtrArray* async_tasks_array = NULL;
 
 	while (true) {
 		c = getopt_long(argc, argv, "u:hvb", opts, &i);
@@ -164,6 +257,15 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+#ifdef HAVE_CONFIG_H
+	LOG("clr-cloud-init version: %s\n", PACKAGE_VERSION);
+#endif /* HAVE_CONFIG_H */
+
+	async_tasks_array = g_ptr_array_new();
+	if (!async_tasks_array) {
+		LOG("Unable to create a new ptr array for async tasks\n");
+	}
+
 	/* check if metadata file exists */
 	if (tmp_metafile) {
 		if (!realpath(tmp_metafile, metadata_filename)) {
@@ -172,31 +274,41 @@ int main(int argc, char *argv[]) {
 		g_free(tmp_metafile);
 	}
 
-	#ifdef HAVE_CONFIG_H
-		LOG("clr-cloud-init version: %s\n", PACKAGE_VERSION);
-	#endif /* HAVE_CONFIG_H */
-
 	/* at one point in time this should likely be a fatal error */
 	if (geteuid() != 0) {
 		LOG("%s isn't running as root, this will most likely fail!\n", argv[0]);
 	}
 
-	if (!no_growpart) {
-		checkdisk_thread = g_thread_try_new("checkdisk", checkdisk, NULL, &error);
-		if (!checkdisk_thread) {
-			LOG("Cannot create a thread to check the disk!");
-			if (error) {
-				LOG("Error: %s\n", (char*)error->message);
-				g_error_free(error);
-				error = NULL;
+	if (!no_growpart && async_tasks_array) {
+		func = async_checkdisk;
+		g_ptr_array_add(async_tasks_array, *(async_task_function**)&func);
+	}
+
+	if (first_boot && async_tasks_array) {
+		func = async_setup_first_boot;
+		g_ptr_array_add(async_tasks_array, *(async_task_function**)&func);
+	}
+
+	if (async_tasks_array && async_tasks_array->len > 0) {
+		if (get_nprocs() > 1) {
+			async_tasks_thread = g_thread_try_new("run_async_tasks", (GThreadFunc)run_async_tasks,
+								async_tasks_array, &error);
+			if (!async_tasks_thread) {
+				LOG("Cannot create a thread to run async tasks!");
+				if (error) {
+					LOG("Error: %s\n", (char*)error->message);
+					g_error_free(error);
+					error = NULL;
+				}
 			}
+		} else {
+			run_async_tasks(async_tasks_array);
 		}
 	}
 
 	if (first_boot) {
 		/* default user will be used by ccmodules and datasources */
-		command[0] = 0;
-		snprintf(command, LINE_MAX, USERADD_PATH
+		g_snprintf(command, LINE_MAX, USERADD_PATH
 				" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
 				, DEFAULT_USER_HOME_DIR
 				, DEFAULT_USER_GROUPS
@@ -206,17 +318,6 @@ int main(int argc, char *argv[]) {
 				, DEFAULT_USER_GECOS
 				, DEFAULT_USER_PASSWORD
 				, DEFAULT_USER_USERNAME);
-		exec_task(command);
-
-		/* default user will be able to use sudo */
-		sudo_directives = g_string_new(DEFAULT_USER_SUDO);
-		if (!write_sudo_directives(sudo_directives, DEFAULT_USER_USERNAME"-cloud-init")) {
-			LOG("Failed to enable sudo rule for user: %s\n", DEFAULT_USER_SUDO);
-		}
-		g_string_free(sudo_directives, true);
-
-		/* lock root account for security */
-		snprintf(command, LINE_MAX, USERMOD_PATH " -p '!' root");
 		exec_task(command);
 	}
 
@@ -242,10 +343,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (checkdisk_thread) {
-		g_thread_join(checkdisk_thread);
-		checkdisk_thread = NULL;
+	if (async_tasks_thread) {
+		g_thread_join(async_tasks_thread);
 	}
+
+	g_ptr_array_unref(async_tasks_array);
 
 	exit(result_code);
 }

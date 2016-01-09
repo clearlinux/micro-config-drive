@@ -83,7 +83,7 @@ gchar *disk_for_path(const gchar* path) {
     return blkid_devno_to_devname(disk);
 }
 
-gboolean disk_resize_grow(const gchar* disk_path) {
+gboolean disk_resize_grow(const gchar* disk_path, GChildWatchFunc async_func_watcher, gpointer data) {
 	char command[LINE_MAX] = { 0 };
 	int last_partition_num;
 	const gchar* partition_path;
@@ -128,7 +128,8 @@ gboolean disk_resize_grow(const gchar* disk_path) {
 
 	if (!resize_fs) {
 		/* do not resize filesystem, it is ok */
-		return true;
+		LOG(MOD "Nothing to do with '%s' disk\n", disk_path);
+		return false;
 	}
 
 	LOG(MOD "Resizing filesystem disk '%s'\n", disk_path);
@@ -142,7 +143,7 @@ gboolean disk_resize_grow(const gchar* disk_path) {
 	}
 
 	start = partition->geom.start;
-	end = -1 * PED_MEGABYTE_SIZE / dev->sector_size + dev->length;
+	end = (-PED_MEGABYTE_SIZE) / dev->sector_size + dev->length;
 
 	geometry_start.dev = dev;
 	geometry_start.start = start;
@@ -180,9 +181,8 @@ gboolean disk_resize_grow(const gchar* disk_path) {
 		goto fail2;
 	}
 
-	//FIXME using libparted algorithms
 	snprintf(command, LINE_MAX, RESIZEFS_PATH " %s", partition_path);
-	exec_task(command);
+	exec_task_async(command, async_func_watcher, data);
 
 	result = true;
 	LOG(MOD "Resizing filesystem done\n");
