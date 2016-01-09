@@ -52,6 +52,7 @@
 #define __warn_unused_result__ __attribute__ ((warn_unused_result))
 
 bool exec_task(const gchar* command_line);
+bool exec_task_async(const gchar* command_line, GChildWatchFunc async_func_watcher, gpointer data);
 void LOG(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 int make_dir(const char* pathname, mode_t mode) __warn_unused_result__;
 int chown_path(const char* pathname, const char* ownername, const char* groupname) __warn_unused_result__;

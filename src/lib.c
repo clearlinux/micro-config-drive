@@ -114,10 +114,34 @@ bool exec_task(const gchar* command_line) {
 	return result;
 }
 
+bool exec_task_async(const gchar* command_line, GChildWatchFunc async_func_watcher, gpointer data) {
+	GPid pid = 0;
+	GError *error = NULL;
+	gchar* command = g_strdup(command_line);
+	gchar* argvp[] = {SHELL_PATH, "-c", command, NULL };
+
+	g_spawn_async(NULL, argvp, NULL,
+			G_SPAWN_DO_NOT_REAP_CHILD,
+			NULL, NULL, &pid, &error);
+
+	if (error) {
+		LOG(MOD "Error running async command: %s\n", (char*)error->message);
+		g_error_free(error);
+	}
+
+	g_child_watch_add(pid, async_func_watcher, data);
+
+	LOG(MOD "Executing [%d]: %s -c \"%s\"\n", pid, SHELL_PATH, command);
+
+	g_free(command);
+
+	return true;
+}
+
 int make_dir(const char* pathname, mode_t mode) {
 	struct stat stats;
 	if (stat(pathname, &stats) != 0) {
-		if (mkdir(pathname, mode) != 0) {
+		if (g_mkdir_with_parents(pathname, (gint)mode) != 0) {
 			LOG(MOD "Cannot create directory %s\n", pathname);
 			return -1;
 		}
