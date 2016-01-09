@@ -232,7 +232,7 @@ static gboolean openstack_use_config_drive(void) {
 
 	fd_userdata_in = open(userdata_drive_path->str, O_RDONLY);
 	if (-1 == fd_userdata_in) {
-		LOG(MOD "Cannot open file '%s'\n", userdata_drive_path->str);
+		LOG(MOD "No userdata in config drive\n");
 		goto failcfgdrive2;
 	}
 
@@ -259,7 +259,7 @@ static gboolean openstack_use_config_drive(void) {
 	fd_userdata_in = 0;
 
 	if (!userdata_process_file(userdata_file)) {
-		LOG(MOD "Using config drive no userdata provided to this machine\n");
+		LOG(MOD "Unable to process userdata\n");
 	}
 
 	remove(userdata_file);
