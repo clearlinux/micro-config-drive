@@ -64,6 +64,11 @@ enum {
 	OPT_NO_GROWPART,
 };
 
+/* supported datasources */
+enum {
+	DS_OPENSTACK=500,
+};
+
 static struct option opts[] = {
 	{ "user-data-file",             required_argument, NULL, 'u' },
 	{ "openstack-metadata-file",    required_argument, NULL, OPT_OPENSTACK_METADATA_FILE },
@@ -184,14 +189,14 @@ fail1:
 int main(int argc, char *argv[]) {
 	int c;
 	int i;
+	unsigned int datasource = 0;
 	int result_code = EXIT_SUCCESS;
 	bool no_growpart = false;
-	bool openstack_flag = false;
 	bool first_boot = false;
 	struct datasource_options_struct datasource_opts = { 0 };
-	gchar* userdata_filename = NULL;
-	gchar* tmp_metafile = NULL;
-	gchar metadata_filename[PATH_MAX] = { 0 };
+	char* userdata_filename = NULL;
+	char* tmp_metadata_filename = NULL;
+	char metadata_filename[PATH_MAX] = { 0 };
 	GError* error = NULL;
 	GThread* async_tasks_thread = NULL;
 	async_task_function func = NULL;
@@ -208,7 +213,10 @@ int main(int argc, char *argv[]) {
 		switch (c) {
 
 		case 'u':
-			userdata_filename = g_strdup(optarg);
+			userdata_filename = realpath(optarg, optarg);
+			if (!userdata_filename) {
+				LOG("Userdata file not found '%s'\n", optarg);
+			}
 			break;
 
 		case 'h':
@@ -239,8 +247,8 @@ int main(int argc, char *argv[]) {
 			break;
 
 		case OPT_OPENSTACK_METADATA_FILE:
-			openstack_flag = true;
-			tmp_metafile = g_strdup(optarg);
+			datasource = DS_OPENSTACK;
+			tmp_metadata_filename = strdup(optarg);
 			break;
 
 		case OPT_USER_DATA:
@@ -264,14 +272,6 @@ int main(int argc, char *argv[]) {
 	async_tasks_array = g_ptr_array_new();
 	if (!async_tasks_array) {
 		LOG("Unable to create a new ptr array for async tasks\n");
-	}
-
-	/* check if metadata file exists */
-	if (tmp_metafile) {
-		if (!realpath(tmp_metafile, metadata_filename)) {
-			LOG("Unable to determine real file path for '%s'\n", tmp_metafile);
-		}
-		g_free(tmp_metafile);
 	}
 
 	/* at one point in time this should likely be a fatal error */
@@ -322,15 +322,29 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* process metadata file */
-	if (metadata_filename[0]) {
-		if (openstack_flag) {
-			result_code = openstack_process_metadata(metadata_filename) ? EXIT_SUCCESS : EXIT_FAILURE;
+	if (tmp_metadata_filename) {
+		if (realpath(tmp_metadata_filename, metadata_filename)) {
+			switch(datasource) {
+				case DS_OPENSTACK:
+					result_code = openstack_process_metadata(metadata_filename) ? EXIT_SUCCESS : EXIT_FAILURE;
+					break;
+				default:
+					LOG("Unsupported datasource '%d'\n", datasource);
+			}
+		} else {
+			LOG("Metadata file not found '%s'\n", tmp_metadata_filename);
 		}
+
+		free(tmp_metadata_filename);
+		tmp_metadata_filename = NULL;
 	}
 
 	/* process userdata file */
 	if (userdata_filename) {
 		result_code = userdata_process_file(userdata_filename) ? EXIT_SUCCESS : EXIT_FAILURE;
+
+		free(userdata_filename);
+		userdata_filename = NULL;
 	}
 
 	if (datasource_opts.user_data || datasource_opts.metadata) {
