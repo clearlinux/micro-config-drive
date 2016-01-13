@@ -89,6 +89,7 @@ bool exec_task(const gchar* command_line) {
 	g_string_free(command, true);
 
 	if (!result || exit_status != 0) {
+		result = false;
 		LOG(MOD "Command failed\n");
 		if (error) {
 			LOG(MOD "Error: %s\n", (char*)error->message);
