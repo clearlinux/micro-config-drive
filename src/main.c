@@ -193,6 +193,7 @@ int main(int argc, char *argv[]) {
 	int result_code = EXIT_SUCCESS;
 	bool no_growpart = false;
 	bool first_boot = false;
+	bool data_processed = false;
 	struct datasource_options_struct datasource_opts = { 0 };
 	char* userdata_filename = NULL;
 	char* tmp_metadata_filename = NULL;
@@ -324,12 +325,14 @@ int main(int argc, char *argv[]) {
 	/* process metadata file */
 	if (tmp_metadata_filename) {
 		if (realpath(tmp_metadata_filename, metadata_filename)) {
-			switch(datasource) {
-				case DS_OPENSTACK:
-					result_code = openstack_process_metadata(metadata_filename) ? EXIT_SUCCESS : EXIT_FAILURE;
-					break;
-				default:
-					LOG("Unsupported datasource '%d'\n", datasource);
+			switch (datasource) {
+			case DS_OPENSTACK:
+				if (!openstack_process_metadata(metadata_filename)) {
+					result_code = EXIT_FAILURE;
+				}
+				break;
+			default:
+				LOG("Unsupported datasource '%d'\n", datasource);
 			}
 		} else {
 			LOG("Metadata file not found '%s'\n", tmp_metadata_filename);
@@ -341,7 +344,9 @@ int main(int argc, char *argv[]) {
 
 	/* process userdata file */
 	if (userdata_filename) {
-		result_code = userdata_process_file(userdata_filename) ? EXIT_SUCCESS : EXIT_FAILURE;
+		if (!userdata_process_file(userdata_filename)) {
+			result_code = EXIT_FAILURE;
+		}
 
 		free(userdata_filename);
 		userdata_filename = NULL;
@@ -350,10 +355,14 @@ int main(int argc, char *argv[]) {
 	if (datasource_opts.user_data || datasource_opts.metadata) {
 		/* get/process userdata and metadata from datasources */
 		for (i = 0; cloud_structs[i] != NULL; ++i) {
-			result_code = cloud_structs[i]->handler(&datasource_opts);
-			if (EXIT_SUCCESS == result_code) {
+			if (EXIT_SUCCESS == cloud_structs[i]->handler(&datasource_opts)) {
+				data_processed = true;
 				break;
 			}
+		}
+
+		if (!data_processed) {
+			result_code = EXIT_FAILURE;
 		}
 	}
 
