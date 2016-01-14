@@ -59,6 +59,7 @@
 /* Long options */
 enum {
 	OPT_OPENSTACK_METADATA_FILE=1001,
+	OPT_OPENSTACK_CONFIG_DRIVE,
 	OPT_USER_DATA,
 	OPT_METADATA,
 	OPT_NO_GROWPART,
@@ -72,6 +73,7 @@ enum {
 static struct option opts[] = {
 	{ "user-data-file",             required_argument, NULL, 'u' },
 	{ "openstack-metadata-file",    required_argument, NULL, OPT_OPENSTACK_METADATA_FILE },
+	{ "openstack-config-drive",     required_argument, NULL, OPT_OPENSTACK_CONFIG_DRIVE },
 	{ "user-data",                  no_argument, NULL, OPT_USER_DATA },
 	{ "metadata",                   no_argument, NULL, OPT_METADATA },
 	{ "help",                       no_argument, NULL, 'h' },
@@ -197,7 +199,9 @@ int main(int argc, char *argv[]) {
 	struct datasource_options_struct datasource_opts = { 0 };
 	char* userdata_filename = NULL;
 	char* tmp_metadata_filename = NULL;
+	char* tmp_data_filesystem = NULL;
 	char metadata_filename[PATH_MAX] = { 0 };
+	char data_filesystem_path[PATH_MAX] = { 0 };
 	GError* error = NULL;
 	GThread* async_tasks_thread = NULL;
 	async_task_function func = NULL;
@@ -224,6 +228,8 @@ int main(int argc, char *argv[]) {
 			LOG("Usage: %s [options]\n", argv[0]);
 			LOG("-u, --user-data-file [file]            specify a custom user data file\n");
 			LOG("    --openstack-metadata-file [file]   specify an Openstack metadata file\n");
+			LOG("    --openstack-config-drive [path]    specify an Openstack config drive to process\n");
+			LOG("                                       metadata and user data (iso9660 or vfat filesystem)\n");
 			LOG("    --user-data                        get and process user data from data sources\n");
 			LOG("    --metadata                         get and process metadata from data sources\n");
 			LOG("-h, --help                             display this help message\n");
@@ -250,6 +256,11 @@ int main(int argc, char *argv[]) {
 		case OPT_OPENSTACK_METADATA_FILE:
 			datasource = DS_OPENSTACK;
 			tmp_metadata_filename = strdup(optarg);
+			break;
+
+		case OPT_OPENSTACK_CONFIG_DRIVE:
+			datasource = DS_OPENSTACK;
+			tmp_data_filesystem = strdup(optarg);
 			break;
 
 		case OPT_USER_DATA:
@@ -340,6 +351,26 @@ int main(int argc, char *argv[]) {
 
 		free(tmp_metadata_filename);
 		tmp_metadata_filename = NULL;
+	}
+
+	/* process userdata/metadata using iso9660 or vfat filesystem */
+	if (tmp_data_filesystem) {
+		if (realpath(tmp_data_filesystem, data_filesystem_path)) {
+			switch (datasource) {
+			case DS_OPENSTACK:
+				if (!openstack_process_config_drive(data_filesystem_path)) {
+					result_code = EXIT_FAILURE;
+				}
+			break;
+			default:
+				LOG("Unsupported datasource '%d'\n", datasource);
+			}
+		} else {
+			LOG("iso9660 or vfat filesystem not found '%s'\n", tmp_data_filesystem);
+		}
+
+		free(tmp_data_filesystem);
+		tmp_data_filesystem = NULL;
 	}
 
 	/* process userdata file */

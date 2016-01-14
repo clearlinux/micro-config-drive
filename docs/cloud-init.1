@@ -59,9 +59,16 @@ service URL.
 .PP
 \fB\-\-openstack\-metadata\-file\fR FILE
 .RS 4
-Path to an openstack metadata file\&. If omitted, \fBcloud-init\fR will
-attempt to fetch metadata from the openstack link-local connected data
-service URL.
+Path to an openstack metadata file.
+ more information: \%http://docs.openstack.org/user-guide/cli_config_drive.html#openstack-metadata-format
+.RE
+.PP
+\fB\-\-openstack\-config\-drive\fR PATH
+.RS 4
+Path to openstack config drive (iso9660 or vfat filesystem),
+it will be used to process metadata and userdata.
+ more information:
+\%http://docs.openstack.org/user-guide/cli_config_drive.html#configuration-drive-contents
 .RE
 .PP
 \fB\-\-user\-data\fR

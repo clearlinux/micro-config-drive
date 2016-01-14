@@ -194,16 +194,12 @@ fail1:
 	return result;
 }
 
-gboolean disk_by_label(const gchar* label, gchar** device, gchar** type) {
-	gboolean result = false;
+gboolean disk_by_label(const gchar* label, gchar** device) {
 	const char* devpath = NULL;
-	const char *devtype = NULL;
 	blkid_dev dev = NULL;
 	blkid_cache cache = NULL;
-	blkid_probe probe = NULL;
 
 	*device = NULL;
-	*type = NULL;
 
 	if (blkid_get_cache(&cache, "/dev/null") != 0) {
 		LOG(MOD "Cannot get cache!\n");
@@ -227,7 +223,18 @@ gboolean disk_by_label(const gchar* label, gchar** device, gchar** type) {
 		return false;
 	}
 
-	probe = blkid_new_probe_from_filename(devpath);
+	*device = g_strdup(devpath);
+	return true;
+}
+
+gboolean type_by_device(const gchar* device, gchar** type) {
+	gboolean result = false;
+	const char *devtype = NULL;
+	blkid_probe probe = NULL;
+
+	*type = NULL;
+
+	probe = blkid_new_probe_from_filename(device);
 	if(!probe) {
 		LOG(MOD "Probe from filename failed!\n");
 		return false;
@@ -245,10 +252,8 @@ gboolean disk_by_label(const gchar* label, gchar** device, gchar** type) {
 		goto fail;
 	}
 
-	result = true;
-	*device = g_strdup(devpath);
 	*type = g_strdup(devtype);
-
+	result = true;
 fail:
 	blkid_free_probe(probe);
 	return result;

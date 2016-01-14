@@ -39,4 +39,6 @@ gchar *disk_for_path(const gchar* path);
 
 gboolean disk_resize_grow(const gchar* disk_path, GChildWatchFunc async_func_watcher, gpointer data);
 
-gboolean disk_by_label(const gchar* label, gchar** device, gchar** type);
+gboolean disk_by_label(const gchar* label, gchar** device);
+
+gboolean type_by_device(const gchar* device, gchar** type);

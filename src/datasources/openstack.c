@@ -118,6 +118,115 @@ int openstack_main(struct datasource_options_struct* opts) {
 	return EXIT_FAILURE;
 }
 
+gboolean openstack_process_config_drive(const gchar* path) {
+	char mountpoint[] = "/tmp/config-2-XXXXXX";
+	char userdata_file[] = "/tmp/userdata-XXXXXX";
+	int fd_userdata_in = 0;
+	int fd_userdata_out = 0;
+	off_t bytes_copied = 0;
+	ssize_t send_result = 0;
+	struct stat userdata_info = { 0 };
+	gchar metadata_drive_path[PATH_MAX] = { 0 };
+	gchar userdata_drive_path[PATH_MAX] = { 0 };
+	gchar* devtype = NULL;
+	gboolean result = false;
+	struct stat st;
+	gchar command[PATH_MAX] = { 0 };
+
+	if (!type_by_device(path, &devtype)) {
+		LOG("Unknown filesystem device '%s'\n", (char*)path);
+		return false;
+	}
+
+	if (!mkdtemp(mountpoint)) {
+		LOG(MOD "Unable to create directory '%s'\n", mountpoint);
+		goto fail1;
+	}
+
+	if (stat(path, &st)) {
+		LOG(MOD "stat failed\n");
+		goto fail1;
+	}
+
+	if ((st.st_mode & S_IFMT) != S_IFBLK) {
+		g_snprintf(command, PATH_MAX, "mount -o loop,ro -t %s %s %s", devtype, path, mountpoint );
+		if (!exec_task(command)) {
+			LOG(MOD "Unable to mount config drive '%s'\n", (char*)path);
+			goto fail2;
+		}
+	} else if (mount(path, mountpoint, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
+		LOG(MOD "Unable to mount config drive '%s'\n", (char*)path);
+		goto fail2;
+	}
+
+	g_snprintf(metadata_drive_path, PATH_MAX, "%s%s", mountpoint, METADATA_DRIVE_PATH);
+	if (!openstack_process_metadata(metadata_drive_path)) {
+		LOG(MOD "Using config drive get and process metadata failed\n");
+		goto fail3;
+	}
+
+	result = true;
+
+	g_snprintf(userdata_drive_path, PATH_MAX, "%s%s", mountpoint, USERDATA_DRIVE_PATH);
+	fd_userdata_in = open(userdata_drive_path, O_RDONLY);
+	if (-1 == fd_userdata_in) {
+		LOG(MOD "No userdata in config drive\n");
+		goto fail3;
+	}
+
+	if (fstat(fd_userdata_in, &userdata_info) == -1) {
+		LOG(MOD "Unable to get info from file '%s'\n", userdata_drive_path);
+		goto fail4;
+	}
+
+	fd_userdata_out = mkstemp(userdata_file);
+	if (-1 == fd_userdata_out) {
+		LOG(MOD "Unable to create a temporal file\n");
+		goto fail4;
+	}
+
+	send_result = sendfile(fd_userdata_out, fd_userdata_in, &bytes_copied, (size_t)userdata_info.st_size);
+	if (-1 == send_result) {
+		LOG(MOD "Unable to copy file from '%s' to '%s'\n", userdata_drive_path, userdata_file);
+		goto fail5;
+	}
+
+	close(fd_userdata_out);
+	close(fd_userdata_in);
+	fd_userdata_out = 0;
+	fd_userdata_in = 0;
+
+	if (!userdata_process_file(userdata_file)) {
+		LOG(MOD "Unable to process userdata\n");
+	}
+
+	remove(userdata_file);
+
+fail5:
+	if (fd_userdata_out) {
+		close(fd_userdata_out);
+	}
+fail4:
+	if (fd_userdata_in) {
+		close(fd_userdata_in);
+	}
+fail3:
+	if ((st.st_mode & S_IFMT) != S_IFBLK) {
+		g_snprintf(command, PATH_MAX, "umount %s", mountpoint );
+		if (!exec_task(command)) {
+			LOG(MOD "Using config drive cannot umount '%s'\n", mountpoint);
+			goto fail2;
+		}
+	} else if (umount(mountpoint) != 0) {
+		LOG(MOD "Using config drive cannot umount '%s'\n", mountpoint);
+	}
+fail2:
+	rmdir(mountpoint);
+fail1:
+	g_free(devtype);
+	return result;
+}
+
 gboolean openstack_process_metadata(const gchar* filename) {
 	GError* error = NULL;
 	JsonParser* parser = NULL;
@@ -187,102 +296,26 @@ cleancurl:
 }
 
 static gboolean openstack_use_config_drive(void) {
-	char mountpoint[] = "/tmp/config-2-XXXXXX";
-	char userdata_file[] = "/tmp/userdata-XXXXXX";
-	int fd_userdata_in = 0;
-	int fd_userdata_out = 0;
-	off_t bytes_copied = 0;
-	ssize_t send_result = 0;
-	struct stat userdata_info = { 0 };
 	gboolean config_drive = false;
-	GString* metadata_drive_path;
-	GString* userdata_drive_path;
-	gchar* device;
-	gchar* devtype;
+	gchar* device = NULL;
 	gboolean result = false;
 
-	config_drive = disk_by_label("config-2", &device, &devtype);
+	config_drive = disk_by_label("config-2", &device);
 
 	if (!config_drive) {
 		LOG(MOD "Config drive not found\n");
 		return false;
 	}
 
-	if (!mkdtemp(mountpoint)) {
-		LOG(MOD "Cannot create directory '%s'\n", mountpoint);
-		goto failcfgdrive0;
-	}
-
-	if (mount(device, mountpoint, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
-		LOG(MOD "Cannot mount config drive '%s'\n", (char*)device);
-		goto failcfgdrive1;
-	}
-
-	metadata_drive_path = g_string_new(mountpoint);
-	g_string_append(metadata_drive_path, METADATA_DRIVE_PATH);
-	userdata_drive_path = g_string_new(mountpoint);
-	g_string_append(userdata_drive_path, USERDATA_DRIVE_PATH);
-
-	if (!openstack_process_metadata(metadata_drive_path->str)) {
-		LOG(MOD "Using config drive get and process metadata failed\n");
-		goto failcfgdrive2;
+	if (!openstack_process_config_drive(device)) {
+		LOG(MOD "Process config drive failed\n");
+		goto fail1;
 	}
 
 	result = true;
 
-	fd_userdata_in = open(userdata_drive_path->str, O_RDONLY);
-	if (-1 == fd_userdata_in) {
-		LOG(MOD "No userdata in config drive\n");
-		goto failcfgdrive2;
-	}
-
-	if (fstat(fd_userdata_in, &userdata_info) == -1) {
-		LOG(MOD "Cannot get info from file '%s'\n", userdata_drive_path->str);
-		goto failcfgdrive3;
-    }
-
-	fd_userdata_out = mkstemp(userdata_file);
-	if (-1 == fd_userdata_out) {
-		LOG(MOD "Cannot create a temporal file\n");
-		goto failcfgdrive3;
-	}
-
-	send_result = sendfile(fd_userdata_out, fd_userdata_in, &bytes_copied, (size_t)userdata_info.st_size);
-	if (-1 == send_result) {
-		LOG(MOD "Cannot copy file from '%s' to '%s'\n", userdata_drive_path->str, userdata_file);
-		goto failcfgdrive4;
-	}
-
-	close(fd_userdata_out);
-	close(fd_userdata_in);
-	fd_userdata_out = 0;
-	fd_userdata_in = 0;
-
-	if (!userdata_process_file(userdata_file)) {
-		LOG(MOD "Unable to process userdata\n");
-	}
-
-	remove(userdata_file);
-
-failcfgdrive4:
-	if (fd_userdata_out) {
-		close(fd_userdata_out);
-	}
-failcfgdrive3:
-	if (fd_userdata_in) {
-		close(fd_userdata_in);
-	}
-failcfgdrive2:
-	g_string_free(metadata_drive_path, true);
-	g_string_free(userdata_drive_path, true);
-	if (umount(mountpoint) != 0) {
-		LOG(MOD "Using config drive cannot umount '%s'\n", mountpoint);
-	}
-failcfgdrive1:
-	rmdir(mountpoint);
-failcfgdrive0:
+fail1:
 	g_free(device);
-	g_free(devtype);
 	return result;
 }
 
