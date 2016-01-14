@@ -102,7 +102,9 @@ static void async_process_watcher(GPid pid, gint status, gpointer _data) {
 		g_main_loop_quit(data->main_loop);
 	}
 
-	g_spawn_close_pid(pid);
+	if (pid != 0) {
+		g_spawn_close_pid(pid);
+	}
 }
 
 bool async_checkdisk(gpointer data) {
