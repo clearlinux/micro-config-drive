@@ -85,18 +85,18 @@ struct openstack_metadata_data {
 };
 
 static struct openstack_metadata_data openstack_metadata_options[] = {
-	{"random_seed",         openstack_metadata_not_implemented      },
-	{"uuid",		openstack_metadata_not_implemented	},
-	{"availability_zone",	openstack_metadata_not_implemented      },
-	{"keys",	        openstack_metadata_keys                 },
-	{"hostname",		openstack_metadata_hostname             },
-	{"launch_index",	openstack_metadata_not_implemented      },
-	{"public_keys",	        openstack_metadata_not_implemented      },
-	{"project_id",	        openstack_metadata_not_implemented      },
-	{"name",	        openstack_metadata_not_implemented      },
-	{"files",	        openstack_metadata_not_implemented      },
-	{"meta",	        openstack_metadata_not_implemented      },
-	{NULL}
+	{ "random_seed",        openstack_metadata_not_implemented },
+	{ "uuid",               openstack_metadata_not_implemented },
+	{ "availability_zone",  openstack_metadata_not_implemented },
+	{ "keys",               openstack_metadata_keys            },
+	{ "hostname",           openstack_metadata_hostname        },
+	{ "launch_index",       openstack_metadata_not_implemented },
+	{ "public_keys",        openstack_metadata_not_implemented },
+	{ "project_id",         openstack_metadata_not_implemented },
+	{ "name",               openstack_metadata_not_implemented },
+	{ "files",              openstack_metadata_not_implemented },
+	{ "meta",               openstack_metadata_not_implemented },
+	{ NULL }
 };
 
 struct datasource_handler_struct openstack_datasource = {
