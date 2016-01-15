@@ -48,6 +48,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
+#include <sys/sendfile.h>
 
 #include <glib.h>
 
@@ -240,4 +241,44 @@ bool write_ssh_keys(const GString* data, const gchar* username) {
 	}
 
 	return true;
+}
+
+bool copy_file(const gchar* src, const gchar* dest) {
+	int fd_src = 0;
+	int fd_dest = 0;
+	struct stat st = { 0 };
+	ssize_t send_result = 0;
+	bool result = false;
+	off_t bytes_copied = 0;
+
+	fd_src = open(src, O_RDONLY);
+	if (-1 == fd_src) {
+		LOG(MOD "Unable to open source file '%s'\n", src);
+		return false;
+	}
+
+	if (fstat(fd_src, &st) == -1) {
+		LOG(MOD "Unable to get info from file '%s'\n", src);
+		goto fail1;
+	}
+
+	fd_dest = open(dest, O_WRONLY | O_CREAT | O_TRUNC);
+	if (-1 == fd_dest) {
+		LOG(MOD "Unable to open destination file '%s'\n", dest);
+		goto fail1;
+	}
+
+	send_result = sendfile(fd_dest, fd_src, &bytes_copied, (size_t)st.st_size);
+	if (-1 == send_result) {
+		LOG(MOD "Unable to copy file from '%s' to '%s'\n", src, dest);
+		goto fail2;
+	}
+
+	result = true;
+
+fail2:
+	close(fd_dest);
+fail1:
+	close(fd_src);
+	return result;
 }
