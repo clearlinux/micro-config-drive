@@ -66,9 +66,6 @@ int openstack_main(struct datasource_options_struct* opts);
 static gboolean openstack_use_metadata_service(void);
 static gboolean openstack_use_config_drive(void);
 
-static gboolean openstack_metadata(CURL* curl);
-static gboolean openstack_userdata(CURL* curl);
-
 static void openstack_run_handler(GNode *node, __unused__ gpointer user_data);
 static void openstack_item(GNode* node, GThreadPool* thread_pool);
 static gboolean openstack_node_free(GNode* node, gpointer data);
@@ -270,27 +267,65 @@ fail0:
 static gboolean openstack_use_metadata_service(void) {
 	gboolean result = false;
 	CURL* curl = NULL;
+	gchar* data_filename = NULL;
+	int attempts = ATTEMPTS;
+	useconds_t u_sleep = U_SLEEP;
 
 	if (!curl_common_init(&curl)) {
 		LOG(MOD "Curl initialize failed\n");
-		goto cleancurl;
+		goto fail1;
 	}
 
 	if (options->metadata) {
-		if (!openstack_metadata(curl)) {
-			LOG(MOD "Get and process metadata failed\n");
-			goto cleancurl;
+		LOG(MOD "Fetching metadata file URL %s\n", METADATA_URL );
+		data_filename = curl_fetch_file(curl, METADATA_URL, attempts, u_sleep);
+		if (!data_filename) {
+			LOG(MOD "Fetch metadata failed\n");
+			goto fail1;
 		}
+
+		result = openstack_process_metadata(data_filename);
+		g_free(data_filename);
+		data_filename = NULL;
+
+		if (!result) {
+			LOG(MOD "Process metadata failed\n");
+			goto fail1;
+		}
+
+		/*
+		* if metadata was downloaded, then we do not need to wait
+		* for nova metadata service because at this point it is
+		* already up (running)
+		*/
+		attempts = 1;
+		u_sleep = 0;
 	}
 
+	/*
+	* Get and process userdata is optional
+	*/
 	result = true;
 
 	if (options->user_data) {
-		if (!openstack_userdata(curl)) {
-			LOG(MOD "No userdata provided to this machine\n");
+		LOG(MOD "Fetching userdata file URL %s\n", USERDATA_URL );
+		data_filename = curl_fetch_file(curl, USERDATA_URL, attempts, u_sleep);
+		if (!data_filename) {
+			LOG(MOD "Fetch userdata failed\n");
+			goto fail1;
+		}
+
+		result = userdata_process_file(data_filename);
+		g_free(data_filename);
+		data_filename = NULL;
+
+		if (!result) {
+			LOG(MOD "Process userdata failed\n");
+			goto fail1;
 		}
 	}
-cleancurl:
+
+fail1:
 	curl_easy_cleanup(curl);
 	return result;
 }
@@ -316,50 +351,6 @@ static gboolean openstack_use_config_drive(void) {
 
 fail1:
 	g_free(device);
-	return result;
-}
-
-static gboolean openstack_userdata(CURL* curl) {
-	gboolean result;
-	int attempts = ATTEMPTS;
-	useconds_t u_sleep = U_SLEEP;
-	gchar* data_filename = NULL;
-
-	/*
-	* if metadata was downloaded, then we do not need to wait
-	* for nova metadata service because at this point it is
-	* already up (running)
-	*/
-	if (options->metadata) {
-		attempts = 1;
-		u_sleep = 0;
-	}
-
-	LOG(MOD "Fetching userdata file URL %s\n", USERDATA_URL );
-	data_filename = curl_fetch_file(curl, USERDATA_URL, attempts, u_sleep);
-	if (!data_filename) {
-		LOG(MOD "Fetch userdata failed\n");
-		return false;
-	}
-
-	result = userdata_process_file(data_filename);
-	g_free(data_filename);
-	return result;
-}
-
-static gboolean openstack_metadata(CURL* curl) {
-	gchar* data_filename = NULL;
-	gboolean result;
-
-	LOG(MOD "Fetching metadata file URL %s\n", METADATA_URL );
-	data_filename = curl_fetch_file(curl, METADATA_URL, ATTEMPTS, U_SLEEP);
-	if (!data_filename) {
-		LOG(MOD "Fetch metadata failed\n");
-		return false;
-	}
-
-	result = openstack_process_metadata(data_filename);
-	g_free(data_filename);
 	return result;
 }
 
