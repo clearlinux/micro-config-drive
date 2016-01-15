@@ -73,7 +73,7 @@ static void openstack_metadata_not_implemented(GNode* node);
 static void openstack_metadata_keys(GNode* node);
 static void openstack_metadata_hostname(GNode* node);
 
-static struct datasource_options_struct* options;
+static struct datasource_options_struct* options = NULL;
 
 struct openstack_metadata_data {
 	const gchar* key;
@@ -122,8 +122,20 @@ gboolean openstack_process_config_drive(const gchar* path) {
 	gchar userdata_drive_path[PATH_MAX] = { 0 };
 	gchar* devtype = NULL;
 	gboolean result = false;
-	struct stat st;
+	struct stat st = { 0 };
 	gchar command[PATH_MAX] = { 0 };
+	gboolean process_user_data = true;
+	gboolean process_metadata = true;
+
+	if (options) {
+		process_user_data = options->user_data;
+		process_metadata = options->metadata;
+	}
+
+	if (!process_user_data && !process_metadata) {
+		/*nothing to do*/
+		return true;
+	}
 
 	if (!type_by_device(path, &devtype)) {
 		LOG("Unknown filesystem device '%s'\n", (char*)path);
@@ -151,33 +163,37 @@ gboolean openstack_process_config_drive(const gchar* path) {
 		goto fail2;
 	}
 
-	g_snprintf(metadata_drive_path, PATH_MAX, "%s%s", mountpoint, METADATA_DRIVE_PATH);
-	if (!openstack_process_metadata(metadata_drive_path)) {
-		LOG(MOD "Using config drive get and process metadata failed\n");
-		goto fail3;
+	if (process_metadata) {
+		g_snprintf(metadata_drive_path, PATH_MAX, "%s%s", mountpoint, METADATA_DRIVE_PATH);
+		if (!openstack_process_metadata(metadata_drive_path)) {
+			LOG(MOD "Using config drive get and process metadata failed\n");
+			goto fail3;
+		}
 	}
 
 	result = true;
 
-	fd_tmp = mkstemp(userdata_file);
-	if (-1 == fd_tmp) {
-		LOG(MOD "Unable to create a temporal file\n");
-		goto fail3;
-	}
-	if (close(fd_tmp) == -1) {
-		LOG(MOD "Close file '%s' failed\n", userdata_file);
-		goto fail4;
-	}
+	if (process_user_data) {
+		fd_tmp = mkstemp(userdata_file);
+		if (-1 == fd_tmp) {
+			LOG(MOD "Unable to create a temporal file\n");
+			goto fail3;
+		}
+		if (close(fd_tmp) == -1) {
+			LOG(MOD "Close file '%s' failed\n", userdata_file);
+			goto fail4;
+		}
 
-	g_snprintf(userdata_drive_path, PATH_MAX, "%s%s", mountpoint, USERDATA_DRIVE_PATH);
+		g_snprintf(userdata_drive_path, PATH_MAX, "%s%s", mountpoint, USERDATA_DRIVE_PATH);
 
-	if (!copy_file(userdata_drive_path, userdata_file)) {
-		LOG(MOD "Copy file '%s' failed\n", userdata_drive_path);
-		goto fail4;
-	}
+		if (!copy_file(userdata_drive_path, userdata_file)) {
+			LOG(MOD "Copy file '%s' failed\n", userdata_drive_path);
+			goto fail4;
+		}
 
-	if (!userdata_process_file(userdata_file)) {
-		LOG(MOD "Unable to process userdata\n");
+		if (!userdata_process_file(userdata_file)) {
+			LOG(MOD "Unable to process userdata\n");
+		}
 	}
 
 fail4:
