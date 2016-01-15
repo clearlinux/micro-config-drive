@@ -49,6 +49,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/sendfile.h>
+#include <libgen.h>
 
 #include <glib.h>
 
@@ -250,6 +251,7 @@ bool copy_file(const gchar* src, const gchar* dest) {
 	ssize_t send_result = 0;
 	bool result = false;
 	off_t bytes_copied = 0;
+	gchar dest_dir[PATH_MAX] = { 0 };
 
 	fd_src = open(src, O_RDONLY);
 	if (-1 == fd_src) {
@@ -259,6 +261,12 @@ bool copy_file(const gchar* src, const gchar* dest) {
 
 	if (fstat(fd_src, &st) == -1) {
 		LOG(MOD "Unable to get info from file '%s'\n", src);
+		goto fail1;
+	}
+
+	g_strlcpy(dest_dir, dest, PATH_MAX);
+	if (make_dir(dirname(dest_dir), st.st_mode) != 0) {
+		LOG(MOD "Unable to create directory '%s'\n", dest_dir);
 		goto fail1;
 	}
 
