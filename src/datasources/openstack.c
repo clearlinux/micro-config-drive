@@ -38,7 +38,6 @@
 #include <string.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
-#include <sys/sendfile.h>
 #include <sys/sysinfo.h>
 
 #include <glib.h>
@@ -118,11 +117,7 @@ int openstack_main(struct datasource_options_struct* opts) {
 gboolean openstack_process_config_drive(const gchar* path) {
 	char mountpoint[] = "/tmp/config-2-XXXXXX";
 	char userdata_file[] = "/tmp/userdata-XXXXXX";
-	int fd_userdata_in = 0;
-	int fd_userdata_out = 0;
-	off_t bytes_copied = 0;
-	ssize_t send_result = 0;
-	struct stat userdata_info = { 0 };
+	int fd_tmp = 0;
 	gchar metadata_drive_path[PATH_MAX] = { 0 };
 	gchar userdata_drive_path[PATH_MAX] = { 0 };
 	gchar* devtype = NULL;
@@ -164,49 +159,29 @@ gboolean openstack_process_config_drive(const gchar* path) {
 
 	result = true;
 
-	g_snprintf(userdata_drive_path, PATH_MAX, "%s%s", mountpoint, USERDATA_DRIVE_PATH);
-	fd_userdata_in = open(userdata_drive_path, O_RDONLY);
-	if (-1 == fd_userdata_in) {
-		LOG(MOD "No userdata in config drive\n");
+	fd_tmp = mkstemp(userdata_file);
+	if (-1 == fd_tmp) {
+		LOG(MOD "Unable to create a temporal file\n");
 		goto fail3;
 	}
-
-	if (fstat(fd_userdata_in, &userdata_info) == -1) {
-		LOG(MOD "Unable to get info from file '%s'\n", userdata_drive_path);
+	if (close(fd_tmp) == -1) {
+		LOG(MOD "Close file '%s' failed\n", userdata_file);
 		goto fail4;
 	}
 
-	fd_userdata_out = mkstemp(userdata_file);
-	if (-1 == fd_userdata_out) {
-		LOG(MOD "Unable to create a temporal file\n");
+	g_snprintf(userdata_drive_path, PATH_MAX, "%s%s", mountpoint, USERDATA_DRIVE_PATH);
+
+	if (!copy_file(userdata_drive_path, userdata_file)) {
+		LOG(MOD "Copy file '%s' failed\n", userdata_drive_path);
 		goto fail4;
 	}
-
-	send_result = sendfile(fd_userdata_out, fd_userdata_in, &bytes_copied, (size_t)userdata_info.st_size);
-	if (-1 == send_result) {
-		LOG(MOD "Unable to copy file from '%s' to '%s'\n", userdata_drive_path, userdata_file);
-		goto fail5;
-	}
-
-	close(fd_userdata_out);
-	close(fd_userdata_in);
-	fd_userdata_out = 0;
-	fd_userdata_in = 0;
 
 	if (!userdata_process_file(userdata_file)) {
 		LOG(MOD "Unable to process userdata\n");
 	}
 
-	remove(userdata_file);
-
-fail5:
-	if (fd_userdata_out) {
-		close(fd_userdata_out);
-	}
 fail4:
-	if (fd_userdata_in) {
-		close(fd_userdata_in);
-	}
+	remove(userdata_file);
 fail3:
 	if ((st.st_mode & S_IFMT) != S_IFBLK) {
 		g_snprintf(command, PATH_MAX, "umount %s", mountpoint );
