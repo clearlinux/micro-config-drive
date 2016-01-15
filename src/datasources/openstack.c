@@ -53,8 +53,9 @@
 #include "disk.h"
 
 #define MOD "openstack: "
-#define USERDATA_URL "http://169.254.169.254/openstack/latest/user_data"
-#define METADATA_URL "http://169.254.169.254/openstack/latest/meta_data.json"
+#define OPENSTACK_URL "http://169.254.169.254/openstack"
+#define USERDATA_URL OPENSTACK_URL "/latest/user_data"
+#define METADATA_URL OPENSTACK_URL "/latest/meta_data.json"
 #define USERDATA_DRIVE_PATH "/openstack/latest/user_data"
 #define METADATA_DRIVE_PATH "/openstack/latest/meta_data.json"
 #define ATTEMPTS 10
@@ -72,8 +73,15 @@ static gboolean openstack_node_free(GNode* node, gpointer data);
 static void openstack_metadata_not_implemented(GNode* node);
 static void openstack_metadata_keys(GNode* node);
 static void openstack_metadata_hostname(GNode* node);
+static void openstack_metadata_files(GNode* node);
 
 static struct datasource_options_struct* options = NULL;
+
+enum {
+	SOURCE_CONFIG_DRIVE = 101,
+	SOURCE_METADATA_SERVICE,
+	SOURCE_NONE
+};
 
 struct openstack_metadata_data {
 	const gchar* key;
@@ -90,7 +98,7 @@ static struct openstack_metadata_data openstack_metadata_options[] = {
 	{ "public_keys",        openstack_metadata_not_implemented },
 	{ "project_id",         openstack_metadata_not_implemented },
 	{ "name",               openstack_metadata_not_implemented },
-	{ "files",              openstack_metadata_not_implemented },
+	{ "files",              openstack_metadata_files           },
 	{ "meta",               openstack_metadata_not_implemented },
 	{ NULL }
 };
@@ -100,8 +108,15 @@ struct datasource_handler_struct openstack_datasource = {
 	.handler=&openstack_main
 };
 
+static int data_source = SOURCE_NONE;
+
+static CURL* curl = NULL;
+
+static char config_drive_path[] = "/tmp/config-2-XXXXXX";
+
 int openstack_main(struct datasource_options_struct* opts) {
 	options = opts;
+	data_source = SOURCE_NONE;
 
 	if (openstack_use_config_drive()) {
 		LOG(MOD "Metadata and userdata were processed using config drive\n");
@@ -115,7 +130,6 @@ int openstack_main(struct datasource_options_struct* opts) {
 }
 
 gboolean openstack_process_config_drive(const gchar* path) {
-	char mountpoint[] = "/tmp/config-2-XXXXXX";
 	char userdata_file[] = "/tmp/userdata-XXXXXX";
 	int fd_tmp = 0;
 	gchar metadata_drive_path[PATH_MAX] = { 0 };
@@ -137,13 +151,15 @@ gboolean openstack_process_config_drive(const gchar* path) {
 		return true;
 	}
 
+	data_source = SOURCE_CONFIG_DRIVE;
+
 	if (!type_by_device(path, &devtype)) {
 		LOG("Unknown filesystem device '%s'\n", (char*)path);
 		return false;
 	}
 
-	if (!mkdtemp(mountpoint)) {
-		LOG(MOD "Unable to create directory '%s'\n", mountpoint);
+	if (!mkdtemp(config_drive_path)) {
+		LOG(MOD "Unable to create directory '%s'\n", config_drive_path);
 		goto fail1;
 	}
 
@@ -153,18 +169,18 @@ gboolean openstack_process_config_drive(const gchar* path) {
 	}
 
 	if ((st.st_mode & S_IFMT) != S_IFBLK) {
-		g_snprintf(command, PATH_MAX, "mount -o loop,ro -t %s %s %s", devtype, path, mountpoint );
+		g_snprintf(command, PATH_MAX, "mount -o loop,ro -t %s %s %s", devtype, path, config_drive_path );
 		if (!exec_task(command)) {
 			LOG(MOD "Unable to mount config drive '%s'\n", (char*)path);
 			goto fail2;
 		}
-	} else if (mount(path, mountpoint, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
+	} else if (mount(path, config_drive_path, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
 		LOG(MOD "Unable to mount config drive '%s'\n", (char*)path);
 		goto fail2;
 	}
 
 	if (process_metadata) {
-		g_snprintf(metadata_drive_path, PATH_MAX, "%s%s", mountpoint, METADATA_DRIVE_PATH);
+		g_snprintf(metadata_drive_path, PATH_MAX, "%s%s", config_drive_path, METADATA_DRIVE_PATH);
 		if (!openstack_process_metadata(metadata_drive_path)) {
 			LOG(MOD "Using config drive get and process metadata failed\n");
 			goto fail3;
@@ -184,7 +200,7 @@ gboolean openstack_process_config_drive(const gchar* path) {
 			goto fail4;
 		}
 
-		g_snprintf(userdata_drive_path, PATH_MAX, "%s%s", mountpoint, USERDATA_DRIVE_PATH);
+		g_snprintf(userdata_drive_path, PATH_MAX, "%s%s", config_drive_path, USERDATA_DRIVE_PATH);
 
 		if (!copy_file(userdata_drive_path, userdata_file)) {
 			LOG(MOD "Copy file '%s' failed\n", userdata_drive_path);
@@ -200,16 +216,16 @@ fail4:
 	remove(userdata_file);
 fail3:
 	if ((st.st_mode & S_IFMT) != S_IFBLK) {
-		g_snprintf(command, PATH_MAX, "umount %s", mountpoint );
+		g_snprintf(command, PATH_MAX, "umount %s", config_drive_path );
 		if (!exec_task(command)) {
-			LOG(MOD "Using config drive cannot umount '%s'\n", mountpoint);
+			LOG(MOD "Using config drive cannot umount '%s'\n", config_drive_path);
 			goto fail2;
 		}
-	} else if (umount(mountpoint) != 0) {
-		LOG(MOD "Using config drive cannot umount '%s'\n", mountpoint);
+	} else if (umount(config_drive_path) != 0) {
+		LOG(MOD "Using config drive cannot umount '%s'\n", config_drive_path);
 	}
 fail2:
-	rmdir(mountpoint);
+	rmdir(config_drive_path);
 fail1:
 	g_free(devtype);
 	return result;
@@ -257,10 +273,11 @@ fail0:
 
 static gboolean openstack_use_metadata_service(void) {
 	gboolean result = false;
-	CURL* curl = NULL;
 	gchar* data_filename = NULL;
 	int attempts = ATTEMPTS;
 	useconds_t u_sleep = U_SLEEP;
+
+	data_source = SOURCE_METADATA_SERVICE;
 
 	if (!curl_common_init(&curl)) {
 		LOG(MOD "Curl initialize failed\n");
@@ -405,4 +422,61 @@ static void openstack_metadata_hostname(GNode* node) {
 	gchar command[LINE_MAX];
 	g_snprintf(command, LINE_MAX, HOSTNAMECTL_PATH " set-hostname '%s'", (char*)node->data);
 	exec_task(command);
+}
+
+static void openstack_metadata_files(GNode* node) {
+	gchar content_path[LINE_MAX] = { 0 };
+	gchar path[LINE_MAX] = { 0 };
+	gchar src_content_file[PATH_MAX] = { 0 };
+	gchar* tmp_content_file = 0;
+	while (node) {
+		if (g_strcmp0("content_path", node->data) == 0) {
+			if (node->children) {
+				g_strlcpy(content_path, node->children->data, LINE_MAX);
+			}
+		} else if (g_strcmp0("path", node->data) == 0) {
+			if (node->children) {
+				g_strlcpy(path, node->children->data, LINE_MAX);
+			}
+		} else {
+			content_path[0] = 0;
+			path[0] = 0;
+			LOG(MOD "files nothing to do with %s\n", (char*)node->data);
+		}
+
+		if (content_path[0] && path[0]) {
+			switch (data_source) {
+			case SOURCE_CONFIG_DRIVE:
+				g_snprintf(src_content_file, PATH_MAX, "%s/openstack/%s",
+				           config_drive_path, content_path);
+				if (!copy_file(src_content_file, path)) {
+					LOG(MOD "Copy file '%s' failed\n", src_content_file);
+				}
+			break;
+
+			case SOURCE_METADATA_SERVICE:
+				g_snprintf(src_content_file, PATH_MAX, "%s/%s", OPENSTACK_URL, content_path );
+				tmp_content_file = curl_fetch_file(curl, src_content_file, 1, 0);
+				if (!tmp_content_file) {
+					LOG("Fetch file '%s' failed\n", src_content_file);
+					break;
+				}
+				if (!copy_file(tmp_content_file, path)) {
+					LOG(MOD "Copy file '%s' failed\n", tmp_content_file);
+					break;
+				}
+				remove(tmp_content_file);
+				g_free(tmp_content_file);
+			break;
+
+			case SOURCE_NONE:
+				if (!copy_file(content_path, path)) {
+					LOG(MOD "Copy file '%s' failed\n", content_path);
+				}
+			break;
+			}
+		}
+
+		node = node->next;
+	}
 }
