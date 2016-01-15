@@ -262,7 +262,7 @@ bool copy_file(const gchar* src, const gchar* dest) {
 		goto fail1;
 	}
 
-	fd_dest = open(dest, O_WRONLY | O_CREAT | O_TRUNC);
+	fd_dest = open(dest, O_WRONLY|O_CREAT|O_TRUNC, st.st_mode);
 	if (-1 == fd_dest) {
 		LOG(MOD "Unable to open destination file '%s'\n", dest);
 		goto fail1;
