@@ -220,7 +220,7 @@ int main(int argc, char *argv[]) {
 		switch (c) {
 
 		case 'u':
-			userdata_filename = realpath(optarg, optarg);
+			userdata_filename = realpath(optarg, NULL);
 			if (!userdata_filename) {
 				LOG("Userdata file not found '%s'\n", optarg);
 			}
