@@ -35,24 +35,22 @@
 
 #pragma once
 
-#include <glib.h>
-
 struct datasource_options_struct {
 	bool user_data;
 	bool metadata;
 };
 
 struct cc_module_handler_struct {
-	gchar *name;
+	char* name;
 	void (*handler)(GNode* node);
 };
 
 struct interpreter_handler_struct {
-	gchar *shebang;
+	char* shebang;
 	int (*handler)(const gchar* filename);
 };
 
 struct datasource_handler_struct {
-	gchar *datasource;
+	char* datasource;
 	int (*handler)(struct datasource_options_struct* opts);
 };
