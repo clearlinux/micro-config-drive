@@ -86,7 +86,7 @@ static void users_add_username(GNode* node, char* command, gpointer data) {
 	g_strlcpy(users_current_username, node->data, LOGIN_NAME_MAX);
 
 	if (!cloud_config_get_global("first_user")) {
-		cloud_config_set_global("first_user", g_strdup(users_current_username));
+		cloud_config_set_global("first_user", users_current_username);
 	}
 }
 
