@@ -181,7 +181,7 @@ gboolean openstack_process_config_drive(const gchar* path) {
 
 	if (process_metadata) {
 		g_snprintf(metadata_drive_path, PATH_MAX, "%s%s", config_drive_path, METADATA_DRIVE_PATH);
-		if (!openstack_process_metadata(metadata_drive_path)) {
+		if (!openstack_process_metadata_file(metadata_drive_path)) {
 			LOG(MOD "Using config drive get and process metadata failed\n");
 			goto fail3;
 		}
@@ -231,7 +231,7 @@ fail1:
 	return result;
 }
 
-gboolean openstack_process_metadata(const gchar* filename) {
+gboolean openstack_process_metadata_file(const gchar* filename) {
 	GError* error = NULL;
 	JsonParser* parser = NULL;
 	GNode* node = NULL;
@@ -292,7 +292,7 @@ static gboolean openstack_use_metadata_service(void) {
 			goto fail1;
 		}
 
-		result = openstack_process_metadata(data_filename);
+		result = openstack_process_metadata_file(data_filename);
 		g_free(data_filename);
 		data_filename = NULL;
 

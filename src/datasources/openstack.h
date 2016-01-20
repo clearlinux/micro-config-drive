@@ -34,6 +34,6 @@
 
 #include <glib.h>
 
-gboolean openstack_process_metadata(const gchar* filename);
+gboolean openstack_process_metadata_file(const gchar* filename);
 
 gboolean openstack_process_config_drive(const gchar* path);

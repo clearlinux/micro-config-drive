@@ -340,7 +340,7 @@ int main(int argc, char *argv[]) {
 		if (realpath(tmp_metadata_filename, metadata_filename)) {
 			switch (datasource) {
 			case DS_OPENSTACK:
-				if (!openstack_process_metadata(metadata_filename)) {
+				if (!openstack_process_metadata_file(metadata_filename)) {
 					result_code = EXIT_FAILURE;
 				}
 				break;
