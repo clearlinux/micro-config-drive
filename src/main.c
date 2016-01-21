@@ -108,19 +108,25 @@ static void async_process_watcher(GPid pid, gint status, gpointer _data) {
 }
 
 bool async_checkdisk(gpointer data) {
-	gchar* root_disk;
+	char* root_disk;
+	bool result = false;
 
 	root_disk = disk_for_path("/");
 	if (root_disk) {
 		LOG("Checking disk %s\n", root_disk);
 		if (!disk_resize_grow(root_disk, async_process_watcher, data)) {
-			return false;
+			goto fail;
 		}
 	} else {
 		LOG("Root disk not found\n");
 		return false;
 	}
-	return true;
+
+	result = true;
+
+fail:
+	free(root_disk);
+	return result;
 }
 
 bool async_setup_first_boot(gpointer data) {

@@ -35,7 +35,7 @@
 #include <glib.h>
 #include <lib.h>
 
-gchar *disk_for_path(const gchar* path);
+char *disk_for_path(const gchar* path);
 
 gboolean disk_resize_grow(const gchar* disk_path, GChildWatchFunc async_func_watcher, gpointer data);
 
