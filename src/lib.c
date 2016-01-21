@@ -54,6 +54,7 @@
 #include <glib.h>
 
 #include "debug.h"
+#include "lib.h"
 
 #define MOD "lib: "
 
@@ -289,4 +290,11 @@ fail2:
 fail1:
 	close(fd_src);
 	return result;
+}
+
+bool gnode_free(GNode* node, __unused__ gpointer data) {
+	if (node->data) {
+		g_free(node->data);
+	}
+	return false;
 }

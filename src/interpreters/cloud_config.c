@@ -53,7 +53,6 @@ static GHashTable *cloud_config_global_data = NULL;
 
 static bool cloud_config_parse(yaml_parser_t *parser, GNode *data, int state);
 static gboolean cloud_config_simplify(GNode *node, gpointer data);
-static gboolean cloud_config_free(GNode *node, gpointer data);
 static void cloud_config_process(GNode *userdata, GList *handlers);
 
 int cloud_config_main(const gchar* filename) {
@@ -85,7 +84,7 @@ int cloud_config_main(const gchar* filename) {
 
 	cloud_config_process(userdata, handlers);
 
-	g_node_traverse(userdata, G_POST_ORDER, G_TRAVERSE_ALL, -1, cloud_config_free, NULL);
+	g_node_traverse(userdata, G_POST_ORDER, G_TRAVERSE_ALL, -1, (GNodeTraverseFunc)gnode_free, NULL);
 	g_node_destroy(userdata);
 
 	g_list_free(handlers);
@@ -245,14 +244,6 @@ static bool cloud_config_parse(yaml_parser_t *parser, GNode *node, int state) {
 		}
 	}
 	return true;
-}
-
-static gboolean cloud_config_free(GNode *node, __unused__ gpointer data) {
-	if (node->data) {
-		g_free(node->data);
-	}
-
-	return false;
 }
 
 static void cloud_config_process(GNode *userdata, GList *handlers) {

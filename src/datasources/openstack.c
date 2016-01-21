@@ -68,7 +68,6 @@ static gboolean openstack_use_config_drive(void);
 
 static void openstack_run_handler(GNode *node, __unused__ gpointer user_data);
 static void openstack_item(GNode* node, GThreadPool* thread_pool);
-static gboolean openstack_node_free(GNode* node, gpointer data);
 
 static void openstack_metadata_not_implemented(GNode* node);
 static void openstack_metadata_keys(GNode* node);
@@ -263,13 +262,12 @@ gboolean openstack_process_metadata_file(const gchar* filename) {
 	result = true;
 
 fail1:
-	g_node_traverse(node, G_POST_ORDER, G_TRAVERSE_ALL, -1, openstack_node_free, NULL);
+	g_node_traverse(node, G_POST_ORDER, G_TRAVERSE_ALL, -1, (GNodeTraverseFunc)gnode_free, NULL);
 fail0:
 	g_object_unref(parser);
 	g_node_destroy(node);
 	return result;
 }
-
 
 static gboolean openstack_use_metadata_service(void) {
 	gboolean result = false;
@@ -360,14 +358,6 @@ static gboolean openstack_use_config_drive(void) {
 fail1:
 	g_free(device);
 	return result;
-}
-
-static gboolean openstack_node_free(GNode* node, __unused__ gpointer data) {
-	if (node->data) {
-		g_free(node->data);
-	}
-
-	return false;
 }
 
 static void openstack_run_handler(GNode *node, __unused__ gpointer user_data) {
