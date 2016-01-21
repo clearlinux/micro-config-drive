@@ -297,10 +297,12 @@ static gboolean cloud_config_simplify(GNode *node, __unused__ gpointer data) {
 		child = g_node_prev_sibling(child);
 		g_node_append(node->parent, g_node_copy(remove));
 		g_node_unlink(remove);
+		g_node_destroy(remove);
 	}
 
 	if (g_node_n_children(node) == 0) {
 		g_node_unlink(node);
+		g_node_destroy(node);
 	}
 
 	return false;
