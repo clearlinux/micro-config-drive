@@ -50,15 +50,21 @@
 #include <time.h>
 #include <sys/sendfile.h>
 #include <libgen.h>
+#include <sys/mount.h>
+#include <sys/sysinfo.h>
+#include <sys/ioctl.h>
+#include <linux/loop.h>
 
 #include <glib.h>
 
 #include "debug.h"
 #include "lib.h"
+#include "disk.h"
 
 #define MOD "lib: "
-
+#define LOOP_MAJOR_ID 7
 #define SUDOERS_PATH SYSCONFDIR "/sudoers.d/"
+
 
 void LOG(const char *fmt, ...) {
 	va_list args;
@@ -290,6 +296,151 @@ fail2:
 fail1:
 	close(fd_src);
 	return result;
+}
+
+bool mount_filesystem(const gchar* device, const gchar* mountdir, gchar* loop_device) {
+	struct stat st = { 0 };
+	gchar* devtype = NULL;
+	bool result = false;
+	int loopfd = -1;
+	int filefd = -1;
+	unsigned int minor_id;
+	dev_t device_id = 0;
+	struct loop_info64 li64 = { 0 };
+	struct loop_info li32 = { 0 };
+
+	if (stat(device, &st)) {
+		LOG(MOD "stat failed\n");
+		return false;
+	}
+
+	if (!type_by_device(device, &devtype)) {
+		LOG("Unknown filesystem device '%s'\n", device);
+		return false;
+	}
+
+	/* block device */
+	if ((st.st_mode & S_IFMT) == S_IFBLK) {
+		if (mount(device, mountdir, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
+			LOG(MOD "Unable to mount config drive '%s'\n", device);
+			free(devtype);
+			return false;
+		}
+		loop_device[0] = 0;
+		free(devtype);
+		return true;
+	}
+
+	/* loking for minor device id */
+	for (minor_id=0; minor_id<=LOOP_MAJOR_ID; ++minor_id) {
+		g_snprintf(loop_device, PATH_MAX, "/dev/loop%u", minor_id);
+		if (stat(loop_device, &st) == -1) {
+			break;
+		}
+		loop_device[0] = 0;
+	}
+
+	if (!loop_device[0]) {
+		LOG(MOD "Cannot find any free loop device\n");
+		goto fail1;
+	}
+
+	device_id = makedev(LOOP_MAJOR_ID, minor_id);
+
+	if (mknod(loop_device, S_IFBLK, device_id) != 0) {
+		LOG(MOD "Unable to create loop device '%s'\n", loop_device);
+		goto fail1;
+	}
+
+	loopfd = open(loop_device, O_RDONLY);
+	if (loopfd < 0) {
+		LOG(MOD "Open loop device failed '%s'\n", loop_device);
+		remove(loop_device);
+		goto fail1;
+	}
+
+	filefd = open(device, O_RDONLY);
+	if (filefd < 0) {
+		LOG(MOD "Open filesystem failed '%s'\n", device);
+		goto fail2;
+	}
+
+	snprintf((char*)li64.lo_file_name, LO_NAME_SIZE, "%s", device);
+	li64.lo_offset = 0;
+	li64.lo_encrypt_key_size = 0;
+
+	if (ioctl(loopfd, LOOP_SET_FD, filefd) < 0) {
+		LOG(MOD "Set fd failed\n");
+		goto fail3;
+	}
+	close(filefd);
+	filefd = 0;
+
+	if (ioctl(loopfd, LOOP_SET_STATUS64, &li64) < 0) {
+		snprintf(li32.lo_name, LO_NAME_SIZE, "%s", device);
+		li32.lo_offset = 0;
+		li32.lo_encrypt_key_size = 0;
+
+		if (ioctl(loopfd, LOOP_SET_STATUS, &li32) < 0) {
+			LOG(MOD "Unable to set loop status '%s'\n", loop_device);
+			ioctl(loopfd, LOOP_CLR_FD, 0);
+			remove(loop_device);
+			goto fail3;
+		}
+	}
+
+	if (make_dir(mountdir, S_IRUSR) != 0) {
+		LOG(MOD "Unable to create mount dir '%s'\n", mountdir);
+		goto fail3;
+	}
+
+	if (mount(loop_device, mountdir, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
+		LOG(MOD "Unable to mount config drive '%s'\n", device);
+		goto fail3;
+	}
+
+	result = true;
+
+fail3:
+	if (filefd) {
+		close(filefd);
+	}
+fail2:
+	if (loopfd) {
+		close(loopfd);
+	}
+fail1:
+	g_free(devtype);
+	return result;
+}
+
+bool umount_filesystem(const gchar* mountdir, const gchar* loop_device) {
+	int fd = -1;
+
+	if (loop_device) {
+		fd = open(loop_device, O_RDONLY);
+		if (fd < 0) {
+			LOG(MOD "Unable to open loop device '%s'\n", loop_device);
+			return false;
+		}
+
+		if (ioctl(fd, LOOP_CLR_FD, 0) < 0) {
+			LOG(MOD "Clear fd failed\n");
+			close(fd);
+			return false;
+		}
+
+		close(fd);
+		remove(loop_device);
+	}
+
+	if (umount(mountdir) != 0) {
+		LOG(MOD "Cannot umount '%s'\n", mountdir);
+		return false;
+	}
+
+	remove(mountdir);
+	return true;
 }
 
 bool gnode_free(GNode* node, __unused__ gpointer data) {
