@@ -393,8 +393,8 @@ int main(int argc, char *argv[]) {
 
 	if (datasource_opts.user_data || datasource_opts.metadata) {
 		/* get/process userdata and metadata from datasources */
-		for (i = 0; cloud_structs[i] != NULL; ++i) {
-			if (EXIT_SUCCESS == cloud_structs[i]->handler(&datasource_opts)) {
+		for (i = 0; datasource_structs[i] != NULL; ++i) {
+			if (EXIT_SUCCESS == datasource_structs[i]->handler(&datasource_opts)) {
 				data_processed = true;
 				break;
 			}

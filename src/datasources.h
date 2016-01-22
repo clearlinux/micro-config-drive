@@ -36,7 +36,7 @@
 
 extern struct datasource_handler_struct openstack_datasource;
 
-struct datasource_handler_struct *cloud_structs[] =  {
+struct datasource_handler_struct *datasource_structs[] =  {
 	&openstack_datasource,
 	NULL
 };
