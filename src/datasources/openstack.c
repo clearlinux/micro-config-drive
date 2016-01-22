@@ -133,12 +133,10 @@ gboolean openstack_process_config_drive(const gchar* path) {
 	int fd_tmp = 0;
 	gchar metadata_drive_path[PATH_MAX] = { 0 };
 	gchar userdata_drive_path[PATH_MAX] = { 0 };
-	gchar* devtype = NULL;
 	gboolean result = false;
-	struct stat st = { 0 };
-	gchar command[PATH_MAX] = { 0 };
 	gboolean process_user_data = true;
 	gboolean process_metadata = true;
+	gchar loop_device[PATH_MAX] = { 0 };
 
 	if (options) {
 		process_user_data = options->user_data;
@@ -152,29 +150,13 @@ gboolean openstack_process_config_drive(const gchar* path) {
 
 	data_source = SOURCE_CONFIG_DRIVE;
 
-	if (!type_by_device(path, &devtype)) {
-		LOG("Unknown filesystem device '%s'\n", (char*)path);
+	if (!mkdtemp(config_drive_path)) {
+		LOG(MOD "Unable to create directory '%s'\n", config_drive_path);
 		return false;
 	}
 
-	if (!mkdtemp(config_drive_path)) {
-		LOG(MOD "Unable to create directory '%s'\n", config_drive_path);
-		goto fail1;
-	}
-
-	if (stat(path, &st)) {
-		LOG(MOD "stat failed\n");
-		goto fail1;
-	}
-
-	if ((st.st_mode & S_IFMT) != S_IFBLK) {
-		g_snprintf(command, PATH_MAX, "mount -o loop,ro -t %s %s %s", devtype, path, config_drive_path );
-		if (!exec_task(command)) {
-			LOG(MOD "Unable to mount config drive '%s'\n", (char*)path);
-			goto fail2;
-		}
-	} else if (mount(path, config_drive_path, devtype, MS_NODEV|MS_NOEXEC|MS_RDONLY, NULL) != 0) {
-		LOG(MOD "Unable to mount config drive '%s'\n", (char*)path);
+	if (!mount_filesystem(path, config_drive_path, loop_device)) {
+		LOG(MOD "Unable to mount config drive '%s'\n", path);
 		goto fail2;
 	}
 
@@ -214,19 +196,11 @@ gboolean openstack_process_config_drive(const gchar* path) {
 fail4:
 	remove(userdata_file);
 fail3:
-	if ((st.st_mode & S_IFMT) != S_IFBLK) {
-		g_snprintf(command, PATH_MAX, "umount %s", config_drive_path );
-		if (!exec_task(command)) {
-			LOG(MOD "Using config drive cannot umount '%s'\n", config_drive_path);
-			goto fail2;
-		}
-	} else if (umount(config_drive_path) != 0) {
-		LOG(MOD "Using config drive cannot umount '%s'\n", config_drive_path);
+	if (!umount_filesystem(config_drive_path, loop_device)) {
+		LOG("umount filesystem failed '%s'\n", loop_device);
 	}
 fail2:
 	rmdir(config_drive_path);
-fail1:
-	g_free(devtype);
 	return result;
 }
 
