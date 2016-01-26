@@ -60,7 +60,7 @@
 #endif /* DEBUG */
 
 
-gboolean curl_common_init(CURL** curl) {
+bool curl_common_init(CURL** curl) {
 	*curl = curl_easy_init();
 
 	if (!*curl) {
@@ -103,14 +103,20 @@ gchar* curl_fetch_file(CURL* curl, gchar* url, int attempts, useconds_t u_sleep)
 	file = fdopen(fd, "w");
 
 	if (curl_easy_setopt(curl, CURLOPT_URL, url) != CURLE_OK) {
-		LOG(MOD "set url failed");
+		LOG(MOD "set url failed\n");
 		fclose(file);
 		return NULL;
 	}
 	if (curl_easy_setopt(curl, CURLOPT_WRITEDATA, file) != CURLE_OK) {
-		LOG(MOD "set write data failed");
+		LOG(MOD "set write data failed\n");
 		fclose(file);
 		return NULL;
+	}
+
+	if (curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 0) != CURLE_OK) {
+		LOG(MOD "unset connect only failed\n");
+		fclose(file);
+		return false;
 	}
 
 	for (int i = 0; i < attempts; ++i) {
@@ -125,3 +131,24 @@ gchar* curl_fetch_file(CURL* curl, gchar* url, int attempts, useconds_t u_sleep)
 	return NULL;
 }
 
+bool curl_ping(CURL* curl, gchar* url, int attempts, useconds_t u_sleep) {
+	if (curl_easy_setopt(curl, CURLOPT_URL, url) != CURLE_OK) {
+		LOG(MOD "set url failed\n");
+		return false;
+	}
+
+	if (curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 1) != CURLE_OK) {
+		LOG(MOD "set connect only failed\n");
+		return false;
+	}
+
+	for (int i = 0; i < attempts; ++i) {
+		LOG(MOD "%s attempt %d\n", url, i);
+		if (curl_easy_perform(curl) == CURLE_OK) {
+			return true;
+		}
+		usleep(u_sleep);
+	}
+
+	return false;
+}
