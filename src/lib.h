@@ -60,6 +60,6 @@ bool write_file(const GString* data, const gchar* file_path, int oflags, mode_t 
 bool write_sudo_directives(const GString* data, const gchar* filename) __warn_unused_result__;
 bool write_ssh_keys(const GString* data, const gchar* username) __warn_unused_result__;
 bool copy_file(const gchar* src, const gchar* dest) __warn_unused_result__;
-bool mount_filesystem(const gchar* device, const gchar* mountdir, gchar* loop_device) __warn_unused_result__;
+bool mount_filesystem(const gchar* device, const gchar* mountdir, gchar** loop_device) __warn_unused_result__;
 bool umount_filesystem(const gchar* mountdir, const gchar* loop_device) __warn_unused_result__;
 bool gnode_free(GNode* node, gpointer data);

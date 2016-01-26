@@ -298,7 +298,7 @@ fail1:
 	return result;
 }
 
-bool mount_filesystem(const gchar* device, const gchar* mountdir, gchar* loop_device) {
+bool mount_filesystem(const gchar* device, const gchar* mountdir, gchar** loop_device_) {
 	struct stat st = { 0 };
 	gchar* devtype = NULL;
 	bool result = false;
@@ -308,6 +308,7 @@ bool mount_filesystem(const gchar* device, const gchar* mountdir, gchar* loop_de
 	dev_t device_id = 0;
 	struct loop_info64 li64 = { 0 };
 	struct loop_info li32 = { 0 };
+	gchar loop_device[PATH_MAX] = { 0 };
 
 	if (stat(device, &st)) {
 		LOG(MOD "stat failed\n");
@@ -326,7 +327,6 @@ bool mount_filesystem(const gchar* device, const gchar* mountdir, gchar* loop_de
 			free(devtype);
 			return false;
 		}
-		loop_device[0] = 0;
 		free(devtype);
 		return true;
 	}
@@ -398,6 +398,9 @@ bool mount_filesystem(const gchar* device, const gchar* mountdir, gchar* loop_de
 		LOG(MOD "Unable to mount config drive '%s'\n", device);
 		goto fail3;
 	}
+
+	*loop_device_ = g_malloc(sizeof(gchar)*PATH_MAX);
+	g_strlcpy(*loop_device_, loop_device, PATH_MAX);
 
 	result = true;
 
