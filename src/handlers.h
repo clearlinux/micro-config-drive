@@ -35,11 +35,6 @@
 
 #pragma once
 
-struct datasource_options_struct {
-	bool user_data;
-	bool metadata;
-};
-
 struct cc_module_handler_struct {
 	char* name;
 	void (*handler)(GNode* node);
@@ -51,6 +46,10 @@ struct interpreter_handler_struct {
 };
 
 struct datasource_handler_struct {
-	char* datasource;
-	int (*handler)(struct datasource_options_struct* opts);
+	char* datasource;                 // datasource name
+	bool (*init)(void);               // test if datasource is available (metadata service, config drive, etc)
+	bool (*start)(void);              // create/init resources, process/save instance id, etc
+	bool (*process_metadata)(void);   // process metadata
+	bool (*process_userdata)(void);   // process userdata
+	void (*finish)(void);             // free resources, umount devices, etc.
 };

@@ -44,6 +44,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/sysinfo.h>
+#include <fcntl.h>
 
 #include <glib.h>
 
@@ -78,7 +79,6 @@ static struct option opts[] = {
 	{ "metadata",                   no_argument, NULL, OPT_METADATA },
 	{ "help",                       no_argument, NULL, 'h' },
 	{ "version",                    no_argument, NULL, 'v' },
-	{ "first-boot",                 no_argument, NULL, 'b' },
 	{ "no-growpart",                no_argument, NULL, OPT_NO_GROWPART },
 	{ NULL, 0, NULL, 0 }
 };
@@ -203,13 +203,14 @@ int main(int argc, char *argv[]) {
 	int result_code = EXIT_SUCCESS;
 	bool no_growpart = false;
 	bool first_boot = false;
-	bool data_processed = false;
-	struct datasource_options_struct datasource_opts = { 0 };
 	char* userdata_filename = NULL;
 	char* tmp_metadata_filename = NULL;
 	char* tmp_data_filesystem = NULL;
 	char metadata_filename[PATH_MAX] = { 0 };
 	char data_filesystem_path[PATH_MAX] = { 0 };
+	bool process_user_data = false;
+	bool process_metadata = false;
+	struct datasource_handler_struct *datasource_handler = NULL;
 	GError* error = NULL;
 	GThread* async_tasks_thread = NULL;
 	async_task_function func = NULL;
@@ -217,7 +218,7 @@ int main(int argc, char *argv[]) {
 	GPtrArray* async_tasks_array = NULL;
 
 	while (true) {
-		c = getopt_long(argc, argv, "u:hvb", opts, &i);
+		c = getopt_long(argc, argv, "u:hv", opts, &i);
 
 		if (c == -1) {
 			break;
@@ -242,7 +243,6 @@ int main(int argc, char *argv[]) {
 			LOG("    --metadata                         get and process metadata from data sources\n");
 			LOG("-h, --help                             display this help message\n");
 			LOG("-v, --version                          display the version number of this program\n");
-			LOG("-b, --first-boot                       set up the system in its first boot\n");
 			LOG("    --no-growpart                      do not verify disk partitions.\n");
 			LOG("                                       %s will not resize the filesystem\n", argv[0]);
 			exit(EXIT_SUCCESS);
@@ -251,10 +251,6 @@ int main(int argc, char *argv[]) {
 		case 'v':
 			fprintf(stdout, PACKAGE_NAME " " PACKAGE_VERSION "\n");
 			exit(EXIT_SUCCESS);
-			break;
-
-		case 'b':
-			first_boot = true;
 			break;
 
 		case '?':
@@ -272,11 +268,11 @@ int main(int argc, char *argv[]) {
 			break;
 
 		case OPT_USER_DATA:
-			datasource_opts.user_data = true;
+			process_user_data = true;
 			break;
 
 		case OPT_METADATA:
-			datasource_opts.metadata = true;
+			process_metadata = true;
 			break;
 
 		case OPT_NO_GROWPART:
@@ -289,59 +285,16 @@ int main(int argc, char *argv[]) {
 	LOG("clr-cloud-init version: %s\n", PACKAGE_VERSION);
 #endif /* HAVE_CONFIG_H */
 
-	async_tasks_array = g_ptr_array_new();
-	if (!async_tasks_array) {
-		LOG("Unable to create a new ptr array for async tasks\n");
-	}
-
 	/* at one point in time this should likely be a fatal error */
 	if (geteuid() != 0) {
 		LOG("%s isn't running as root, this will most likely fail!\n", argv[0]);
 	}
 
-	if (!no_growpart && async_tasks_array) {
-		func = async_checkdisk;
-		g_ptr_array_add(async_tasks_array, *(async_task_function**)&func);
+	if (make_dir(DATADIR_PATH, S_IRWXU) != 0) {
+		LOG("Unable to create data dir '%s'\n", DATADIR_PATH);
 	}
 
-	if (first_boot && async_tasks_array) {
-		func = async_setup_first_boot;
-		g_ptr_array_add(async_tasks_array, *(async_task_function**)&func);
-	}
-
-	if (async_tasks_array && async_tasks_array->len > 0) {
-		if (get_nprocs() > 1) {
-			async_tasks_thread = g_thread_try_new("run_async_tasks", (GThreadFunc)run_async_tasks,
-								async_tasks_array, &error);
-			if (!async_tasks_thread) {
-				LOG("Cannot create a thread to run async tasks!");
-				if (error) {
-					LOG("Error: %s\n", (char*)error->message);
-					g_error_free(error);
-					error = NULL;
-				}
-			}
-		} else {
-			run_async_tasks(async_tasks_array);
-		}
-	}
-
-	if (first_boot) {
-		/* default user will be used by ccmodules and datasources */
-		g_snprintf(command, LINE_MAX, USERADD_PATH
-				" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
-				, DEFAULT_USER_HOME_DIR
-				, DEFAULT_USER_GROUPS
-				, DEFAULT_USER_INACTIVE
-				, DEFAULT_USER_EXPIREDATE
-				, DEFAULT_USER_SHELL
-				, DEFAULT_USER_GECOS
-				, DEFAULT_USER_PASSWORD
-				, DEFAULT_USER_USERNAME);
-		exec_task(command);
-	}
-
-	/* process metadata file */
+	/* process specific metadata file */
 	if (tmp_metadata_filename) {
 		if (realpath(tmp_metadata_filename, metadata_filename)) {
 			switch (datasource) {
@@ -381,6 +334,75 @@ int main(int argc, char *argv[]) {
 		tmp_data_filesystem = NULL;
 	}
 
+	if (process_user_data || process_metadata) {
+		/* get/process userdata and metadata from datasources */
+		for (i = 0; datasource_structs[i] != NULL; ++i) {
+			if (datasource_structs[i]->init()) {
+				datasource_handler = datasource_structs[i];
+				if (!datasource_handler->start()) {
+					result_code = EXIT_FAILURE;
+				}
+				break;
+			}
+		}
+		first_boot = is_firstboot();
+	}
+
+	async_tasks_array = g_ptr_array_new();
+	if (!async_tasks_array) {
+		LOG("Unable to create a new ptr array for async tasks\n");
+	}
+
+	if (!no_growpart && async_tasks_array) {
+		func = async_checkdisk;
+		g_ptr_array_add(async_tasks_array, *(async_task_function**)&func);
+	}
+
+	if (first_boot && async_tasks_array) {
+		func = async_setup_first_boot;
+		g_ptr_array_add(async_tasks_array, *(async_task_function**)&func);
+	}
+
+	if (async_tasks_array && async_tasks_array->len > 0) {
+		if (get_nprocs() > 1) {
+			async_tasks_thread = g_thread_try_new("run_async_tasks", (GThreadFunc)run_async_tasks,
+			                     async_tasks_array, &error);
+			if (!async_tasks_thread) {
+				LOG("Cannot create a thread to run async tasks!");
+				if (error) {
+					LOG("Error: %s\n", (char*)error->message);
+					g_error_free(error);
+					error = NULL;
+				}
+			}
+		} else {
+			run_async_tasks(async_tasks_array);
+		}
+	}
+
+	if (first_boot) {
+		/* default user will be used by ccmodules and datasources */
+		g_snprintf(command, LINE_MAX, USERADD_PATH
+				" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
+				, DEFAULT_USER_HOME_DIR
+				, DEFAULT_USER_GROUPS
+				, DEFAULT_USER_INACTIVE
+				, DEFAULT_USER_EXPIREDATE
+				, DEFAULT_USER_SHELL
+				, DEFAULT_USER_GECOS
+				, DEFAULT_USER_PASSWORD
+				, DEFAULT_USER_USERNAME);
+		exec_task(command);
+	}
+
+	/* process metadata from metadata service */
+	if (process_metadata && datasource_handler) {
+		if (!datasource_handler->process_metadata()) {
+			LOG("Process metadata failed\n");
+			result_code = EXIT_FAILURE;
+		}
+	}
+
 	/* process userdata file */
 	if (userdata_filename) {
 		if (!userdata_process_file(userdata_filename)) {
@@ -391,18 +413,11 @@ int main(int argc, char *argv[]) {
 		userdata_filename = NULL;
 	}
 
-	if (datasource_opts.user_data || datasource_opts.metadata) {
-		/* get/process userdata and metadata from datasources */
-		for (i = 0; datasource_structs[i] != NULL; ++i) {
-			if (EXIT_SUCCESS == datasource_structs[i]->handler(&datasource_opts)) {
-				data_processed = true;
-				break;
-			}
+	if (datasource_handler) {
+		if (process_user_data) {
+			datasource_handler->process_userdata();
 		}
-
-		if (!data_processed) {
-			result_code = EXIT_FAILURE;
-		}
+		datasource_handler->finish();
 	}
 
 	if (async_tasks_thread) {
