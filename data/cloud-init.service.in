@@ -8,7 +8,7 @@ ConditionFirstBoot=no
 
 [Service]
 Type=oneshot
-ExecStart=@prefix@/bin/cloud-init --metadata
+ExecStart=@prefix@/bin/cloud-init --fix-disk --metadata
 RemainAfterExit=yes
 TimeoutSec=0
 

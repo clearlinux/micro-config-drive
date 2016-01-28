@@ -63,7 +63,7 @@ enum {
 	OPT_OPENSTACK_CONFIG_DRIVE,
 	OPT_USER_DATA,
 	OPT_METADATA,
-	OPT_NO_GROWPART,
+	OPT_FIX_DISK,
 };
 
 /* supported datasources */
@@ -79,7 +79,7 @@ static struct option opts[] = {
 	{ "metadata",                   no_argument, NULL, OPT_METADATA },
 	{ "help",                       no_argument, NULL, 'h' },
 	{ "version",                    no_argument, NULL, 'v' },
-	{ "no-growpart",                no_argument, NULL, OPT_NO_GROWPART },
+	{ "fix-disk",                   no_argument, NULL, OPT_FIX_DISK },
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -107,7 +107,7 @@ static void async_process_watcher(GPid pid, gint status, gpointer _data) {
 	}
 }
 
-bool async_checkdisk(gpointer data) {
+bool async_fixdisk(gpointer data) {
 	char* root_disk;
 	bool result = false;
 
@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
 	int i;
 	unsigned int datasource = 0;
 	int result_code = EXIT_SUCCESS;
-	bool no_growpart = false;
+	bool fix_disk = false;
 	bool first_boot = false;
 	char* userdata_filename = NULL;
 	char* tmp_metadata_filename = NULL;
@@ -243,8 +243,7 @@ int main(int argc, char *argv[]) {
 			LOG("    --metadata                         get and process metadata from data sources\n");
 			LOG("-h, --help                             display this help message\n");
 			LOG("-v, --version                          display the version number of this program\n");
-			LOG("    --no-growpart                      do not verify disk partitions.\n");
-			LOG("                                       %s will not resize the filesystem\n", argv[0]);
+			LOG("    --fix-disk                         fix disk and filesystem if it is needed\n");
 			exit(EXIT_SUCCESS);
 			break;
 
@@ -275,8 +274,8 @@ int main(int argc, char *argv[]) {
 			process_metadata = true;
 			break;
 
-		case OPT_NO_GROWPART:
-			no_growpart = true;
+		case OPT_FIX_DISK:
+			fix_disk = true;
 			break;
 		}
 	}
@@ -353,8 +352,8 @@ int main(int argc, char *argv[]) {
 		LOG("Unable to create a new ptr array for async tasks\n");
 	}
 
-	if (!no_growpart && async_tasks_array) {
-		func = async_checkdisk;
+	if (fix_disk && async_tasks_array) {
+		func = async_fixdisk;
 		g_ptr_array_add(async_tasks_array, *(async_task_function**)&func);
 	}
 
