@@ -62,6 +62,7 @@ enum {
 	OPT_OPENSTACK_METADATA_FILE=1001,
 	OPT_OPENSTACK_CONFIG_DRIVE,
 	OPT_USER_DATA,
+	OPT_USER_DATA_ONCE,
 	OPT_METADATA,
 	OPT_FIX_DISK,
 };
@@ -76,6 +77,7 @@ static struct option opts[] = {
 	{ "openstack-metadata-file",    required_argument, NULL, OPT_OPENSTACK_METADATA_FILE },
 	{ "openstack-config-drive",     required_argument, NULL, OPT_OPENSTACK_CONFIG_DRIVE },
 	{ "user-data",                  no_argument, NULL, OPT_USER_DATA },
+	{ "user-data-once",             no_argument, NULL, OPT_USER_DATA },
 	{ "metadata",                   no_argument, NULL, OPT_METADATA },
 	{ "help",                       no_argument, NULL, 'h' },
 	{ "version",                    no_argument, NULL, 'v' },
@@ -210,6 +212,7 @@ int main(int argc, char *argv[]) {
 	char metadata_filename[PATH_MAX] = { 0 };
 	char data_filesystem_path[PATH_MAX] = { 0 };
 	bool process_user_data = false;
+	bool process_user_data_once = false;
 	bool process_metadata = false;
 	struct datasource_handler_struct *datasource_handler = NULL;
 	GError* error = NULL;
@@ -241,6 +244,7 @@ int main(int argc, char *argv[]) {
 			LOG("    --openstack-config-drive [path]    specify an Openstack config drive to process\n");
 			LOG("                                       metadata and user data (iso9660 or vfat filesystem)\n");
 			LOG("    --user-data                        get and process user data from data sources\n");
+			LOG("    --user-data-once                   only on first boot get and process user data from data sources\n");
 			LOG("    --metadata                         get and process metadata from data sources\n");
 			LOG("-h, --help                             display this help message\n");
 			LOG("-v, --version                          display the version number of this program\n");
@@ -269,6 +273,10 @@ int main(int argc, char *argv[]) {
 
 		case OPT_USER_DATA:
 			process_user_data = true;
+			break;
+
+		case OPT_USER_DATA_ONCE:
+			process_user_data_once = true;
 			break;
 
 		case OPT_METADATA:
@@ -334,7 +342,7 @@ int main(int argc, char *argv[]) {
 		tmp_data_filesystem = NULL;
 	}
 
-	if (process_user_data || process_metadata) {
+	if (process_user_data || process_metadata || process_user_data_once) {
 		/* get/process userdata and metadata from datasources */
 		for (i = 0; datasource_structs[i] != NULL; ++i) {
 			if (datasource_structs[i]->init()) {
@@ -414,7 +422,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (datasource_handler) {
-		if (process_user_data) {
+		if (process_user_data || (process_user_data_once && first_boot)) {
 			datasource_handler->process_userdata();
 		}
 		datasource_handler->finish();
