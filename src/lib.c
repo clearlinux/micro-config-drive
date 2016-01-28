@@ -64,6 +64,8 @@
 #define MOD "lib: "
 #define LOOP_MAJOR_ID 7
 #define SUDOERS_PATH SYSCONFDIR "/sudoers.d/"
+#define INSTANCE_ID_FILE DATADIR_PATH "/instance-id"
+#define LAST_INSTANCE_ID_FILE DATADIR_PATH "/last-instance-id"
 
 
 void LOG(const char *fmt, ...) {
@@ -444,6 +446,56 @@ bool umount_filesystem(const gchar* mountdir, const gchar* loop_device) {
 
 	remove(mountdir);
 	return true;
+}
+
+bool save_instance_id(const gchar* instance_id) {
+	GString* id = g_string_new(instance_id);
+	if (!write_file(id, INSTANCE_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRWXU)) {
+		LOG(MOD "Unable to save instance id\n");
+		g_string_free(id, true);
+		return false;
+	}
+
+	g_string_free(id, true);
+	return true;
+}
+
+bool is_firstboot(void) {
+	gchar* instance_id = NULL;
+	gchar* last_instance_id = NULL;
+	bool result = false;
+	struct stat st;
+
+	if (stat(LAST_INSTANCE_ID_FILE, &st) != 0) {
+		LOG(MOD "first boot!\n");
+		if (!copy_file(INSTANCE_ID_FILE, LAST_INSTANCE_ID_FILE)) {
+			LOG(MOD "Copy file failed\n");
+		}
+		return true;
+	}
+
+	if (!g_file_get_contents(INSTANCE_ID_FILE, &instance_id, NULL, NULL)) {
+		LOG(MOD "Unable to read file '%s'\n", INSTANCE_ID_FILE);
+		return false;
+	}
+
+	if (!g_file_get_contents(LAST_INSTANCE_ID_FILE, &last_instance_id, NULL, NULL)) {
+		LOG(MOD "Unable to read file '%s'\n", LAST_INSTANCE_ID_FILE);
+		goto fail1;
+	}
+
+	if (g_strcmp0(instance_id, last_instance_id) != 0) {
+		result = true;
+		LOG(MOD "first boot!\n");
+		if (!copy_file(INSTANCE_ID_FILE, LAST_INSTANCE_ID_FILE)) {
+			LOG(MOD "Copy file failed\n");
+		}
+	}
+
+	g_free(last_instance_id);
+fail1:
+	g_free(instance_id);
+	return result;
 }
 
 bool gnode_free(GNode* node, __unused__ gpointer data) {
