@@ -220,8 +220,13 @@ bool write_sudo_directives(const GString* data, const gchar* filename) {
 }
 
 bool write_ssh_keys(const GString* data, const gchar* username) {
+	int i;
 	gchar auth_keys_file[PATH_MAX];
+	gchar* auth_keys_content = NULL;
+	gchar** vector_ssh_keys = NULL;
+	GString* ssh_keys = NULL;
 	struct passwd *pw;
+	struct stat st;
 
 	pw = getpwnam(username);
 
@@ -240,8 +245,34 @@ bool write_ssh_keys(const GString* data, const gchar* username) {
 
 		g_strlcat(auth_keys_file, "authorized_keys", PATH_MAX);
 
-		if (!write_file(data, auth_keys_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR)) {
-			return false;
+		if (stat(auth_keys_file, &st) != 0) {
+			if (!write_file(data, auth_keys_file, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR)) {
+				return false;
+			}
+		} else {
+			if (!g_file_get_contents(auth_keys_file, &auth_keys_content, NULL, NULL)) {
+				return false;
+			}
+
+			ssh_keys = g_string_new("");
+
+			vector_ssh_keys = g_strsplit(data->str, "\n", -1);
+
+			for (i=0; vector_ssh_keys[i]; ++i) {
+				if (!g_strstr_len(auth_keys_content, -1, vector_ssh_keys[i])) {
+					g_string_append_printf(ssh_keys, "%s\n", vector_ssh_keys[i]);
+				}
+			}
+
+			g_free(auth_keys_content);
+			g_strfreev(vector_ssh_keys);
+
+			if (!write_file(ssh_keys, auth_keys_file, O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR)) {
+				g_string_free(ssh_keys, true);
+				return false;
+			}
+
+			g_string_free(ssh_keys, true);
 		}
 
 		if (chown_path(auth_keys_file, username, username) != 0) {
