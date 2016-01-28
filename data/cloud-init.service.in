@@ -4,11 +4,10 @@ After=local-fs.target network.target
 Before=sshd.service sshd-keygen.service
 Requires=network.target
 Wants=local-fs.target sshd.service sshd-keygen.service
-ConditionFirstBoot=no
 
 [Service]
 Type=oneshot
-ExecStart=@prefix@/bin/cloud-init --fix-disk --metadata
+ExecStart=@prefix@/bin/cloud-init --fix-disk --metadata --user-data-once
 RemainAfterExit=yes
 TimeoutSec=0
 
