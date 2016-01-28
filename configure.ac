@@ -130,7 +130,11 @@ AC_ARG_WITH([systemdsystemunitdir], AS_HELP_STRING([--with-systemdsystemunitdir=
 	SYSTEMD_SYSTEMUNITDIR="${path_systemdsystemunit}"
 AC_SUBST(SYSTEMD_SYSTEMUNITDIR)
 AM_CONDITIONAL(SYSTEMD, test -n "${path_systemdsystemunit}")
-		
+
+AC_ARG_WITH([datadir],[AC_HELP_STRING([--with-datadir=DIR],
+	[Default data directory (/var/lib/cloud)])], [datadir=${withval}],[datadir=/var/lib/cloud])
+AC_SUBST([DATADIR], ["${datadir}"], [Default data directory])
+AC_DEFINE_UNQUOTED([DATADIR_PATH], ["$DATADIR"], [Default data directory])
 
 # Checks for library functions.
 
