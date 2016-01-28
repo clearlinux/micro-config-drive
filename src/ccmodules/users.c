@@ -212,8 +212,10 @@ static void users_item(GNode* node, gpointer data) {
 		item = cloud_config_find(node, SUDO);
 		if (item) {
 			sudo_directives = g_string_new("");
+			g_string_printf(sudo_directives, "# User rules\n");
 			g_node_traverse(item->parent, G_IN_ORDER, G_TRAVERSE_LEAVES,
 				-1, users_sudo_item, sudo_directives);
+			g_string_append(sudo_directives, "\n");
 			if (!write_sudo_directives(sudo_directives, "users-cloud-init")) {
 				LOG(MOD "Cannot write sudo directives\n");
 			}
