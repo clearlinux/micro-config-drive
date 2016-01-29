@@ -62,7 +62,7 @@ static PedExceptionOption disk_exception_handler(PedException* ex) {
 	return PED_EXCEPTION_UNHANDLED;
 }
 
-char *disk_for_path(const gchar* path) {
+char *disk_by_path(const gchar* path) {
 	char diskname[NAME_MAX];
     struct stat st = { 0 };
     dev_t disk;

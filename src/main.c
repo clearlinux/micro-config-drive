@@ -113,7 +113,7 @@ bool async_fixdisk(gpointer data) {
 	char* root_disk;
 	bool result = false;
 
-	root_disk = disk_for_path("/");
+	root_disk = disk_by_path("/");
 	if (root_disk) {
 		LOG("Checking disk %s\n", root_disk);
 		if (!disk_fix(root_disk, async_process_watcher, data)) {
