@@ -206,6 +206,7 @@ int main(int argc, char *argv[]) {
 	int result_code = EXIT_SUCCESS;
 	bool fix_disk = false;
 	bool first_boot = false;
+	bool snapshot = false;
 	char* userdata_filename = NULL;
 	char* tmp_metadata_filename = NULL;
 	char* tmp_data_filesystem = NULL;
@@ -353,7 +354,7 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 		}
-		first_boot = is_firstboot();
+		get_boot_info(&first_boot, &snapshot);
 	}
 
 	async_tasks_array = g_ptr_array_new();

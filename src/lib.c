@@ -491,23 +491,32 @@ bool save_instance_id(const gchar* instance_id) {
 	return true;
 }
 
-bool is_firstboot(void) {
+void get_boot_info(bool* firstboot, bool* snapshot) {
 	gchar* instance_id = NULL;
 	gchar* last_instance_id = NULL;
-	bool result = false;
 	struct stat st;
+
+	if (snapshot) {
+		*snapshot = false;
+	}
+	if (firstboot) {
+		*firstboot = false;
+	}
 
 	if (stat(LAST_INSTANCE_ID_FILE, &st) != 0) {
 		LOG(MOD "first boot!\n");
 		if (!copy_file(INSTANCE_ID_FILE, LAST_INSTANCE_ID_FILE)) {
 			LOG(MOD "Copy file failed\n");
 		}
-		return true;
+		if (firstboot) {
+			*firstboot = true;
+		}
+		return;
 	}
 
 	if (!g_file_get_contents(INSTANCE_ID_FILE, &instance_id, NULL, NULL)) {
 		LOG(MOD "Unable to read file '%s'\n", INSTANCE_ID_FILE);
-		return false;
+		return;
 	}
 
 	if (!g_file_get_contents(LAST_INSTANCE_ID_FILE, &last_instance_id, NULL, NULL)) {
@@ -516,17 +525,21 @@ bool is_firstboot(void) {
 	}
 
 	if (g_strcmp0(instance_id, last_instance_id) != 0) {
-		result = true;
 		LOG(MOD "first boot!\n");
 		if (!copy_file(INSTANCE_ID_FILE, LAST_INSTANCE_ID_FILE)) {
 			LOG(MOD "Copy file failed\n");
+		}
+		if (snapshot) {
+			*snapshot = true;
+		}
+		if (firstboot) {
+			*firstboot = true;
 		}
 	}
 
 	g_free(last_instance_id);
 fail1:
 	g_free(instance_id);
-	return result;
 }
 
 bool gnode_free(GNode* node, __unused__ gpointer data) {
