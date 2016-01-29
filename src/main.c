@@ -77,7 +77,7 @@ static struct option opts[] = {
 	{ "openstack-metadata-file",    required_argument, NULL, OPT_OPENSTACK_METADATA_FILE },
 	{ "openstack-config-drive",     required_argument, NULL, OPT_OPENSTACK_CONFIG_DRIVE },
 	{ "user-data",                  no_argument, NULL, OPT_USER_DATA },
-	{ "user-data-once",             no_argument, NULL, OPT_USER_DATA },
+	{ "user-data-once",             no_argument, NULL, OPT_USER_DATA_ONCE },
 	{ "metadata",                   no_argument, NULL, OPT_METADATA },
 	{ "help",                       no_argument, NULL, 'h' },
 	{ "version",                    no_argument, NULL, 'v' },
