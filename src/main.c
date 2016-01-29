@@ -116,7 +116,7 @@ bool async_fixdisk(gpointer data) {
 	root_disk = disk_for_path("/");
 	if (root_disk) {
 		LOG("Checking disk %s\n", root_disk);
-		if (!disk_resize_grow(root_disk, async_process_watcher, data)) {
+		if (!disk_fix(root_disk, async_process_watcher, data)) {
 			goto fail;
 		}
 	} else {

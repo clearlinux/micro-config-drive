@@ -83,7 +83,7 @@ char *disk_for_path(const gchar* path) {
     return blkid_devno_to_devname(disk);
 }
 
-gboolean disk_resize_grow(const gchar* disk_path, GChildWatchFunc async_func_watcher, gpointer data) {
+gboolean disk_fix(const gchar* disk_path, GChildWatchFunc async_func_watcher, gpointer data) {
 	char command[LINE_MAX] = { 0 };
 	int last_partition_num;
 	const gchar* partition_path;
