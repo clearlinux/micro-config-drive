@@ -67,7 +67,7 @@ static struct users_options_data users_options[] = {
 	{"groups",		users_add_groups,	        NULL    	},
 	{"lock-passwd",		NULL,				NULL		},
 	{"inactive",		NULL,				NULL		},
-	{"passwd",		users_add_option_format,	" -p %s "	},
+	{"passwd",		users_add_option_format,	" -p '%s' "	},
 	{"no-create-home",	users_add_option,		" -M , -m "	},
 	{"no-user-group",	users_add_option,		" -N , -U "	},
 	{"no-log-init",		users_add_option,		" -l ,"		},
