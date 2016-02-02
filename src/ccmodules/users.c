@@ -41,89 +41,91 @@
 #include "lib.h"
 
 #define MOD "users: "
-#define COMMAND_SIZE 2048
-#define BUFFER_SIZE 1024
 
-static void users_add_username(GNode* node, char* command, gpointer data);
-static void users_add_groups(GNode* node, char* command, gpointer data);
-static void users_add_option_format(GNode* node, char* command, gpointer data);
-static void users_add_option(GNode* node, char* command, gpointer data);
+static void users_add_username(GNode* node, GString* command, gpointer format);
+static void users_add_groups(GNode* node, GString* command, gpointer data);
+static void users_add_option_format(GNode* node, GString* command, gpointer format);
+static void users_add_option(GNode* node, GString* command, gpointer data);
 static gboolean users_sudo_item(GNode* node, gpointer data);
 static gboolean users_ssh_key_item(GNode* node, gpointer data);
 
 struct users_options_data {
 	const gchar* key;
-	void (*func)(GNode* node, char* command, gpointer data);
+	void (*func)(GNode* node, GString* command, gpointer data);
 	gpointer data;
 };
 
 static gchar users_current_username[LOGIN_NAME_MAX];
 
 static struct users_options_data users_options[] = {
-	{"name",		users_add_username,		" %s "		},
-	{"gecos",		users_add_option_format,	" -c '%s' "	},
-	{"homedir",		users_add_option_format,	" -d %s "	},
-	{"primary-group",	users_add_option_format,	" -g %s "	},
-	{"groups",		users_add_groups,	        NULL    	},
-	{"lock-passwd",		NULL,				NULL		},
-	{"inactive",		NULL,				NULL		},
-	{"passwd",		users_add_option_format,	" -p '%s' "	},
-	{"no-create-home",	users_add_option,		" -M , -m "	},
-	{"no-user-group",	users_add_option,		" -N , -U "	},
-	{"no-log-init",		users_add_option,		" -l ,"		},
-	{"expiredate",		users_add_option_format,	" -e %s "	},
-	{"ssh-authorized-keys",	NULL,  				NULL		},
-	{"sudo",		NULL,				NULL 		},
-	{"system",		users_add_option_format,	" -r "		},
+	{"name",                users_add_username,         " '%s' "    },
+	{"gecos",               users_add_option_format,    " -c '%s' " },
+	{"homedir",             users_add_option_format,    " -d '%s' " },
+	{"primary-group",       users_add_option_format,    " -g '%s' " },
+	{"groups",              users_add_groups,           NULL        },
+	{"lock-passwd",         NULL,                       NULL        },
+	{"inactive",            NULL,                       NULL        },
+	{"passwd",              users_add_option_format,    " -p '%s' " },
+	{"no-create-home",      users_add_option,           " -M , -m " },
+	{"no-user-group",       users_add_option,           " -N , -U " },
+	{"no-log-init",         users_add_option,           " -l ,"     },
+	{"expiredate",          users_add_option_format,    " -e '%s' " },
+	{"ssh-authorized-keys", NULL,                       NULL        },
+	{"sudo",                NULL,                       NULL        },
+	{"system",              users_add_option_format,    " -r "      },
 	{NULL}
 };
 
-static void users_add_username(GNode* node, char* command, gpointer data) {
-	char buffer[BUFFER_SIZE];
-	g_snprintf(buffer, BUFFER_SIZE, data, node->data);
-	g_strlcat(command, buffer, COMMAND_SIZE);
+static void users_add_username(GNode* node, GString* command, gpointer format) {
+	gchar* data = g_strescape(node->data, NULL);
+
+	g_string_append_printf(command, format, data);
 
 	g_strlcpy(users_current_username, node->data, LOGIN_NAME_MAX);
 
 	if (!cloud_config_get_global("first_user")) {
 		cloud_config_set_global("first_user", users_current_username);
 	}
+
+	g_free(data);
 }
 
-static void users_add_groups(GNode* node, char* command, __unused__ gpointer data) {
+static void users_add_groups(GNode* node, GString* command, __unused__ gpointer data) {
 	GNode* group;
 	if (node->data) {
-		users_add_option_format(node, command, " -G %s ");
+		users_add_option_format(node, command, " -G '%s' ");
 	} else if (node->children) {
-		g_strlcat(command, " -G '", COMMAND_SIZE);
+		g_string_append(command, " -G '");
 		for(group=node->children; group; group=group->next) {
-			g_strlcat(command, group->data, COMMAND_SIZE);
-			g_strlcat(command, ",", COMMAND_SIZE);
+			g_string_append(command, group->data);
+			g_string_append(command, ",");
 		}
 		/* remove last , and add '*/
-		command[strlen(command)-1] = 0;
-		g_strlcat(command, "' ", COMMAND_SIZE);
+		g_string_truncate(command, command->len-1);
+		g_string_append(command, "' ");
 	}
 }
 
-static void users_add_option_format(GNode* node, char* command, gpointer data) {
-	char buffer[BUFFER_SIZE];
-	g_snprintf(buffer, BUFFER_SIZE, data, node->data);
-	g_strlcat(command, buffer, COMMAND_SIZE);
+static void users_add_option_format(GNode* node, GString* command, gpointer format) {
+	gchar* data = g_strescape(node->data, NULL);
+
+	g_string_append_printf(command, format, data);
+
+	g_free(data);
 }
 
-static void users_add_option(GNode* node, char* command, gpointer data) {
+static void users_add_option(GNode* node, GString* command, gpointer data) {
 	bool b;
 	gchar** tokens = g_strsplit(data, ",", 2);
 	guint len = g_strv_length(tokens);
 	cloud_config_bool(node, &b);
 	if (b) {
 		if (len > 0) {
-			g_strlcat(command, tokens[0], COMMAND_SIZE);
+			g_string_append(command, tokens[0]);
 		}
 	} else {
 		if (len > 1) {
-			g_strlcat(command, tokens[1], COMMAND_SIZE);
+			g_string_append(command, tokens[1]);
 		}
 	}
 	g_strfreev(tokens);
@@ -160,7 +162,7 @@ static void users_item(GNode* node, gpointer data) {
 		bool b;
 		GString* sudo_directives;
 		GString* ssh_keys;
-		gchar command[COMMAND_SIZE] = USERADD_PATH " ";
+		GString* command = g_string_new(USERADD_PATH " ");
 		memset(users_current_username, 0, LOGIN_NAME_MAX);
 		g_node_children_foreach(node, G_TRAVERSE_ALL, users_item, command);
 		if (0 == strlen(users_current_username)) {
@@ -169,7 +171,7 @@ static void users_item(GNode* node, gpointer data) {
 		}
 
 		LOG(MOD "Adding %s user...\n", users_current_username);
-		exec_task(command);
+		exec_task(command->str);
 
 		CLOUD_CONFIG_KEY(LOCK_PASSWD, "lock-passwd");
 		CLOUD_CONFIG_KEY(INACTIVE, "inactive");
@@ -181,9 +183,9 @@ static void users_item(GNode* node, gpointer data) {
 			cloud_config_bool(item, &b);
 			if (b) {
 				LOG(MOD "Locking %s user.\n", users_current_username);
-				g_snprintf(command, COMMAND_SIZE, PASSWD_PATH " -l %s",
+				g_string_printf(command, PASSWD_PATH " -l '%s'",
 					users_current_username);
-				exec_task(command);
+				exec_task(command->str);
 			}
 		}
 
@@ -192,11 +194,13 @@ static void users_item(GNode* node, gpointer data) {
 			cloud_config_bool(item, &b);
 			if (b) {
 				LOG(MOD "Deactivating %s user...\n", users_current_username);
-				g_snprintf(command, COMMAND_SIZE, USERMOD_PATH " --expiredate 1 %s",
+				g_string_printf(command, USERMOD_PATH " --expiredate 1 '%s'",
 					users_current_username);
-				exec_task(command);
+				exec_task(command->str);
 			}
 		}
+
+		g_string_free(command, true);
 
 		item = cloud_config_find(node, SSH_AUTH_KEYS);
 		if (item) {
