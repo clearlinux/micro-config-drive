@@ -51,6 +51,7 @@
 #include "json.h"
 #include "default_user.h"
 #include "disk.h"
+#include "async_task.h"
 
 #define MOD "openstack: "
 #define METADATA_SERVICE_URL "http://169.254.169.254"
@@ -63,16 +64,15 @@
 
 static bool openstack_process_config_drive_metadata(void);
 static bool openstack_process_config_drive_userdata(void);
-static void openstack_run_handler(GNode *node, __unused__ gpointer user_data);
-static void openstack_item(GNode* node, GThreadPool* thread_pool);
+static void openstack_run_handler(GNode *node, __unused__ gpointer null);
 static bool openstack_load_metadata_file(const gchar* filename);
 static void openstack_process_uuid(GNode* node, __unused__ gpointer *data);
 
-static void openstack_metadata_not_implemented(GNode* node);
-static void openstack_metadata_keys(GNode* node);
-static void openstack_metadata_hostname(GNode* node);
-static void openstack_metadata_files(GNode* node);
-static void openstack_metadata_uuid(GNode* node);
+static int openstack_metadata_not_implemented(GNode* node);
+static int openstack_metadata_keys(GNode* node);
+static int openstack_metadata_hostname(GNode* node);
+static int openstack_metadata_files(GNode* node);
+static int openstack_metadata_uuid(GNode* node);
 
 bool openstack_init(void);
 bool openstack_start(void);
@@ -108,7 +108,7 @@ static GNode* metadata_node = NULL;
 
 struct openstack_metadata_data {
 	const gchar* key;
-	void (*func)(GNode* node);
+	int (*func)(GNode* node);
 };
 
 static struct openstack_metadata_data openstack_metadata_options[] = {
@@ -327,33 +327,14 @@ gboolean openstack_process_config_drive(const gchar* path) {
 }
 
 gboolean openstack_process_metadata_file(const gchar* filename) {
-	gboolean result = false;
-	GThreadPool* thread_pool = NULL;
-
 	if (!metadata_node && !openstack_load_metadata_file(filename)) {
 		LOG(MOD "Load metadata file '%s'failed\n", filename);
 		return false;
 	}
 
-	thread_pool = g_thread_pool_new((GFunc)openstack_run_handler, NULL, get_nprocs(), true, NULL);
+	g_node_children_foreach(metadata_node, G_TRAVERSE_ALL, (GNodeForeachFunc)openstack_run_handler, NULL);
 
-	if (!thread_pool) {
-		LOG(MOD "Cannot create thread pool\n");
-		goto fail1;
-	}
-
-	g_node_children_foreach(metadata_node, G_TRAVERSE_ALL, (GNodeForeachFunc)openstack_item, thread_pool);
-	g_thread_pool_free(thread_pool, false, true);
-
-	result = true;
-
-fail1:
-	if (metadata_node) {
-		g_node_traverse(metadata_node, G_POST_ORDER, G_TRAVERSE_ALL, -1, (GNodeTraverseFunc)gnode_free, NULL);
-		g_node_destroy(metadata_node);
-		metadata_node = NULL;
-	}
-	return result;
+	return true;
 }
 
 static bool openstack_load_metadata_file(const gchar* filename) {
@@ -420,18 +401,18 @@ static bool openstack_process_config_drive_userdata(void) {
 	return true;
 }
 
-static void openstack_run_handler(GNode *node, __unused__ gpointer user_data) {
+static void openstack_run_handler(GNode *node, __unused__ gpointer null) {
 	size_t i;
 
 	if (node->data) {
 		for (i = 0; openstack_metadata_options[i].key != NULL; ++i) {
 			if (g_strcmp0(node->data, openstack_metadata_options[i].key) == 0) {
 				LOG(MOD "Metadata using '%s' handler\n", (char*)node->data);
-				openstack_metadata_options[i].func(node->children);
+				async_task_run((GThreadFunc)openstack_metadata_options[i].func, node->children);
 				return;
 			}
 		}
-		LOG(MOD "Metadata no handler for '%s'.\n", (char*)node->data);
+		LOG(MOD "Metadata no handler for '%s'\n", (char*)node->data);
 	}
 }
 
@@ -443,23 +424,12 @@ static void openstack_process_uuid(GNode* node, __unused__ gpointer *data) {
 	}
 }
 
-static void openstack_item(GNode* node, GThreadPool* thread_pool) {
-	GError *error = NULL;
-
-	g_thread_pool_push(thread_pool, node, &error);
-
-	if (error) {
-		LOG(MOD "Cannot push a new thread: %s\n", (char*)error->message);
-		g_error_free(error);
-		error = NULL;
-	}
-}
-
-static void openstack_metadata_not_implemented(GNode* node) {
+static int openstack_metadata_not_implemented(GNode* node) {
 	LOG(MOD "Metadata '%s' not implemented yet\n", (char*)node->parent->data);
+	return 0;
 }
 
-static void openstack_metadata_keys(GNode* node) {
+static int openstack_metadata_keys(GNode* node) {
 	GString* ssh_key;
 	while (node) {
 		if (g_strcmp0("data", node->data) == 0) {
@@ -474,15 +444,16 @@ static void openstack_metadata_keys(GNode* node) {
 		}
 		node = node->next;
 	}
+	return 0;
 }
 
-static void openstack_metadata_hostname(GNode* node) {
+static int openstack_metadata_hostname(GNode* node) {
 	gchar command[LINE_MAX];
 	g_snprintf(command, LINE_MAX, HOSTNAMECTL_PATH " set-hostname '%s'", (char*)node->data);
-	exec_task(command);
+	return exec_task(command);
 }
 
-static void openstack_metadata_files(GNode* node) {
+static int openstack_metadata_files(GNode* node) {
 	gchar content_path[LINE_MAX] = { 0 };
 	gchar path[LINE_MAX] = { 0 };
 	gchar src_content_file[PATH_MAX] = { 0 };
@@ -537,10 +508,12 @@ static void openstack_metadata_files(GNode* node) {
 
 		node = node->next;
 	}
+	return 0;
 }
 
-static void openstack_metadata_uuid(GNode* node) {
+static int openstack_metadata_uuid(GNode* node) {
 	if (!save_instance_id(node->data)) {
 		LOG(MOD "Save instance id failed\n");
 	}
+	return 0;
 }
