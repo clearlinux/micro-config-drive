@@ -56,8 +56,9 @@ cloud_init_SOURCES = \
 	src/userdata.c \
 	src/userdata.h \
 	src/disk.c \
-	src/disk.h
-
+	src/disk.h \
+	src/async_task.c \
+	src/async_task.h
 
 if DEBUG
 AM_CFLAGS += -ggdb3 -O0
