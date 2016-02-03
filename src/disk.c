@@ -43,6 +43,7 @@
 #include <parted/parted.h>
 
 #include "lib.h"
+#include "async_task.h"
 
 #define MOD "disk: "
 
@@ -83,7 +84,7 @@ char *disk_by_path(const gchar* path) {
     return blkid_devno_to_devname(disk);
 }
 
-gboolean disk_fix(const gchar* disk_path, GChildWatchFunc async_func_watcher, gpointer data) {
+gboolean disk_fix(const gchar* disk_path) {
 	char command[LINE_MAX] = { 0 };
 	int last_partition_num;
 	const gchar* partition_path;
@@ -182,7 +183,7 @@ gboolean disk_fix(const gchar* disk_path, GChildWatchFunc async_func_watcher, gp
 	}
 
 	snprintf(command, LINE_MAX, RESIZEFS_PATH " %s", partition_path);
-	exec_task_async(command, async_func_watcher, data);
+	async_task_exec(command);
 
 	result = true;
 	LOG(MOD "Resizing filesystem done\n");

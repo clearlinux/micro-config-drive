@@ -17,6 +17,7 @@ COMMON_LDADD = $(CHECK_LIBS) $(GLIB_LIBS) $(CURL_LIBS) $(YAML_LIBS) $(BLKID_LIBS
 libtest_la_SOURCES = \
 	../src/lib.c \
 	../src/curl.c \
+	../src/async_task.c \
 	../src/disk.c \
 	../src/userdata.c \
 	../src/interpreters/cloud_config.c \

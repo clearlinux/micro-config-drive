@@ -55,6 +55,7 @@
 #include "datasources.h"
 #include "default_user.h"
 #include "openstack.h"
+#include "async_task.h"
 
 
 /* Long options */
@@ -85,53 +86,26 @@ static struct option opts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
-typedef bool (*async_task_function) (gpointer);
-
-static struct async_data {
-	GMainLoop* main_loop;
-	guint remaining;
-} async_data;
-
-static void async_process_watcher(GPid pid, gint status, gpointer _data) {
-	struct async_data* data = (struct async_data*)_data;
-
-	LOG("PID %d ends, exit status %d\n", pid, status);
-
-	--(data->remaining);
-
-	if (0 == data->remaining) {
-		LOG("Quit main loop\n");
-		g_main_loop_quit(data->main_loop);
-	}
-
-	if (pid != 0) {
-		g_spawn_close_pid(pid);
-	}
-}
-
-bool async_fixdisk(gpointer data) {
+static int async_fixdisk(__unused__ gpointer null) {
 	char* root_disk;
-	bool result = false;
 
 	root_disk = disk_by_path("/");
-	if (root_disk) {
-		LOG("Checking disk %s\n", root_disk);
-		if (!disk_fix(root_disk, async_process_watcher, data)) {
-			goto fail;
-		}
-	} else {
+	if (!root_disk) {
 		LOG("Root disk not found\n");
-		return false;
+		return 1;
 	}
 
-	result = true;
+	LOG("Checking disk %s\n", root_disk);
+	if (!disk_fix(root_disk)) {
+		free(root_disk);
+		return 1;
+	}
 
-fail:
 	free(root_disk);
-	return result;
+	return 0;
 }
 
-bool async_setup_first_boot(gpointer data) {
+static bool async_setup_first_boot(__unused__ gpointer null) {
 	gchar command[LINE_MAX] = { 0 };
 	GString* sudo_directives = NULL;
 
@@ -145,58 +119,7 @@ bool async_setup_first_boot(gpointer data) {
 
 	/* lock root account for security */
 	g_snprintf(command, LINE_MAX, USERMOD_PATH " -p '!' root");
-	return exec_task_async(command, async_process_watcher, data);
-}
-
-static void run_task(gpointer function, gpointer data) {
-	async_task_function func = *(async_task_function*)(&function);
-	if ( ! func(data) ) {
-		async_process_watcher(0, 0, data);
-	}
-}
-
-static void async_item(gpointer function, gpointer thread_pool) {
-	GError *error = NULL;
-
-	++(async_data.remaining);
-
-	g_thread_pool_push((GThreadPool*)thread_pool, function, &error);
-	if (error) {
-		LOG("Error pushing a new thread: %s\n", (char*)error->message);
-		g_error_free(error);
-	}
-}
-
-static gint run_async_tasks(GPtrArray* async_tasks_array) {
-	gint result_code = EXIT_FAILURE;
-	GThreadPool* thread_pool = NULL;
-
-	async_data.main_loop = g_main_loop_new(NULL, 0);
-	if (!async_data.main_loop) {
-		LOG("Cannot create a new main loop\n");
-		goto fail1;
-	}
-
-	thread_pool = g_thread_pool_new(run_task, &async_data, get_nprocs(), true, NULL);
-	if (!thread_pool) {
-		LOG("Cannot create a new thread pool\n");
-		goto fail2;
-	}
-
-	//push threads to pool
-	g_ptr_array_foreach(async_tasks_array, async_item, thread_pool);
-
-	//run main loop to wait the end of async tasks
-	g_main_loop_run(async_data.main_loop);
-
-	result_code = EXIT_SUCCESS;
-
-	g_thread_pool_free(thread_pool, false, true);
-
-fail2:
-	g_main_loop_unref(async_data.main_loop);
-fail1:
-	return result_code;
+	return async_task_exec(command);
 }
 
 int main(int argc, char *argv[]) {
@@ -216,11 +139,7 @@ int main(int argc, char *argv[]) {
 	bool process_user_data_once = false;
 	bool process_metadata = false;
 	struct datasource_handler_struct *datasource_handler = NULL;
-	GError* error = NULL;
-	GThread* async_tasks_thread = NULL;
-	async_task_function func = NULL;
 	gchar command[LINE_MAX] = { 0 };
-	GPtrArray* async_tasks_array = NULL;
 
 	while (true) {
 		c = getopt_long(argc, argv, "u:hv", opts, &i);
@@ -303,6 +222,10 @@ int main(int argc, char *argv[]) {
 		LOG("Unable to create data dir '%s'\n", DATADIR_PATH);
 	}
 
+	if (!async_task_init()) {
+		LOG("Unable to init async task\n");
+	}
+
 	/* process specific metadata file */
 	if (tmp_metadata_filename) {
 		if (realpath(tmp_metadata_filename, metadata_filename)) {
@@ -357,36 +280,12 @@ int main(int argc, char *argv[]) {
 		get_boot_info(&first_boot, &snapshot);
 	}
 
-	async_tasks_array = g_ptr_array_new();
-	if (!async_tasks_array) {
-		LOG("Unable to create a new ptr array for async tasks\n");
+	if (fix_disk) {
+		async_task_run((GThreadFunc)async_fixdisk, NULL);
 	}
 
-	if (fix_disk && async_tasks_array) {
-		func = async_fixdisk;
-		g_ptr_array_add(async_tasks_array, *(async_task_function**)&func);
-	}
-
-	if (first_boot && async_tasks_array) {
-		func = async_setup_first_boot;
-		g_ptr_array_add(async_tasks_array, *(async_task_function**)&func);
-	}
-
-	if (async_tasks_array && async_tasks_array->len > 0) {
-		if (get_nprocs() > 1) {
-			async_tasks_thread = g_thread_try_new("run_async_tasks", (GThreadFunc)run_async_tasks,
-			                     async_tasks_array, &error);
-			if (!async_tasks_thread) {
-				LOG("Cannot create a thread to run async tasks!");
-				if (error) {
-					LOG("Error: %s\n", (char*)error->message);
-					g_error_free(error);
-					error = NULL;
-				}
-			}
-		} else {
-			run_async_tasks(async_tasks_array);
-		}
+	if (first_boot) {
+		async_task_run((GThreadFunc)async_setup_first_boot, NULL);
 	}
 
 	if (first_boot) {
@@ -429,11 +328,7 @@ int main(int argc, char *argv[]) {
 		datasource_handler->finish();
 	}
 
-	if (async_tasks_thread) {
-		g_thread_join(async_tasks_thread);
-	}
-
-	g_ptr_array_unref(async_tasks_array);
+	async_task_finish();
 
 	exit(result_code);
 }
