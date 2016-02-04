@@ -471,12 +471,24 @@ void get_boot_info(bool* firstboot, bool* snapshot) {
 	gchar* instance_id = NULL;
 	gchar* last_instance_id = NULL;
 	struct stat st;
+	static int cache_firstboot = -1;
+	static int cache_snapshot = -1;
 
 	if (snapshot) {
 		*snapshot = false;
 	}
 	if (firstboot) {
 		*firstboot = false;
+	}
+
+	if (cache_firstboot != -1 && cache_snapshot != -1 ) {
+		if (snapshot) {
+			*snapshot = (bool)cache_snapshot;
+		}
+		if (firstboot) {
+			*firstboot = (bool)cache_firstboot;
+		}
+		return;
 	}
 
 	if (stat(LAST_INSTANCE_ID_FILE, &st) != 0) {
@@ -487,6 +499,8 @@ void get_boot_info(bool* firstboot, bool* snapshot) {
 		if (firstboot) {
 			*firstboot = true;
 		}
+		cache_firstboot = 1;
+		cache_snapshot = 0;
 		return;
 	}
 
@@ -500,6 +514,9 @@ void get_boot_info(bool* firstboot, bool* snapshot) {
 		goto fail1;
 	}
 
+	cache_firstboot = 0;
+	cache_snapshot = 0;
+
 	if (g_strcmp0(instance_id, last_instance_id) != 0) {
 		LOG(MOD "first boot!\n");
 		if (!copy_file(INSTANCE_ID_FILE, LAST_INSTANCE_ID_FILE)) {
@@ -511,6 +528,8 @@ void get_boot_info(bool* firstboot, bool* snapshot) {
 		if (firstboot) {
 			*firstboot = true;
 		}
+		cache_firstboot = 1;
+		cache_snapshot = 1;
 	}
 
 	g_free(last_instance_id);
