@@ -325,10 +325,13 @@ int main(int argc, char *argv[]) {
 		if (process_user_data || (process_user_data_once && first_boot)) {
 			datasource_handler->process_userdata();
 		}
-		datasource_handler->finish();
 	}
 
 	async_task_finish();
+
+	if (datasource_handler) {
+		datasource_handler->finish();
+	}
 
 	exit(result_code);
 }
