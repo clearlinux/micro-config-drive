@@ -449,8 +449,13 @@ static int openstack_metadata_keys(GNode* node) {
 
 static int openstack_metadata_hostname(GNode* node) {
 	gchar command[LINE_MAX];
-	g_snprintf(command, LINE_MAX, HOSTNAMECTL_PATH " set-hostname '%s'", (char*)node->data);
-	return exec_task(command);
+	bool firstboot = false;
+	get_boot_info(&firstboot, NULL);
+	if (firstboot) {
+		g_snprintf(command, LINE_MAX, HOSTNAMECTL_PATH " set-hostname '%s'", (char*)node->data);
+		return exec_task(command);
+	}
+	return 0;
 }
 
 static int openstack_metadata_files(GNode* node) {
