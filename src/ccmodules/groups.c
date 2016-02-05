@@ -55,7 +55,7 @@ static void groups_item(GNode* node, gpointer data) {
 	} else if (!data) {
 		/* add new group */
 		LOG(MOD "Adding %s group...\n", (char*)node->data);
-		g_snprintf(command_groupadd, COMMAND_SIZE, GROUPADD_PATH " -f %s",
+		g_snprintf(command_groupadd, COMMAND_SIZE, GROUPADD_PATH " -f '%s'",
 			(char*)node->data);
 		exec_task(command_groupadd);
 		g_node_children_foreach(node, G_TRAVERSE_ALL,
@@ -63,7 +63,7 @@ static void groups_item(GNode* node, gpointer data) {
 	} else {
 		/* add user to new group */
 		LOG(MOD "Adding %s to %s group...\n", (char*)node->data, (char*)data);
-		g_snprintf(command_usermod, COMMAND_SIZE, USERMOD_PATH " -a -G  %s %s",
+		g_snprintf(command_usermod, COMMAND_SIZE, USERMOD_PATH " -a -G  '%s' '%s'",
 			(char*)data, (char*)node->data);
 		exec_task(command_usermod);
 	}
