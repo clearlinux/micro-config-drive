@@ -83,12 +83,15 @@ void LOG(const char *fmt, ...) {
 bool exec_task(const gchar* command_line) {
 	gchar* standard_output = NULL;
 	gchar* standard_error = NULL;
+	gchar* cmd_line = NULL;
 	GError* error = NULL;
 	gint exit_status = 0;
 	gboolean result;
 	GString* command;
 	command = g_string_new("");
-	g_string_printf(command, SHELL_PATH " -c \"%s\"", (char*)command_line );
+	cmd_line = g_strescape(command_line, NULL);
+	g_string_printf(command, SHELL_PATH " -c \"%s\"", cmd_line );
+	g_free(cmd_line);
 
 	LOG(MOD "Executing: %s\n", command->str);
 	result = g_spawn_command_line_sync(command->str,
