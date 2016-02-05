@@ -77,17 +77,13 @@ static struct users_options_data users_options[] = {
 };
 
 static void users_add_username(GNode* node, GString* command, gpointer format) {
-	gchar* data = g_strescape(node->data, NULL);
-
-	g_string_append_printf(command, format, data);
+	g_string_append_printf(command, format, node->data);
 
 	g_strlcpy(users_current_username, node->data, LOGIN_NAME_MAX);
 
 	if (!cloud_config_get_global("first_user")) {
 		cloud_config_set_global("first_user", users_current_username);
 	}
-
-	g_free(data);
 }
 
 static void users_add_groups(GNode* node, GString* command, __unused__ gpointer data) {
@@ -107,11 +103,7 @@ static void users_add_groups(GNode* node, GString* command, __unused__ gpointer 
 }
 
 static void users_add_option_format(GNode* node, GString* command, gpointer format) {
-	gchar* data = g_strescape(node->data, NULL);
-
-	g_string_append_printf(command, format, data);
-
-	g_free(data);
+	g_string_append_printf(command, format, node->data);
 }
 
 static void users_add_option(GNode* node, GString* command, gpointer data) {
