@@ -173,17 +173,57 @@ bool write_file(const GString* data, const gchar* file_path, int oflags, mode_t 
 }
 
 int chown_path(const char* pathname, const char* ownername, const char* groupname) {
-	uid_t owner_id;
-	gid_t group_id;
-	struct passwd *pw;
-	struct group *grp;
+	struct passwd pwd;
+	struct passwd* pwd_result;
+	char* pwd_buf;
+	long int pwd_bufsize;
+	struct group grp;
+	struct group* grp_result;
+	char* grp_buf;
+	long int grp_bufsize;
+	int result = 1;
 
-	pw = getpwnam(ownername);
-	owner_id = pw ? pw->pw_uid : (uid_t) - 1;
-	grp = getgrnam(groupname);
-	group_id = grp ? grp->gr_gid : (gid_t) - 1;
+	pwd_bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+	if (pwd_bufsize == -1) {
+		pwd_bufsize = 1<<14;
+	}
 
-	return chown(pathname, owner_id, group_id);
+	pwd_buf = malloc((size_t)pwd_bufsize);
+	if (pwd_buf == NULL) {
+		LOG(MOD "Unable to allocate memory for passwd buffer\n");
+		return 1;
+	}
+
+	getpwnam_r(ownername, &pwd, pwd_buf, (size_t)pwd_bufsize, &pwd_result);
+	if (pwd_result == NULL) {
+		LOG(MOD "User not found '%s'\n", ownername);
+		goto fail1;
+	}
+
+	grp_bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+	if (grp_bufsize == -1) {
+		grp_bufsize = 1<<14;
+	}
+
+	grp_buf = malloc((size_t)grp_bufsize);
+	if (grp_buf == NULL) {
+		LOG(MOD "Unable to allocate memory for group buffer\n");
+		goto fail1;
+	}
+
+	getgrnam_r(groupname, &grp, grp_buf, (size_t)grp_bufsize, &grp_result);
+	if (grp_result == NULL) {
+		LOG(MOD "Group not found '%s'\n", groupname);
+		goto fail2;
+	}
+
+	result = chown(pathname, pwd.pw_uid, grp.gr_gid);
+
+fail2:
+	free(grp_buf);
+fail1:
+	free(pwd_buf);
+	return result;
 }
 
 bool write_sudo_directives(const GString* data, const gchar* filename) {
@@ -204,13 +244,33 @@ bool write_ssh_keys(const GString* data, const gchar* username) {
 	gchar* auth_keys_content = NULL;
 	gchar** vector_ssh_keys = NULL;
 	GString* ssh_keys = NULL;
-	struct passwd *pw;
+	struct passwd pwd;
+	struct passwd* pwd_result;
+	char* pwd_buf;
+	long int pwd_bufsize;
 	struct stat st;
 
-	pw = getpwnam(username);
+	pwd_bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+	if (pwd_bufsize == -1) {
+		pwd_bufsize = 1<<14;
+	}
 
-	if (pw && pw->pw_dir) {
-		g_snprintf(auth_keys_file, PATH_MAX, "%s/.ssh/", pw->pw_dir);
+	pwd_buf = malloc((size_t)pwd_bufsize);
+	if (pwd_buf == NULL) {
+		LOG(MOD "Unable to allocate memory for passwd buffer\n");
+		return false;
+	}
+
+	getpwnam_r(username, &pwd, pwd_buf, (size_t)pwd_bufsize, &pwd_result);
+	if (pwd_result == NULL) {
+		LOG(MOD "User not found '%s'\n", username);
+		free(pwd_buf);
+		return false;
+	}
+
+	if (pwd.pw_dir) {
+		g_snprintf(auth_keys_file, PATH_MAX, "%s/.ssh/", pwd.pw_dir);
+		free(pwd_buf);
 
 		if (make_dir(auth_keys_file, S_IRWXU) != 0) {
 			LOG(MOD "Cannot create %s.\n", auth_keys_file);
