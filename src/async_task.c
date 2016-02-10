@@ -143,6 +143,7 @@ bool async_task_exec(const gchar* command) {
 
 void async_task_finish(void) {
 	if (tasks) {
+		LOG(MOD "Running main loop\n");
 		g_main_loop_run(main_loop);
 	}
 	g_main_loop_unref(main_loop);
