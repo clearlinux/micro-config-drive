@@ -190,7 +190,6 @@ bool openstack_start(void) {
 		if (!data_file) {
 			/* userdata is optional, so it is ok */
 			LOG(MOD "Userdata file not found\n");
-			return true;
 		}
 		g_strlcpy(userdata_file, data_file, PATH_MAX);
 		g_free(data_file);
@@ -517,6 +516,7 @@ static int openstack_metadata_files(GNode* node) {
 }
 
 static int openstack_metadata_uuid(GNode* node) {
+	LOG(MOD "Saving instance id '%s'\n", (char*)node->data);
 	if (!save_instance_id(node->data)) {
 		LOG(MOD "Save instance id failed\n");
 	}
