@@ -57,13 +57,11 @@ static void async_task_callback(GPid pid, gint status, __unused__ gpointer null)
 
 	g_spawn_close_pid(pid);
 
-	G_LOCK(tasks);
 	--tasks;
 	if (0 == tasks) {
 		LOG(MOD "Quit main loop\n");
 		g_main_loop_quit(main_loop);
 	}
-	G_UNLOCK(tasks);
 }
 
 static void async_task_run_task(struct async_task_data* data, __unused__ gpointer null) {
@@ -99,6 +97,11 @@ bool async_task_run(GThreadFunc func, gpointer data) {
 	task_data->data = data;
 
 	G_LOCK(thread_pool);
+	if (!thread_pool) {
+		LOG(MOD "Error finish task was called and thread pool is null \n");
+		G_UNLOCK(thread_pool);
+		return false;
+	}
 	g_thread_pool_push(thread_pool, task_data, &error);
 	G_UNLOCK(thread_pool);
 
@@ -142,15 +145,19 @@ bool async_task_exec(const gchar* command) {
 }
 
 void async_task_finish(void) {
+	G_LOCK(thread_pool);
+	g_thread_pool_free(thread_pool, false, true);
+	thread_pool = NULL;
+	G_UNLOCK(thread_pool);
+
+	G_LOCK(tasks);
 	if (tasks) {
 		LOG(MOD "Running main loop\n");
 		g_main_loop_run(main_loop);
 	}
+	tasks = 0;
+	G_UNLOCK(tasks);
+
 	g_main_loop_unref(main_loop);
 	main_loop = NULL;
-
-	g_thread_pool_free(thread_pool, false, true);
-	thread_pool = NULL;
-
-	tasks = 0;
 }
