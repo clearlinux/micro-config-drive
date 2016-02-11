@@ -520,6 +520,9 @@ bool umount_filesystem(const gchar* mountdir, const gchar* loop_device) {
 
 bool save_instance_id(const gchar* instance_id) {
 	GString* id = g_string_new(instance_id);
+
+	LOG(MOD "Saving instance id '%s'\n", id->str);
+
 	if (!write_file(id, INSTANCE_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRWXU)) {
 		LOG(MOD "Unable to save instance id\n");
 		g_string_free(id, true);
@@ -537,13 +540,6 @@ void get_boot_info(bool* firstboot, bool* snapshot) {
 	static int cache_firstboot = -1;
 	static int cache_snapshot = -1;
 
-	if (snapshot) {
-		*snapshot = false;
-	}
-	if (firstboot) {
-		*firstboot = false;
-	}
-
 	if (cache_firstboot != -1 && cache_snapshot != -1 ) {
 		if (snapshot) {
 			*snapshot = (bool)cache_snapshot;
@@ -554,8 +550,15 @@ void get_boot_info(bool* firstboot, bool* snapshot) {
 		return;
 	}
 
+	if (snapshot) {
+		*snapshot = false;
+	}
+	if (firstboot) {
+		*firstboot = false;
+	}
+
 	if (stat(LAST_INSTANCE_ID_FILE, &st) != 0) {
-		LOG(MOD "first boot!\n");
+		LOG(MOD "first boot! - '%s' not found\n", LAST_INSTANCE_ID_FILE);
 		if (!copy_file(INSTANCE_ID_FILE, LAST_INSTANCE_ID_FILE)) {
 			LOG(MOD "Copy file failed\n");
 		}
