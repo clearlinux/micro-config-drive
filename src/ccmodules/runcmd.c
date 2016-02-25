@@ -41,24 +41,23 @@
 
 #define MOD "runcmd: "
 
-#define COMMAND_SIZE 4096
-
-static void runcmd_item(GNode* node, gpointer data) {
-	gchar command_line[COMMAND_SIZE] = { 0 };
+static void runcmd_item(GNode* node, gpointer command_line) {
 	if (!node->data) {
 		g_node_children_foreach(node, G_TRAVERSE_ALL, runcmd_item, command_line);
-		if (!exec_task(command_line)) {
+		if (!exec_task(((GString*)command_line)->str)) {
 			LOG(MOD "Execute command failed\n");
 		}
+		g_string_set_size((GString*)command_line, 0);
 	} else {
-		g_strlcat(data, node->data,COMMAND_SIZE);
-		g_strlcat(data, " ", COMMAND_SIZE);
+		g_string_append_printf((GString*)command_line, "%s ", (char*)node->data);
 	}
 }
 
 void runcmd_handler(GNode *node) {
-	LOG(MOD "Runcmd Handler running...\n");
-	g_node_children_foreach(node, G_TRAVERSE_ALL, runcmd_item, NULL);
+	GString* command_line = g_string_new("");
+	LOG(MOD "runcmd handler running...\n");
+	g_node_children_foreach(node, G_TRAVERSE_ALL, runcmd_item, command_line);
+	g_string_free(command_line, true);
 }
 
 struct cc_module_handler_struct runcmd_cc_module = {
