@@ -77,6 +77,7 @@ users                Configure user accounts               yes   yes
 write_files          Write content to arbitrary files      yes   yes
 hostname             Define the system's hostname          yes   yes
 envar                Set environment variables             no    no
+fbootcmd             Execute system commands on first boot no    no
 _
 .TE
 .RE
@@ -282,6 +283,18 @@ Option     Type      Required     Function
 _
 *          string    yes          Add environment variables to /etc/profile.d/cloud-init.sh
                                   and to current cloud-init process
+.TE
+.RE
+
+.PP
+\fBfbootcmd\fR
+.RS 4
+.TS
+lb    lb lb lb
+lfCW  l  l l l.
+Option     Type      Required     Function
+_
+*          string[]  no           Similar to runcmd but fbootcmd will run only on first boot
 .TE
 .RE
 

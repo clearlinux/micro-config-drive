@@ -1,0 +1,3 @@
+#cloud-config
+fbootcmd:
+ - echo '192.168.0.1 download.clearlinux.org' > /etc/hosts

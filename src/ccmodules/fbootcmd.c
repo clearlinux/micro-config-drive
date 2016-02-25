@@ -1,7 +1,6 @@
 /***
  Copyright (C) 2015 Intel Corporation
 
- Author: Auke-jan H. Kok <auke-jan.h.kok@intel.com>
  Author: Julio Montes <julio.montes@intel.com>
 
  This file is part of clr-cloud-init.
@@ -33,36 +32,42 @@
  files in the program, then also delete it here.
 ***/
 
-/*
- * List existing modules so they can be registered from main.c
- */
+#include <stdbool.h>
 
-#pragma once
+#include <glib.h>
 
-extern struct cc_module_handler_struct package_upgrade_cc_module;
-extern struct cc_module_handler_struct write_files_cc_module;
-extern struct cc_module_handler_struct packages_cc_module;
-extern struct cc_module_handler_struct groups_cc_module;
-extern struct cc_module_handler_struct users_cc_module;
-extern struct cc_module_handler_struct ssh_authorized_keys_cc_module;
-extern struct cc_module_handler_struct service_cc_module;
-extern struct cc_module_handler_struct hostname_cc_module;
-extern struct cc_module_handler_struct runcmd_cc_module;
-extern struct cc_module_handler_struct envar_cc_module;
-extern struct cc_module_handler_struct fbootcmd_cc_module;
+#include "lib.h"
+#include "handlers.h"
 
-struct cc_module_handler_struct *cc_module_structs[] =  {
-	&package_upgrade_cc_module,
-	&write_files_cc_module,
-	&packages_cc_module,
-	&groups_cc_module,
-	&users_cc_module,
-	&ssh_authorized_keys_cc_module,
-	&service_cc_module,
-	&hostname_cc_module,
-	&runcmd_cc_module,
-	&envar_cc_module,
-	&fbootcmd_cc_module,
-	NULL
+#define MOD "fbootcmd: "
+
+
+static void fbootcmd_item(GNode* node, gpointer command_line) {
+	if (!node->data) {
+		g_node_children_foreach(node, G_TRAVERSE_ALL, fbootcmd_item, command_line);
+		if (!exec_task(((GString*)command_line)->str)) {
+			LOG(MOD "Execute command failed\n");
+		}
+		g_string_set_size((GString*)command_line, 0);
+	} else {
+		g_string_append_printf((GString*)command_line, "%s ", (char*)node->data);
+	}
+}
+
+void fbootcmd_handler(GNode *node) {
+	bool firstboot;
+	GString* command_line = NULL;
+	LOG(MOD "fbootcmd handler running...\n");
+	get_boot_info(&firstboot, NULL);
+	if (firstboot) {
+		LOG(MOD "Running first boot commands\n");
+		command_line = g_string_new("");
+		g_node_children_foreach(node, G_TRAVERSE_ALL, fbootcmd_item, command_line);
+		g_string_free(command_line, true);
+	}
+}
+
+struct cc_module_handler_struct fbootcmd_cc_module = {
+	.name = "fbootcmd",
+	.handler = &fbootcmd_handler
 };
-
