@@ -5,11 +5,8 @@ ACLOCAL_AMFLAGS=-I m4
 AM_CPPFLAGS = -I $(top_srcdir)/src -I $(top_srcdir)/src/interpreters -I $(top_srcdir)/src/datasources
 AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wstrict-prototypes -Wundef -fno-common \
-	-Werror-implicit-function-declaration \
-	-Wformat -Wformat-security -Werror=format-security \
-	-Wconversion -Wunused-variable -Wunreachable-code \
-	-Wall -W -Werror
-
+	-Wformat -Wformat-security  -Wconversion -Wunused-variable
+	-Wunreachable-code -Wall -W
 
 EXTRA_DIST = \
 	LICENSE \
@@ -17,7 +14,8 @@ EXTRA_DIST = \
 	data/cloud-init.service.in
 
 DISTCHECK_CONFIGURE_FLAGS =  \
-	--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir) --enable-debug
+	--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir) --enable-debug \
+	--disable-werror
 
 dist_man_MANS = \
 	docs/cloud-init.1 \
