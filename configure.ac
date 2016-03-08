@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.68])
 AC_INIT([clr-cloud-init],[17],[dev@clearlinux.org])
-AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
+AM_INIT_AUTOMAKE([foreign -Wall -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_FILES([Makefile
 		tests/Makefile
@@ -36,6 +36,16 @@ AS_IF([test x"$disable_tests" = "xno"],
 	[AC_SUBST([BUILD_TESTS], [1])],
 	[AC_SUBST([BUILD_TESTS], [0])])
 AM_CONDITIONAL([BUILD_TESTS], [test x$disable_tests = x"no"])
+
+AC_ARG_ENABLE(werror, AS_HELP_STRING([--enable-werror], [enable -Werror and similar @<:@default=no@:>@]),
+        [], [enable_werror=yes])
+
+changequote(,)dnl
+if test x"$enable_werror" = x"yes"; then
+    CFLAGS="$CFLAGS -Werror -Werror-implicit-function-declaration -Werror=format-security"
+fi
+changequote([,])dnl
+
 
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.24.1])

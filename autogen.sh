@@ -14,6 +14,6 @@ args="\
 
 if test -z "${NOCONFIGURE}"; then
   set -x
-  ./configure CFLAGS='-g -O0' $args "$@"
+  ./configure CFLAGS='-g -O0' $args "$@" --enable-werror
   make clean
 fi
