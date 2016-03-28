@@ -29,16 +29,40 @@ cloud\-init \- Configures a cloud instance
 .SH "DESCRIPTION"
 .PP
 \fBcloud-init\fR
-has two services: cloud-init-firstboot and cloud-init.
-cloud-init-fistboot service runs during first boot of a new cloud intance,
-with the purpose of configuring the cloud instance for use of the end user.
-cloud-init service runs in each boot after first boot, with the purpose of
-maintaining the cloud instance in a right state (resize/fix partitions and/or
-filesystems, reprocess user data and/or metadata, and more).
+runs at boot time with the purpose of configuring a cloud instance
+for use of the end user.
 .PP
-Various tasks can be performed, and all are optional. cloud-init can create
-user accounts, user groups, register ssh keys, write content to files,
-perform software update or install new software, and more.
+Various tasks can be performed, and all are optional.
+
+cloud-init is able to:
+ * create a default user with sudo privileges
+ * lock root and default account, the only way to login is using ssh keys (security feature)
+ * maintain the cloud instance in a right state (resize/fix partitions and filesystem)
+ * process userdata and metadata
+
+Metadata formats supported:
+ * openstack
+
+.SH "WORKFLOW"
+    1. Parse options
+    2. Init openstack datasource
+    |-> 2.1 if config-drive is available then define it as datasource and return
+    |-> 2.2 if not config-drive then define metadata service(169.254x2) as datasource and return
+    3. Start openstack datasource
+    |-> 3.1 Get userdata and metadata from datasource(config-drive or metadata service)
+    4. Run async tasks
+    |-> 4.1 Fix disk
+    |   |-> 4.1.1 resize disk
+    |   |-> 4.1.2 resize filesystem
+    |-> 4.2 Set up instance
+    |   |-> 4.2.1 Create default user
+    |   |-> 4.2.2 Create sudoers file for default user
+    5. Create default user
+    6. Process openstack metadata
+    7. Process openstack userdata
+    8. Join async tasks
+    9. Finish openstack datasource (free resources)
+
 .RE
 
 .SH "OPTIONS"
