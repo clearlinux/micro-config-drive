@@ -273,11 +273,12 @@ int main(int argc, char *argv[]) {
 				datasource_handler = datasource_structs[i];
 				if (!datasource_handler->start()) {
 					result_code = EXIT_FAILURE;
+				} else {
+					get_boot_info(&first_boot, &snapshot);
 				}
 				break;
 			}
 		}
-		get_boot_info(&first_boot, &snapshot);
 	}
 
 	if (fix_disk) {
