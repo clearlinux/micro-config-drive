@@ -10,6 +10,7 @@ Type=oneshot
 ExecStart=@prefix@/bin/cloud-init --fix-disk --metadata --user-data-once
 RemainAfterExit=yes
 TimeoutSec=0
+PrivateTmp=yes
 
 # Output needs to appear in instance console output
 StandardOutput=journal+console
