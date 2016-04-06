@@ -32,37 +32,49 @@ cloud\-init \- Configures a cloud instance
 runs at boot time with the purpose of configuring a cloud instance
 for use of the end user.
 .PP
-Various tasks can be performed, and all are optional.
-
-cloud-init is able to:
- * create a default user with sudo privileges
+cloud-init can perform any of the following (optional) tasks:
+ * create a default account with sudo privileges
  * lock root and default account, the only way to login is using ssh keys (security feature)
  * maintain the cloud instance in a right state (resize/fix partitions and filesystem)
- * process userdata and metadata
+ * get and process userdata and metadata from data sources
+
+Userdata formats supported:
+ * \fIcloud-config\fR: begins with \fB#cloud-config\fR and is used to execute certain tasks in a human friendly format
+ * \fIshell-script\fR: begins wiht \fB#!\fR and is used to execute a shell script
 
 Metadata formats supported:
- * openstack
+ * \fIopenstack\fR
 
 .SH "WORKFLOW"
     1. Parse options
     2. Init openstack datasource
-    |-> 2.1 if config-drive is available then define it as datasource and return
-    |-> 2.2 if not config-drive then define metadata service(169.254x2) as datasource and return
+    |-> 2.1 if config-drive is found then define it as datasource otherwise define metadata service as datasource
     3. Start openstack datasource
-    |-> 3.1 Get userdata and metadata from datasource(config-drive or metadata service)
+    |-> 3.1 Get userdata and metadata from datasource
     4. Run async tasks
-    |-> 4.1 Fix disk
-    |   |-> 4.1.1 resize disk
-    |   |-> 4.1.2 resize filesystem
-    |-> 4.2 Set up instance
-    |   |-> 4.2.1 Create default user
-    |   |-> 4.2.2 Create sudoers file for default user
-    5. Create default user
-    6. Process openstack metadata
-    7. Process openstack userdata
-    8. Join async tasks
-    9. Finish openstack datasource (free resources)
+    |-> 4.1 resize disk
+    |-> 4.2 resize filesystem
+    5. If a datasource was found
+    |-> 5.1 if VM first boot was detected
+    |   |-> 5.1.1 Run async tasks
+    |   |   |-> 5.1.1.1 lock root account
+    |   |   |-> 5.1.1.2 Create sudoers file for default user
+    |   |-> 5.1.2 Create default user
+    |-> 5.2 Process openstack metadata
+    |-> 5.3 Process openstack userdata
+    6. Join async tasks
+    7. Finish openstack datasource (free resources)
+.RE
 
+.SH "OPENSTACK DATASOURCES"
+Datasources are used to retrive instance-specific data in order to confiure a new cloud instance.
+Openstack attaches two datasources to the cloud instance when it boots and these are listed bellow. 
+ * \fIconfig-drive\fR: is a disk formatted with vfat or iso9660 and have a label of config-2
+ * \fImetadata service\fR: instances can access to it at http://169.254.169.254
+
+more information about openstack datasources can be found in:
+\%http://docs.openstack.org/user-guide/cli_config_drive.html
+\%http://docs.openstack.org/admin-guide/compute-networking-nova.html#metadata-service
 .RE
 
 .SH "OPTIONS"
