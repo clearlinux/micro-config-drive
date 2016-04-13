@@ -66,6 +66,8 @@ enum {
 	OPT_USER_DATA_ONCE,
 	OPT_METADATA,
 	OPT_FIX_DISK,
+	OPT_FIRST_BOOT_SETUP,
+	OPT_NO_NETWORK
 };
 
 /* supported datasources */
@@ -83,6 +85,8 @@ static struct option opts[] = {
 	{ "help",                       no_argument, NULL, 'h' },
 	{ "version",                    no_argument, NULL, 'v' },
 	{ "fix-disk",                   no_argument, NULL, OPT_FIX_DISK },
+	{ "first-boot-setup",           no_argument, NULL, OPT_FIRST_BOOT_SETUP},
+	{ "no-network",                 no_argument, NULL, OPT_NO_NETWORK},
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -128,7 +132,9 @@ int main(int argc, char *argv[]) {
 	unsigned int datasource = 0;
 	int result_code = EXIT_SUCCESS;
 	bool fix_disk = false;
+	bool first_boot_setup = false;
 	bool first_boot = false;
+	bool no_network = false;
 	bool snapshot = false;
 	char* userdata_filename = NULL;
 	char* tmp_metadata_filename = NULL;
@@ -169,6 +175,8 @@ int main(int argc, char *argv[]) {
 			LOG("-h, --help                             display this help message\n");
 			LOG("-v, --version                          display the version number of this program\n");
 			LOG("    --fix-disk                         fix disk and filesystem if it is needed\n");
+			LOG("    --first-boot-setup                 setup the instance in its first boot\n");
+			LOG("    --no-network                       %s will use local datasources to get data\n", argv[0]);
 			exit(EXIT_SUCCESS);
 			break;
 
@@ -206,6 +214,14 @@ int main(int argc, char *argv[]) {
 		case OPT_FIX_DISK:
 			fix_disk = true;
 			break;
+
+        case OPT_FIRST_BOOT_SETUP:
+            first_boot_setup = true;
+            break;
+
+        case OPT_NO_NETWORK:
+            no_network = true;
+            break;
 		}
 	}
 
@@ -269,11 +285,11 @@ int main(int argc, char *argv[]) {
 	if (process_user_data || process_metadata || process_user_data_once) {
 		/* get/process userdata and metadata from datasources */
 		for (i = 0; datasource_structs[i] != NULL; ++i) {
-			if (datasource_structs[i]->init()) {
+			if (datasource_structs[i]->init(no_network)) {
 				datasource_handler = datasource_structs[i];
 				if (!datasource_handler->start()) {
 					result_code = EXIT_FAILURE;
-				} else {
+				} else if(first_boot_setup) {
 					get_boot_info(&first_boot, &snapshot);
 				}
 				break;

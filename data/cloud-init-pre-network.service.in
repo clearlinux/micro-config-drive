@@ -1,13 +1,12 @@
 [Unit]
-Description=cloud-init job
-After=local-fs.target cloud-init-pre-network.service
-Before=sshd.service sshd-keygen.service
-Requires=network.target
+Description=cloud-init pre-network job
+After=local-fs.target
+Before=cloud-init.service network.target systemd-networkd.service
 Wants=local-fs.target sshd.service sshd-keygen.service
 
 [Service]
 Type=oneshot
-ExecStart=@prefix@/bin/cloud-init --fix-disk --user-data-once --metadata
+ExecStart=@prefix@/bin/cloud-init --first-boot-setup --no-network --metadata
 RemainAfterExit=yes
 TimeoutSec=0
 PrivateTmp=yes

@@ -45,27 +45,6 @@ Userdata formats supported:
 Metadata formats supported:
  * \fIopenstack\fR
 
-.SH "WORKFLOW"
-    1. Parse options
-    2. Init openstack datasource
-    |-> 2.1 if config-drive is found then define it as datasource otherwise define metadata service as datasource
-    3. Start openstack datasource
-    |-> 3.1 Get userdata and metadata from datasource
-    4. Run async tasks
-    |-> 4.1 resize disk
-    |-> 4.2 resize filesystem
-    5. If a datasource was found
-    |-> 5.1 if VM first boot was detected
-    |   |-> 5.1.1 Run async tasks
-    |   |   |-> 5.1.1.1 lock root account
-    |   |   |-> 5.1.1.2 Create sudoers file for default user
-    |   |-> 5.1.2 Create default user
-    |-> 5.2 Process openstack metadata
-    |-> 5.3 Process openstack userdata
-    6. Join async tasks
-    7. Finish openstack datasource (free resources)
-.RE
-
 .SH "OPENSTACK DATASOURCES"
 Datasources are used to retrive instance-specific data in order to confiure a new cloud instance.
 Openstack attaches two datasources to the cloud instance when it boots and these are listed bellow. 
@@ -75,6 +54,27 @@ Openstack attaches two datasources to the cloud instance when it boots and these
 more information about openstack datasources can be found in:
 \%http://docs.openstack.org/user-guide/cli_config_drive.html
 \%http://docs.openstack.org/admin-guide/compute-networking-nova.html#metadata-service
+.RE
+
+.SH "WORKFLOW"
+    \fB1\fR Parse options
+    \fB2\fR Init openstack datasource
+    \fB|-> 2.1\fR if config-drive is found then define it as datasource otherwise define metadata service as datasource
+    \fB3\fR Start openstack datasource
+    \fB|-> 3.1\fR Get userdata and metadata from datasource
+    \fB4\fR Run async tasks
+    \fB|-> 4.1\fR resize disk
+    \fB|-> 4.2\fR resize filesystem
+    \fB5\fR If a datasource was found
+    \fB|-> 5.1\fR if VM first boot was detected
+    \fB|   |-> 5.1.1\fR Run async tasks
+    \fB|   |   |-> 5.1.1.1\fR lock root account
+    \fB|   |   |-> 5.1.1.2\fR Create sudoers file for default user account
+    \fB|   |-> 5.1.2\fR Create default user account
+    \fB|-> 5.2\fR Process openstack metadata
+    \fB|-> 5.3\fR Process openstack userdata
+    \fB6\fR Join async tasks
+    \fB7\fR Finish openstack datasource (free resources)
 .RE
 
 .SH "OPTIONS"
@@ -131,6 +131,23 @@ Fix disk and filesystem if it is needed.
 \fB\-v\fR, \fB\-\-version\fR
 .RS 4
 Prints version information\&.
+.RE
+.PP
+\fB\-\-first\-boot\-setup\fR
+.RS 4
+Setup the instance in its first boot.
+When first boot of the instance is detected, \fBcloud\-init\fR will perform
+next tasks:
+ * create a default user account
+ * create sudoers file for default user account
+ * lock root account
+.RE
+.PP
+\fB\-\-no\-network\fR
+.RS 4
+\fBcloud\-init\fR will use local datasources to get data.
+This option is useful when network is not available or \fBcloud\-init\fR is
+running before network service.
 .RE
 
 .SH "EXIT STATUS"

@@ -74,7 +74,7 @@ static int openstack_metadata_hostname(GNode* node);
 static int openstack_metadata_files(GNode* node);
 static int openstack_metadata_uuid(GNode* node);
 
-bool openstack_init(void);
+bool openstack_init(bool no_network);
 bool openstack_start(void);
 bool openstack_process_metadata(void);
 bool openstack_process_userdata(void);
@@ -135,7 +135,7 @@ struct datasource_handler_struct openstack_datasource = {
 	.finish=openstack_finish
 };
 
-bool openstack_init(void) {
+bool openstack_init(bool no_network) {
 	gchar* device = NULL;
 
 	data_source = SOURCE_NONE;
@@ -147,6 +147,11 @@ bool openstack_init(void) {
 		return true;
 	}
 
+    if (no_network) {
+        LOG(MOD "config drive was not found and --no-network option was used\n");
+        return false;
+    }
+
 	if (!curl_common_init(&curl)) {
 		LOG(MOD "Curl initialize failed\n");
 		return false;
@@ -155,6 +160,7 @@ bool openstack_init(void) {
 	if (!curl_ping(curl, METADATA_SERVICE_URL OPENSTACK_METADATA_FILE, ms_attempts, ms_usleep)) {
 		LOG(MOD "Metadata service is down\n");
 		curl_easy_cleanup(curl);
+		curl = NULL;
 		return false;
 	}
 
@@ -271,6 +277,7 @@ void openstack_finish(void) {
 		/* remove only if was downloaded from metadata service*/
 		if (metadata_file[0]) {
 			remove(metadata_file);
+			metadata_file[0] = '\0';
 		}
 	break;
 
@@ -287,6 +294,7 @@ void openstack_finish(void) {
 
 	if(userdata_file[0]) {
 		remove(userdata_file);
+		userdata_file[0] = '\0';
 	}
 
 	if (metadata_node) {
