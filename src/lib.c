@@ -543,12 +543,13 @@ bool save_instance_id(const gchar* id) {
 				LOG(MOD "Unable to save instance id\n");
 				goto exit;
 			}
-			result = true;
 			G_LOCK(first_boot_id_file);
 			remove(FIRST_BOOT_ID_FILE);
 			G_UNLOCK(first_boot_id_file);
 		}
 	}
+
+	result = true;
 
 exit:
 	g_string_free(instance_id, true);
