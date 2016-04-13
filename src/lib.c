@@ -65,7 +65,10 @@
 #define LOOP_MAJOR_ID 7
 #define SUDOERS_PATH SYSCONFDIR "/sudoers.d/"
 #define INSTANCE_ID_FILE DATADIR_PATH "/instance-id"
-#define LAST_INSTANCE_ID_FILE DATADIR_PATH "/last-instance-id"
+#define FIRST_BOOT_ID_FILE DATADIR_PATH "/first-boot-id"
+#define KERNEL_BOOT_ID_FILE "/proc/sys/kernel/random/boot_id"
+
+G_LOCK_DEFINE(first_boot_id_file);
 
 
 void LOG(const char *fmt, ...) {
@@ -518,89 +521,74 @@ bool umount_filesystem(const gchar* mountdir, const gchar* loop_device) {
 	return true;
 }
 
-bool save_instance_id(const gchar* instance_id) {
-	GString* id = g_string_new(instance_id);
-
-	LOG(MOD "Saving instance id '%s'\n", id->str);
-
-	if (!write_file(id, INSTANCE_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRWXU)) {
-		LOG(MOD "Unable to save instance id\n");
-		g_string_free(id, true);
-		return false;
-	}
-
-	g_string_free(id, true);
-	return true;
-}
-
-void get_boot_info(bool* firstboot, bool* snapshot) {
-	gchar* instance_id = NULL;
+bool save_instance_id(const gchar* id) {
+	bool result = false;
+	GString* instance_id = g_string_new(id);
 	gchar* last_instance_id = NULL;
 	struct stat st;
-	static int cache_firstboot = -1;
-	static int cache_snapshot = -1;
 
-	if (cache_firstboot != -1 && cache_snapshot != -1 ) {
-		if (snapshot) {
-			*snapshot = (bool)cache_snapshot;
+	if (stat(INSTANCE_ID_FILE, &st) != 0) {
+		if (!write_file(instance_id, INSTANCE_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
+			LOG(MOD "Unable to save instance id\n");
+			goto exit;
 		}
-		if (firstboot) {
-			*firstboot = (bool)cache_firstboot;
+	} else {
+		if (!g_file_get_contents(INSTANCE_ID_FILE, &last_instance_id, NULL, NULL)) {
+			LOG(MOD "Unable to read file '%s'\n", INSTANCE_ID_FILE);
+			goto exit;
 		}
-		return;
+		if (g_strcmp0(instance_id->str, last_instance_id) != 0) {
+			g_free(last_instance_id);
+			if (!write_file(instance_id, INSTANCE_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
+				LOG(MOD "Unable to save instance id\n");
+				goto exit;
+			}
+			result = true;
+			G_LOCK(first_boot_id_file);
+			remove(FIRST_BOOT_ID_FILE);
+			G_UNLOCK(first_boot_id_file);
+		}
 	}
 
-	if (snapshot) {
-		*snapshot = false;
-	}
-	if (firstboot) {
-		*firstboot = false;
-	}
+exit:
+	g_string_free(instance_id, true);
+	return result;
+}
 
-	if (stat(LAST_INSTANCE_ID_FILE, &st) != 0) {
-		LOG(MOD "first boot! - '%s' not found\n", LAST_INSTANCE_ID_FILE);
-		if (!copy_file(INSTANCE_ID_FILE, LAST_INSTANCE_ID_FILE)) {
-			LOG(MOD "Copy file failed\n");
+bool is_first_boot(void) {
+	struct stat st;
+	bool firstboot = false;
+	gchar* boot_id;
+	gchar* first_boot_id;
+
+	G_LOCK(first_boot_id_file);
+
+	if (stat(FIRST_BOOT_ID_FILE, &st) != 0) {
+		firstboot = true;
+		if (!copy_file(KERNEL_BOOT_ID_FILE, FIRST_BOOT_ID_FILE)) {
+			LOG(MOD "Copy file '%s' failed\n", KERNEL_BOOT_ID_FILE);
+			return false;
 		}
-		if (firstboot) {
-			*firstboot = true;
+	} else {
+		if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
+			LOG(MOD "Unable to read file '%s'\n", KERNEL_BOOT_ID_FILE);
+			goto exit;
 		}
-		cache_firstboot = 1;
-		cache_snapshot = 0;
-		return;
+		if (!g_file_get_contents(FIRST_BOOT_ID_FILE, &first_boot_id, NULL, NULL)) {
+			LOG(MOD "Unable to read file '%s'\n", FIRST_BOOT_ID_FILE);
+			g_free(boot_id);
+			goto exit;
+		}
+		if (g_strcmp0(first_boot_id, boot_id) == 0) {
+			firstboot = true;
+		}
+		g_free(first_boot_id);
+		g_free(boot_id);
 	}
 
-	if (!g_file_get_contents(INSTANCE_ID_FILE, &instance_id, NULL, NULL)) {
-		LOG(MOD "Unable to read file '%s'\n", INSTANCE_ID_FILE);
-		return;
-	}
-
-	if (!g_file_get_contents(LAST_INSTANCE_ID_FILE, &last_instance_id, NULL, NULL)) {
-		LOG(MOD "Unable to read file '%s'\n", LAST_INSTANCE_ID_FILE);
-		goto fail1;
-	}
-
-	cache_firstboot = 0;
-	cache_snapshot = 0;
-
-	if (g_strcmp0(instance_id, last_instance_id) != 0) {
-		LOG(MOD "first boot!\n");
-		if (!copy_file(INSTANCE_ID_FILE, LAST_INSTANCE_ID_FILE)) {
-			LOG(MOD "Copy file failed\n");
-		}
-		if (snapshot) {
-			*snapshot = true;
-		}
-		if (firstboot) {
-			*firstboot = true;
-		}
-		cache_firstboot = 1;
-		cache_snapshot = 1;
-	}
-
-	g_free(last_instance_id);
-fail1:
-	g_free(instance_id);
+exit:
+	G_UNLOCK(first_boot_id_file);
+	return firstboot;
 }
 
 bool gnode_free(GNode* node, __unused__ gpointer data) {

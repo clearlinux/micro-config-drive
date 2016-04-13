@@ -147,10 +147,10 @@ bool openstack_init(bool no_network) {
 		return true;
 	}
 
-    if (no_network) {
-        LOG(MOD "config drive was not found and --no-network option was used\n");
-        return false;
-    }
+	if (no_network) {
+		LOG(MOD "config drive was not found and --no-network option was used\n");
+		return false;
+	}
 
 	if (!curl_common_init(&curl)) {
 		LOG(MOD "Curl initialize failed\n");
@@ -426,7 +426,7 @@ static void openstack_run_handler(GNode *node, __unused__ gpointer null) {
 static void openstack_process_uuid(GNode* node, __unused__ gpointer *data) {
 	if (node->data && g_strcmp0(node->data, "uuid") == 0) {
 		openstack_metadata_uuid(node->children);
-        g_node_unlink(node);
+		g_node_unlink(node);
 		g_node_destroy(node);
 	}
 }
@@ -456,9 +456,7 @@ static int openstack_metadata_keys(GNode* node) {
 
 static int openstack_metadata_hostname(GNode* node) {
 	gchar command[LINE_MAX];
-	bool firstboot = false;
-	get_boot_info(&firstboot, NULL);
-	if (firstboot) {
+	if (is_first_boot()) {
 		g_snprintf(command, LINE_MAX, HOSTNAMECTL_PATH " set-hostname '%s'", (char*)node->data);
 		return exec_task(command);
 	}

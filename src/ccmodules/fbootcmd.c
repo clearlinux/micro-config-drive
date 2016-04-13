@@ -55,11 +55,9 @@ static void fbootcmd_item(GNode* node, gpointer command_line) {
 }
 
 void fbootcmd_handler(GNode *node) {
-	bool firstboot;
 	GString* command_line = NULL;
 	LOG(MOD "fbootcmd handler running...\n");
-	get_boot_info(&firstboot, NULL);
-	if (firstboot) {
+	if (is_first_boot()) {
 		LOG(MOD "Running first boot commands\n");
 		command_line = g_string_new("");
 		g_node_children_foreach(node, G_TRAVERSE_ALL, fbootcmd_item, command_line);

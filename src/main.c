@@ -135,7 +135,6 @@ int main(int argc, char *argv[]) {
 	bool first_boot_setup = false;
 	bool first_boot = false;
 	bool no_network = false;
-	bool snapshot = false;
 	char* userdata_filename = NULL;
 	char* tmp_metadata_filename = NULL;
 	char* tmp_data_filesystem = NULL;
@@ -215,13 +214,13 @@ int main(int argc, char *argv[]) {
 			fix_disk = true;
 			break;
 
-        case OPT_FIRST_BOOT_SETUP:
-            first_boot_setup = true;
-            break;
+		case OPT_FIRST_BOOT_SETUP:
+			first_boot_setup = true;
+			break;
 
-        case OPT_NO_NETWORK:
-            no_network = true;
-            break;
+		case OPT_NO_NETWORK:
+			no_network = true;
+			break;
 		}
 	}
 
@@ -290,7 +289,7 @@ int main(int argc, char *argv[]) {
 				if (!datasource_handler->start()) {
 					result_code = EXIT_FAILURE;
 				} else if(first_boot_setup) {
-					get_boot_info(&first_boot, &snapshot);
+					first_boot = is_first_boot();
 				}
 				break;
 			}
