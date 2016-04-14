@@ -147,17 +147,17 @@ int make_dir(const char* pathname, mode_t mode) {
 	return 0;
 }
 
-bool write_file(const GString* data, const gchar* file_path, int oflags, mode_t mode) {
+bool write_file(const char* data, gsize data_len, const gchar* file_path, int oflags, mode_t mode) {
 	int fd;
 	bool result = true;
 
-	fd = open(file_path, oflags, mode);
+	fd = open(file_path, oflags, S_IWUSR);
 	if (-1 == fd) {
 		LOG(MOD "Cannot open %s\n", (char*)file_path);
 		return false;
 	}
 
-	if (write(fd, data->str, data->len) == -1) {
+	if (write(fd, data, data_len) == -1) {
 		LOG(MOD "Cannot write in file '%s'", (char*)file_path);
 		result = false;
 	}
@@ -238,7 +238,7 @@ bool write_sudo_directives(const GString* data, const gchar* filename) {
 
 	g_strlcat(sudoers_file, filename, PATH_MAX);
 
-	return write_file(data, sudoers_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IRGRP);
+	return write_file(data->str, data->len, sudoers_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IRGRP);
 }
 
 bool write_ssh_keys(const GString* data, const gchar* username) {
@@ -288,7 +288,7 @@ bool write_ssh_keys(const GString* data, const gchar* username) {
 		g_strlcat(auth_keys_file, "authorized_keys", PATH_MAX);
 
 		if (stat(auth_keys_file, &st) != 0) {
-			if (!write_file(data, auth_keys_file, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR)) {
+			if (!write_file(data->str, data->len, auth_keys_file, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR)) {
 				return false;
 			}
 		} else {
@@ -309,7 +309,7 @@ bool write_ssh_keys(const GString* data, const gchar* username) {
 			g_free(auth_keys_content);
 			g_strfreev(vector_ssh_keys);
 
-			if (!write_file(ssh_keys, auth_keys_file, O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR)) {
+			if (!write_file(ssh_keys->str, ssh_keys->len, auth_keys_file, O_APPEND|O_WRONLY, S_IRUSR|S_IWUSR)) {
 				g_string_free(ssh_keys, true);
 				return false;
 			}
@@ -526,14 +526,13 @@ bool umount_filesystem(const gchar* mountdir, const gchar* loop_device) {
 	return true;
 }
 
-bool save_instance_id(const gchar* id) {
+bool save_instance_id(const gchar* instance_id) {
 	bool result = false;
-	GString* instance_id = g_string_new(id);
 	gchar* last_instance_id = NULL;
 	struct stat st;
 
 	if (stat(INSTANCE_ID_FILE, &st) != 0) {
-		if (!write_file(instance_id, INSTANCE_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
+		if (!write_file(instance_id, strlen(instance_id), INSTANCE_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
 			LOG(MOD "Unable to save instance id\n");
 			goto exit;
 		}
@@ -542,9 +541,9 @@ bool save_instance_id(const gchar* id) {
 			LOG(MOD "Unable to read file '%s'\n", INSTANCE_ID_FILE);
 			goto exit;
 		}
-		if (g_strcmp0(instance_id->str, last_instance_id) != 0) {
+		if (g_strcmp0(instance_id, last_instance_id) != 0) {
 			g_free(last_instance_id);
-			if (!write_file(instance_id, INSTANCE_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
+			if (!write_file(instance_id, strlen(instance_id), INSTANCE_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
 				LOG(MOD "Unable to save instance id\n");
 				goto exit;
 			}
@@ -557,7 +556,6 @@ bool save_instance_id(const gchar* id) {
 	result = true;
 
 exit:
-	g_string_free(instance_id, true);
 	return result;
 }
 
@@ -566,7 +564,6 @@ bool is_first_boot(void) {
 	bool firstboot = false;
 	gchar* boot_id;
 	gchar* first_boot_id;
-	GString* boot_id_str;
 
 	G_LOCK(first_boot_id_file);
 
@@ -575,15 +572,11 @@ bool is_first_boot(void) {
 		if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
 			LOG(MOD "Unable to read file '%s'\n", KERNEL_BOOT_ID_FILE);
 		}
-		boot_id_str = g_string_new(boot_id);
-		g_free(boot_id);
-		if (!write_file(boot_id_str, FIRST_BOOT_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
+		if (!write_file(boot_id, strlen(boot_id), FIRST_BOOT_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
 			LOG(MOD "Unable to save boot id\n");
-			g_string_free(boot_id_str, true);
 			goto exit;
 		}
-		g_string_free(boot_id_str, true);
-
+		g_free(boot_id);
 	} else {
 		if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
 			LOG(MOD "Unable to read file '%s'\n", KERNEL_BOOT_ID_FILE);

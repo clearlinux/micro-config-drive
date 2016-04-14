@@ -75,7 +75,7 @@ void envar_handler(GNode *node) {
 
 	g_strlcat(profile_file, "/cloud-init.sh", PATH_MAX);
 
-	if (!write_file(buffer_envar, profile_file, O_CREAT|O_APPEND|O_WRONLY,
+	if (!write_file(buffer_envar->str, buffer_envar->len, profile_file, O_CREAT|O_APPEND|O_WRONLY,
 			S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)) {
 		LOG(MOD "Cannot write environment variables\n");
 		goto fail;
