@@ -352,7 +352,7 @@ bool copy_file(const gchar* src, const gchar* dest) {
 		goto fail1;
 	}
 
-	fd_dest = open(dest, O_WRONLY|O_CREAT|O_TRUNC, st.st_mode);
+	fd_dest = open(dest, O_WRONLY|O_CREAT|O_TRUNC, S_IWUSR);
 	if (-1 == fd_dest) {
 		LOG(MOD "Unable to open destination file '%s'\n", dest);
 		goto fail1;
@@ -361,6 +361,11 @@ bool copy_file(const gchar* src, const gchar* dest) {
 	send_result = sendfile(fd_dest, fd_src, &bytes_copied, (size_t)st.st_size);
 	if (-1 == send_result) {
 		LOG(MOD "Unable to copy file from '%s' to '%s'\n", src, dest);
+		goto fail2;
+	}
+
+	if (chmod(dest, st.st_mode) != 0) {
+		LOG(MOD "Unable to chmod '%d' '%s'\n", st.st_mode, dest);
 		goto fail2;
 	}
 
@@ -561,15 +566,24 @@ bool is_first_boot(void) {
 	bool firstboot = false;
 	gchar* boot_id;
 	gchar* first_boot_id;
+	GString* boot_id_str;
 
 	G_LOCK(first_boot_id_file);
 
 	if (stat(FIRST_BOOT_ID_FILE, &st) != 0) {
 		firstboot = true;
-		if (!copy_file(KERNEL_BOOT_ID_FILE, FIRST_BOOT_ID_FILE)) {
-			LOG(MOD "Copy file '%s' failed\n", KERNEL_BOOT_ID_FILE);
-			return false;
+		if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
+			LOG(MOD "Unable to read file '%s'\n", KERNEL_BOOT_ID_FILE);
 		}
+		boot_id_str = g_string_new(boot_id);
+		g_free(boot_id);
+		if (!write_file(boot_id_str, FIRST_BOOT_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
+			LOG(MOD "Unable to save boot id\n");
+			g_string_free(boot_id_str, true);
+			goto exit;
+		}
+		g_string_free(boot_id_str, true);
+
 	} else {
 		if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
 			LOG(MOD "Unable to read file '%s'\n", KERNEL_BOOT_ID_FILE);
@@ -588,6 +602,7 @@ bool is_first_boot(void) {
 	}
 
 exit:
+	LOG(MOD "First boot: %s\n", (firstboot ? "True" : "False" ));
 	G_UNLOCK(first_boot_id_file);
 	return firstboot;
 }
