@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
 				datasource_handler = datasource_structs[i];
 				if (!datasource_handler->start()) {
 					result_code = EXIT_FAILURE;
-				} else if(first_boot_setup) {
+				} else {
 					first_boot = is_first_boot();
 				}
 				break;
@@ -300,11 +300,11 @@ int main(int argc, char *argv[]) {
 		async_task_run((GThreadFunc)async_fixdisk, NULL);
 	}
 
-	if (first_boot) {
+	if (first_boot_setup && first_boot) {
 		async_task_run((GThreadFunc)async_setup_first_boot, NULL);
 	}
 
-	if (first_boot) {
+	if (first_boot_setup && first_boot) {
 		/* default user will be used by ccmodules and datasources */
 		g_snprintf(command, LINE_MAX, USERADD_PATH
 				" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
