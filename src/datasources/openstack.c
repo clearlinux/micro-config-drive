@@ -277,7 +277,7 @@ void openstack_finish(void) {
 		/* remove only if was downloaded from metadata service*/
 		if (metadata_file[0]) {
 			remove(metadata_file);
-			metadata_file[0] = '\0';
+			metadata_file[0] = 0;
 		}
 	break;
 
@@ -294,7 +294,7 @@ void openstack_finish(void) {
 
 	if(userdata_file[0]) {
 		remove(userdata_file);
-		userdata_file[0] = '\0';
+		userdata_file[0] = 0;
 	}
 
 	if (metadata_node) {
