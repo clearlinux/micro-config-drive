@@ -364,7 +364,7 @@ bool copy_file(const gchar* src, const gchar* dest) {
 		goto fail2;
 	}
 
-	if (chmod(dest, st.st_mode) != 0) {
+	if (fchmod(fd_dest, st.st_mode) != 0) {
 		LOG(MOD "Unable to chmod '%d' '%s'\n", st.st_mode, dest);
 		goto fail2;
 	}
