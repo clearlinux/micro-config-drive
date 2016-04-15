@@ -610,10 +610,19 @@ bool gnode_free(GNode* node, __unused__ gpointer data) {
 }
 
 char* get_boot_id(void) {
-	char *boot_id;
+	char *boot_id = NULL;
+	static char cache_boot_id[BOOT_ID_SIZE] = { 0 };
+
+	if (cache_boot_id[0]) {
+		return g_strdup(cache_boot_id);
+	}
+
 	if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
 		LOG(MOD "Unable to get boot id from '%s'\n", KERNEL_BOOT_ID_FILE);
 		return NULL;
 	}
+
+	g_strlcpy(cache_boot_id, boot_id, BOOT_ID_SIZE);
+
 	return boot_id;
 }
