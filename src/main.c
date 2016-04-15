@@ -45,6 +45,7 @@
 #include <getopt.h>
 #include <sys/sysinfo.h>
 #include <fcntl.h>
+#include <pwd.h>
 
 #include <glib.h>
 
@@ -305,18 +306,20 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (first_boot_setup && first_boot) {
-		/* default user will be used by ccmodules and datasources */
-		g_snprintf(command, LINE_MAX, USERADD_PATH
-				" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
-				, DEFAULT_USER_HOME_DIR
-				, DEFAULT_USER_GROUPS
-				, DEFAULT_USER_INACTIVE
-				, DEFAULT_USER_EXPIREDATE
-				, DEFAULT_USER_SHELL
-				, DEFAULT_USER_GECOS
-				, DEFAULT_USER_PASSWORD
-				, DEFAULT_USER_USERNAME);
-		exec_task(command);
+		if (!getpwnam(DEFAULT_USER_USERNAME)) {
+			/* default user will be used by ccmodules and datasources */
+			g_snprintf(command, LINE_MAX, USERADD_PATH
+					" -U -d '%s' -G '%s' -f '%s' -e '%s' -s '%s' -c '%s' -p '%s' '%s'"
+					, DEFAULT_USER_HOME_DIR
+					, DEFAULT_USER_GROUPS
+					, DEFAULT_USER_INACTIVE
+					, DEFAULT_USER_EXPIREDATE
+					, DEFAULT_USER_SHELL
+					, DEFAULT_USER_GECOS
+					, DEFAULT_USER_PASSWORD
+					, DEFAULT_USER_USERNAME);
+			exec_task(command);
+		}
 	}
 
 	/* process metadata from metadata service */
