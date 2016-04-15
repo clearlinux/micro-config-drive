@@ -7,7 +7,7 @@ Wants=local-fs.target sshd.service sshd-keygen.service
 
 [Service]
 Type=oneshot
-ExecStart=@prefix@/bin/cloud-init --fix-disk --user-data-once --metadata
+ExecStart=@prefix@/bin/cloud-init --first-boot-setup --fix-disk --user-data-once --metadata
 RemainAfterExit=yes
 TimeoutSec=0
 PrivateTmp=yes
