@@ -569,10 +569,8 @@ bool is_first_boot(void) {
 	G_LOCK(first_boot_id_file);
 	if (stat(FIRST_BOOT_ID_FILE, &st) != 0) {
 		cache_firstboot = 1;
-		if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
-			LOG(MOD "Unable to read file '%s'\n", KERNEL_BOOT_ID_FILE);
-		}
-		if (!write_file(boot_id, strlen(boot_id), FIRST_BOOT_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
+		boot_id = get_boot_id();
+		if (!boot_id || !write_file(boot_id, strlen(boot_id), FIRST_BOOT_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
 			LOG(MOD "Unable to save boot id\n");
 			goto exit;
 		}
@@ -580,15 +578,12 @@ bool is_first_boot(void) {
 		if (cache_firstboot != -1) {
 			goto exit;
 		}
-		if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
-			LOG(MOD "Unable to read file '%s'\n", KERNEL_BOOT_ID_FILE);
-			goto exit;
-		}
 		if (!g_file_get_contents(FIRST_BOOT_ID_FILE, &first_boot_id, NULL, NULL)) {
 			LOG(MOD "Unable to read file '%s'\n", FIRST_BOOT_ID_FILE);
 			goto exit;
 		}
-		if (g_strcmp0(first_boot_id, boot_id) == 0) {
+		boot_id = get_boot_id();
+		if (boot_id && g_strcmp0(first_boot_id, boot_id) == 0) {
 			cache_firstboot = 1;
 		} else {
 			cache_firstboot = 0;
@@ -612,4 +607,13 @@ bool gnode_free(GNode* node, __unused__ gpointer data) {
 		g_free(node->data);
 	}
 	return false;
+}
+
+char* get_boot_id(void) {
+	char *boot_id;
+	if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
+		LOG(MOD "Unable to get boot id from '%s'\n", KERNEL_BOOT_ID_FILE);
+		return NULL;
+	}
+	return boot_id;
 }

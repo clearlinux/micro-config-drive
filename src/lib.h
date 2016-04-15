@@ -64,3 +64,4 @@ bool copy_file(const gchar* src, const gchar* dest) __warn_unused_result__;
 bool mount_filesystem(const gchar* device, const gchar* mountdir, gchar** loop_device) __warn_unused_result__;
 bool umount_filesystem(const gchar* mountdir, const gchar* loop_device) __warn_unused_result__;
 bool gnode_free(GNode* node, gpointer data);
+char* get_boot_id(void) __warn_unused_result__;
