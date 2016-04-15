@@ -319,6 +319,9 @@ int main(int argc, char *argv[]) {
 					, DEFAULT_USER_PASSWORD
 					, DEFAULT_USER_USERNAME);
 			exec_task(command);
+		} else {
+			g_snprintf(command, LINE_MAX, USERMOD_PATH " -p '%s' %s", DEFAULT_USER_PASSWORD, DEFAULT_USER_USERNAME);
+			exec_task(command);
 		}
 	}
 
