@@ -58,6 +58,7 @@
 #define OPENSTACK_METADATA_API "latest"
 #define OPENSTACK_METADATA_FILE "/openstack/"OPENSTACK_METADATA_API"/meta_data.json"
 #define OPENSTACK_USERDATA_FILE "/openstack/"OPENSTACK_METADATA_API"/user_data"
+#define OPENSTACK_METADATA_ID_FILE DATADIR_PATH "/openstack_metadata_id"
 
 #define METADATA_SERVICE_ATTEMPTS 10
 #define METADATA_SERVICE_USLEEP 300000
@@ -201,7 +202,7 @@ bool openstack_start(void) {
 			g_free(data_file);
 			data_file = NULL;
 		}
-	break;
+		break;
 
 	case SOURCE_CONFIG_DRIVE:
 		/* create mount directory */
@@ -218,7 +219,11 @@ bool openstack_start(void) {
 		}
 
 		g_snprintf(metadata_file, PATH_MAX, "%s%s", config_drive_mount_path, OPENSTACK_METADATA_FILE);
-	break;
+		break;
+
+	default:
+		LOG(MOD "Datasource not found\n");
+		return false;
 	}
 
 	/* instance-id must be the first metadata key to process */
@@ -233,6 +238,34 @@ bool openstack_start(void) {
 }
 
 bool openstack_process_metadata(void) {
+	static bool cache_metadata_id = false;
+	struct stat st;
+	char* metadata_id = NULL;
+	char* boot_id = NULL;
+
+	if (cache_metadata_id) {
+		LOG(MOD "metadata was already processed\n");
+		return true;
+	}
+
+	if (stat(OPENSTACK_METADATA_ID_FILE, &st) == 0) {
+		if (!g_file_get_contents(OPENSTACK_METADATA_ID_FILE, &metadata_id, NULL, NULL)) {
+			LOG(MOD "Unable to read file '%s'\n", OPENSTACK_METADATA_ID_FILE);
+		}
+		if(metadata_id) {
+			boot_id = get_boot_id();
+			if (g_strcmp0(boot_id, metadata_id) == 0) {
+				cache_metadata_id = true;
+				g_free(boot_id);
+				g_free(metadata_id);
+				LOG(MOD "metadata was already processed\n");
+				return true;
+			}
+			g_free(boot_id);
+			g_free(metadata_id);
+		}
+	}
+
 	switch(data_source) {
 	case SOURCE_METADATA_SERVICE:
 		if (!openstack_process_metadata_file(metadata_file)) {
@@ -247,7 +280,18 @@ bool openstack_process_metadata(void) {
 			return false;
 		}
 		break;
+
+	default:
+		LOG(MOD "Datasource not found\n");
+		return false;
 	}
+
+	cache_metadata_id = true;
+	boot_id = get_boot_id();
+	if (!write_file(boot_id, strlen(boot_id), OPENSTACK_METADATA_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
+		LOG("Unable to save metadata id in '%s'\n", OPENSTACK_METADATA_ID_FILE);
+	}
+	g_free(boot_id);
 
 	return true;
 }
@@ -258,13 +302,17 @@ bool openstack_process_userdata(void) {
 		if (userdata_file[0] && !userdata_process_file(userdata_file)) {
 			LOG(MOD "Process userdata failed\n");
 		}
-	break;
+		break;
 
 	case SOURCE_CONFIG_DRIVE:
 		if (!openstack_process_config_drive_userdata()) {
 			LOG(MOD "Process config drive userdata failed\n");
 		}
-	break;
+		break;
+
+	default:
+		LOG(MOD "Datasource not found\n");
+		return false;
 	}
 
 	return true;
@@ -280,7 +328,7 @@ void openstack_finish(void) {
 			remove(metadata_file);
 			metadata_file[0] = 0;
 		}
-	break;
+		break;
 
 	case SOURCE_CONFIG_DRIVE:
 		if (!umount_filesystem(config_drive_mount_path, config_drive_loop_device)) {
@@ -290,7 +338,7 @@ void openstack_finish(void) {
 			g_free(config_drive_loop_device);
 			config_drive_loop_device = NULL;
 		}
-	break;
+		break;
 	}
 
 	if(userdata_file[0]) {
