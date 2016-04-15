@@ -464,7 +464,15 @@ static bool openstack_process_config_drive_metadata(void) {
 
 static bool openstack_process_config_drive_userdata(void) {
 	int fd_tmp = 0;
+	struct stat st;
 	gchar userdata_drive_path[PATH_MAX] = { 0 };
+
+	g_snprintf(userdata_drive_path, PATH_MAX, "%s%s", config_drive_mount_path, OPENSTACK_USERDATA_FILE);
+
+	if (stat(userdata_drive_path, &st) != 0) {
+		LOG(MOD "User data file not found in config drive\n");
+		return false;
+	}
 
 	g_strlcpy(userdata_file, "/tmp/userdata-XXXXXX", PATH_MAX);
 
@@ -477,8 +485,6 @@ static bool openstack_process_config_drive_userdata(void) {
 		LOG(MOD "Close file '%s' failed\n", userdata_file);
 		return false;
 	}
-
-	g_snprintf(userdata_drive_path, PATH_MAX, "%s%s", config_drive_mount_path, OPENSTACK_USERDATA_FILE);
 
 	if (!copy_file(userdata_drive_path, userdata_file)) {
 		LOG(MOD "Copy file '%s' failed\n", userdata_drive_path);
