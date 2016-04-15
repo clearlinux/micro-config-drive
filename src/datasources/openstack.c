@@ -255,7 +255,7 @@ bool openstack_process_metadata(void) {
 bool openstack_process_userdata(void) {
 	switch(data_source) {
 	case SOURCE_METADATA_SERVICE:
-		if (!userdata_process_file(userdata_file)) {
+		if (userdata_file[0] && !userdata_process_file(userdata_file)) {
 			LOG(MOD "Process userdata failed\n");
 		}
 	break;
