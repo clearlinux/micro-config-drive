@@ -33,6 +33,7 @@
 ***/
 
 #include <stdbool.h>
+#include <fcntl.h>
 
 #include <glib.h>
 
@@ -212,7 +213,7 @@ static void users_item(GNode* node, gpointer data) {
 			g_node_traverse(item->parent, G_IN_ORDER, G_TRAVERSE_LEAVES,
 				-1, users_sudo_item, sudo_directives);
 			g_string_append(sudo_directives, "\n");
-			if (!write_sudo_directives(sudo_directives, "users-cloud-init")) {
+			if (!write_sudo_directives(sudo_directives, "users-cloud-init", O_CREAT|O_APPEND|O_WRONLY)) {
 				LOG(MOD "Cannot write sudo directives\n");
 			}
 			g_string_free(sudo_directives, true);

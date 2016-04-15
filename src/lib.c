@@ -230,7 +230,7 @@ fail1:
 	return result;
 }
 
-bool write_sudo_directives(const GString* data, const gchar* filename) {
+bool write_sudo_directives(const GString* data, const gchar* filename, int oflags) {
 	gchar sudoers_file[PATH_MAX] = { 0 };
 	g_strlcpy(sudoers_file, SUDOERS_PATH, PATH_MAX);
 	if (make_dir(sudoers_file, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0) {
@@ -239,7 +239,7 @@ bool write_sudo_directives(const GString* data, const gchar* filename) {
 
 	g_strlcat(sudoers_file, filename, PATH_MAX);
 
-	return write_file(data->str, data->len, sudoers_file, O_CREAT|O_APPEND|O_WRONLY, S_IRUSR|S_IRGRP);
+	return write_file(data->str, data->len, sudoers_file, oflags, S_IRUSR|S_IRGRP);
 }
 
 bool write_ssh_keys(const GString* data, const gchar* username) {

@@ -117,7 +117,7 @@ static bool async_setup_first_boot(__unused__ gpointer null) {
 	/* default user will be able to use sudo */
 	sudo_directives = g_string_new("");
 	g_string_printf(sudo_directives, "# User rules for %s\n%s\n\n", DEFAULT_USER_USERNAME, DEFAULT_USER_SUDO);
-	if (!write_sudo_directives(sudo_directives, DEFAULT_USER_USERNAME"-cloud-init")) {
+	if (!write_sudo_directives(sudo_directives, DEFAULT_USER_USERNAME"-cloud-init", O_CREAT|O_TRUNC|O_WRONLY)) {
 		LOG("Failed to enable sudo rule for user: %s\n", DEFAULT_USER_USERNAME);
 	}
 	g_string_free(sudo_directives, true);
