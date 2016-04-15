@@ -85,7 +85,7 @@ START_TEST(test_lib_write_file)
 	fd = mkstemp(filename);
 	ck_assert(fd != -1);
 
-	write_file_result = write_file(text, filename,
+	write_file_result = write_file(text->str, text->len, filename,
 		O_CREAT|O_WRONLY, S_IRWXU|S_IRWXG|S_IRWXO);
 	ck_assert(write_file_result == true);
 
