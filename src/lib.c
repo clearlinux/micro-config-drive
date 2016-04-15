@@ -62,6 +62,7 @@
 #include "disk.h"
 
 #define MOD "lib: "
+#define BOOT_ID_SIZE 32
 #define LOOP_MAJOR_ID 7
 #define SUDOERS_PATH SYSCONFDIR "/sudoers.d/"
 #define INSTANCE_ID_FILE DATADIR_PATH "/instance-id"
@@ -561,14 +562,13 @@ exit:
 
 bool is_first_boot(void) {
 	struct stat st;
-	bool firstboot = false;
-	gchar* boot_id;
-	gchar* first_boot_id;
+	gchar* boot_id = NULL;
+	gchar* first_boot_id = NULL;
+	static int cache_firstboot = -1;
 
 	G_LOCK(first_boot_id_file);
-
 	if (stat(FIRST_BOOT_ID_FILE, &st) != 0) {
-		firstboot = true;
+		cache_firstboot = 1;
 		if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
 			LOG(MOD "Unable to read file '%s'\n", KERNEL_BOOT_ID_FILE);
 		}
@@ -576,28 +576,35 @@ bool is_first_boot(void) {
 			LOG(MOD "Unable to save boot id\n");
 			goto exit;
 		}
-		g_free(boot_id);
 	} else {
+		if (cache_firstboot != -1) {
+			goto exit;
+		}
 		if (!g_file_get_contents(KERNEL_BOOT_ID_FILE, &boot_id, NULL, NULL)) {
 			LOG(MOD "Unable to read file '%s'\n", KERNEL_BOOT_ID_FILE);
 			goto exit;
 		}
 		if (!g_file_get_contents(FIRST_BOOT_ID_FILE, &first_boot_id, NULL, NULL)) {
 			LOG(MOD "Unable to read file '%s'\n", FIRST_BOOT_ID_FILE);
-			g_free(boot_id);
 			goto exit;
 		}
 		if (g_strcmp0(first_boot_id, boot_id) == 0) {
-			firstboot = true;
+			cache_firstboot = 1;
+		} else {
+			cache_firstboot = 0;
 		}
-		g_free(first_boot_id);
-		g_free(boot_id);
 	}
 
 exit:
-	LOG(MOD "First boot: %s\n", (firstboot ? "True" : "False" ));
 	G_UNLOCK(first_boot_id_file);
-	return firstboot;
+	if (boot_id) {
+		g_free(boot_id);
+	}
+	if (first_boot_id) {
+		g_free(first_boot_id);
+	}
+	LOG(MOD "First boot: %s\n", (cache_firstboot != 1 ? "False" : "True" ));
+	return (cache_firstboot != 1 ? false : true);
 }
 
 bool gnode_free(GNode* node, __unused__ gpointer data) {
