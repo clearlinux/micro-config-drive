@@ -59,6 +59,7 @@
 #define OPENSTACK_METADATA_FILE "/openstack/"OPENSTACK_METADATA_API"/meta_data.json"
 #define OPENSTACK_USERDATA_FILE "/openstack/"OPENSTACK_METADATA_API"/user_data"
 #define OPENSTACK_METADATA_ID_FILE DATADIR_PATH "/openstack_metadata_id"
+#define OPENSTACK_USER_DATA_ID_FILE DATADIR_PATH "/openstack_user_data_id"
 
 #define METADATA_SERVICE_ATTEMPTS 10
 #define METADATA_SERVICE_USLEEP 300000
@@ -297,6 +298,34 @@ bool openstack_process_metadata(void) {
 }
 
 bool openstack_process_userdata(void) {
+	static bool cache_user_data_id = false;
+	struct stat st;
+	char* user_data_id = NULL;
+	char* boot_id = NULL;
+
+	if (cache_user_data_id) {
+		LOG(MOD "user data was already processed\n");
+		return true;
+	}
+
+	if (stat(OPENSTACK_USER_DATA_ID_FILE, &st) == 0) {
+		if (!g_file_get_contents(OPENSTACK_USER_DATA_ID_FILE, &user_data_id, NULL, NULL)) {
+			LOG(MOD "Unable to read file '%s'\n", OPENSTACK_USER_DATA_ID_FILE);
+		}
+		if(user_data_id) {
+			boot_id = get_boot_id();
+			if (g_strcmp0(boot_id, user_data_id) == 0) {
+				cache_user_data_id = true;
+				g_free(boot_id);
+				g_free(user_data_id);
+				LOG(MOD "user data was already processed\n");
+				return true;
+			}
+			g_free(boot_id);
+			g_free(user_data_id);
+		}
+	}
+
 	switch(data_source) {
 	case SOURCE_METADATA_SERVICE:
 		if (userdata_file[0] && !userdata_process_file(userdata_file)) {
@@ -306,7 +335,7 @@ bool openstack_process_userdata(void) {
 
 	case SOURCE_CONFIG_DRIVE:
 		if (!openstack_process_config_drive_userdata()) {
-			LOG(MOD "Process config drive userdata failed\n");
+			LOG(MOD "Process config drive user data failed\n");
 		}
 		break;
 
@@ -314,6 +343,13 @@ bool openstack_process_userdata(void) {
 		LOG(MOD "Datasource not found\n");
 		return false;
 	}
+
+	cache_user_data_id = true;
+	boot_id = get_boot_id();
+	if (!write_file(boot_id, strlen(boot_id), OPENSTACK_USER_DATA_ID_FILE, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) {
+		LOG("Unable to save user data id in '%s'\n", OPENSTACK_USER_DATA_ID_FILE);
+	}
+	g_free(boot_id);
 
 	return true;
 }
