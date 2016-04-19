@@ -108,9 +108,11 @@ static char userdata_file[PATH_MAX] = { 0 };
 
 static GNode* metadata_node = NULL;
 
+typedef int (*openstack_metadata_data_func)(GNode*);
+
 struct openstack_metadata_data {
 	const gchar* key;
-	int (*func)(GNode* node);
+	openstack_metadata_data_func func;
 };
 
 static struct openstack_metadata_data openstack_metadata_options[] = {
@@ -127,6 +129,8 @@ static struct openstack_metadata_data openstack_metadata_options[] = {
 	{ "meta",               openstack_metadata_not_implemented },
 	{ NULL }
 };
+
+static GHashTable* openstack_metadata_options_htable = NULL;
 
 struct datasource_handler_struct openstack_datasource = {
 	.datasource="openstack",
@@ -178,6 +182,7 @@ bool openstack_init(bool no_network) {
 
 bool openstack_start(void) {
 	gchar* data_file = NULL;
+	size_t i = 0;
 
 	switch(data_source) {
 	case SOURCE_METADATA_SERVICE:
@@ -231,6 +236,12 @@ bool openstack_start(void) {
 	if (!openstack_load_metadata_file(metadata_file)) {
 		LOG(MOD "Load metadata file '%s' failed\n", metadata_file);
 		return false;
+	}
+
+	openstack_metadata_options_htable = g_hash_table_new(g_str_hash, g_str_equal);
+	for (i = 0; openstack_metadata_options[i].key != NULL; ++i) {
+		g_hash_table_insert(openstack_metadata_options_htable, (gpointer)openstack_metadata_options[i].key,
+		                    *((openstack_metadata_data_func**)(&openstack_metadata_options[i].func)));
 	}
 
 	g_node_children_foreach(metadata_node, G_TRAVERSE_ALL, (GNodeForeachFunc)openstack_process_uuid, NULL);
@@ -387,6 +398,11 @@ void openstack_finish(void) {
 		g_node_destroy(metadata_node);
 		metadata_node = NULL;
 	}
+
+	if (openstack_metadata_options_htable) {
+		g_hash_table_destroy(openstack_metadata_options_htable);
+		openstack_metadata_options_htable = NULL;
+	}
 }
 
 gboolean openstack_process_config_drive(const gchar* path) {
@@ -500,15 +516,13 @@ static bool openstack_process_config_drive_userdata(void) {
 }
 
 static void openstack_run_handler(GNode *node, __unused__ gpointer null) {
-	size_t i;
-
 	if (node->data) {
-		for (i = 0; openstack_metadata_options[i].key != NULL; ++i) {
-			if (g_strcmp0(node->data, openstack_metadata_options[i].key) == 0) {
-				LOG(MOD "Metadata using '%s' handler\n", (char*)node->data);
-				async_task_run((GThreadFunc)openstack_metadata_options[i].func, node->children);
-				return;
-			}
+		gpointer ptr = g_hash_table_lookup(openstack_metadata_options_htable, node->data);
+		if(ptr) {
+			LOG(MOD "Metadata using '%s' handler\n", (char*)node->data);
+			openstack_metadata_data_func func = *(openstack_metadata_data_func*)(&ptr);
+			async_task_run((GThreadFunc)func, node->children);
+			return;
 		}
 		LOG(MOD "Metadata no handler for '%s'\n", (char*)node->data);
 	}
