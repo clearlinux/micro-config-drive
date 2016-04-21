@@ -92,7 +92,7 @@ gchar* curl_fetch_file(CURL* curl, gchar* url, int attempts, useconds_t u_sleep)
 	int fd;
 	FILE* file;
 	gchar *filename;
-	filename = g_strdup("/tmp/cloud-init-XXXXXX");
+	filename = g_strdup(DATADIR_PATH "/cloud-init-XXXXXX");
 
 	fd = mkstemp(filename);
 	if (fd < 0) {

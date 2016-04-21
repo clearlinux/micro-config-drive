@@ -96,7 +96,7 @@ static char config_drive_disk[PATH_MAX] = { 0 };
 
 static char *config_drive_loop_device = NULL;
 
-static char config_drive_mount_path[] = "/tmp/config-2-XXXXXX";
+static char config_drive_mount_path[] = DATADIR_PATH "/config-2-XXXXXX";
 
 static int ms_attempts = METADATA_SERVICE_ATTEMPTS;
 
@@ -490,7 +490,7 @@ static bool openstack_process_config_drive_userdata(void) {
 		return false;
 	}
 
-	g_strlcpy(userdata_file, "/tmp/userdata-XXXXXX", PATH_MAX);
+	g_strlcpy(userdata_file, DATADIR_PATH "/userdata-XXXXXX", PATH_MAX);
 
 	fd_tmp = mkstemp(userdata_file);
 	if (-1 == fd_tmp) {
