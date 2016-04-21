@@ -9,7 +9,6 @@ Type=oneshot
 ExecStart=@prefix@/bin/cloud-init --first-boot-setup --no-network --metadata
 RemainAfterExit=yes
 TimeoutSec=0
-PrivateTmp=yes
 
 # Output needs to appear in instance console output
 StandardOutput=journal+console
