@@ -188,7 +188,7 @@ bool openstack_start(void) {
 	case SOURCE_METADATA_SERVICE:
 		/* download metadata file from metadata service */
 		LOG(MOD "Fetching metadata file URL %s\n", METADATA_SERVICE_URL OPENSTACK_METADATA_FILE );
-		data_file = curl_fetch_file(curl, METADATA_SERVICE_URL OPENSTACK_METADATA_FILE, ms_attempts, ms_usleep);
+		data_file = curl_fetch_file(curl, METADATA_SERVICE_URL OPENSTACK_METADATA_FILE, DATADIR_PATH, ms_attempts, ms_usleep);
 		if (!data_file) {
 			LOG(MOD "Fetch metadata failed\n");
 			return false;
@@ -199,7 +199,7 @@ bool openstack_start(void) {
 
 		/* download userdata file from metadata service */
 		LOG(MOD "Fetching userdata file URL %s\n", METADATA_SERVICE_URL OPENSTACK_USERDATA_FILE );
-		data_file = curl_fetch_file(curl, METADATA_SERVICE_URL OPENSTACK_USERDATA_FILE, ms_attempts, ms_usleep);
+		data_file = curl_fetch_file(curl, METADATA_SERVICE_URL OPENSTACK_USERDATA_FILE, DATADIR_PATH, ms_attempts, ms_usleep);
 		if (!data_file) {
 			/* userdata is optional, so it is ok */
 			LOG(MOD "Userdata file not found\n");
@@ -600,7 +600,7 @@ static int openstack_metadata_files(GNode* node) {
 
 			case SOURCE_METADATA_SERVICE:
 				g_snprintf(src_content_file, PATH_MAX, "%s/%s", METADATA_SERVICE_URL, content_path );
-				tmp_content_file = curl_fetch_file(curl, src_content_file, 1, 0);
+				tmp_content_file = curl_fetch_file(curl, src_content_file, DATADIR_PATH, 1, 0);
 				if (!tmp_content_file) {
 					LOG(MOD "Fetch file '%s' failed\n", src_content_file);
 					break;

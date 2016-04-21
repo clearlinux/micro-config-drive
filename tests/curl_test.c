@@ -60,7 +60,7 @@ START_TEST(test_curl_fetch_file)
 	ck_assert(fd != -1);
 
 	g_string_append(url, filename);
-	file_fetched = curl_fetch_file(curl, url->str, 1, 0);
+	file_fetched = curl_fetch_file(curl, url->str, "/tmp", 1, 0);
 	g_string_free(url, true);
 	ck_assert(file_fetched != NULL);
 	ck_assert(remove(filename) != -1);

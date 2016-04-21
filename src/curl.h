@@ -49,7 +49,7 @@ bool curl_common_init(CURL** curl);
  * On success, the function returns a path to the file downloaded,
  * otherwise NULL is returned.
  */
-gchar* curl_fetch_file(CURL* curl, gchar* url, int attempts, useconds_t u_sleep);
+gchar* curl_fetch_file(CURL* curl, gchar* url, const gchar* outdir, int attempts, useconds_t u_sleep);
 
 
 bool curl_ping(CURL* curl, gchar* url, int attempts, useconds_t u_sleep);

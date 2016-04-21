@@ -88,11 +88,13 @@ fail1:
 	return false;
 }
 
-gchar* curl_fetch_file(CURL* curl, gchar* url, int attempts, useconds_t u_sleep) {
+gchar* curl_fetch_file(CURL* curl, gchar* url, const gchar* outdir, int attempts, useconds_t u_sleep) {
 	int fd;
 	FILE* file;
-	gchar *filename;
-	filename = g_strdup(DATADIR_PATH "/cloud-init-XXXXXX");
+	gchar* filename;
+
+	filename = malloc(sizeof(gchar)*PATH_MAX);
+	g_snprintf(filename, PATH_MAX, "%s/cloud-init-XXXXXX", outdir);
 
 	fd = mkstemp(filename);
 	if (fd < 0) {
