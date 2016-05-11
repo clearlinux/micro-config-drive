@@ -57,7 +57,15 @@ void package_upgrade_handler(GNode *node) {
 	}
 	if (do_upgrade) {
 		LOG(MOD "Performing system software update.\n");
+#if defined(PACKAGE_MANAGER_SWUPD)
 		exec_task("/usr/bin/swupd update");
+#elif defined(PACKAGE_MANAGER_YUM)
+		exec_task("/usr/bin/yum update");
+#elif defined(PACKAGE_MANAGER_DNF)
+		exec_task("/usr/bin/dnf update --refresh");
+#elif defined(PACKAGE_MANAGER_APT)
+		exec_task("/usr/bin/apt-get upgrade");
+#endif
 	} else {
 		LOG(MOD "Skipping system software update.\n");
 	}

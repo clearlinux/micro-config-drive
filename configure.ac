@@ -136,6 +136,26 @@ AC_ARG_WITH([datadir],[AC_HELP_STRING([--with-datadir=DIR],
 AC_SUBST([DATADIR], ["${datadir}"], [Default data directory])
 AC_DEFINE_UNQUOTED([DATADIR_PATH], ["$DATADIR"], [Default data directory])
 
+AC_ARG_WITH([packagemgr],[AS_HELP_STRING([--with-packagemgr=PKGMGR],[Default package manager (swupd|yum|dnf|apt)])], [packagemgr=${withval}],[packagemgr=swupd])
+AC_SUBST([PKGMGR], ["${packagemgr}"], [Default package manager])
+if test "x$PKGMGR" = "xswupd" ; then
+	AC_DEFINE([PACKAGE_MANAGER_SWUPD], [1], [Define if swupd package manager selected])
+else
+	if test "x$PKGMGR" = "xyum" ; then
+		AC_DEFINE([PACKAGE_MANAGER_YUM], [1], [Define if yum package manager selected])
+	else
+		if test "x$PKGMGR" = "xdnf" ; then
+			AC_DEFINE([PACKAGE_MANAGER_DNF], [1], [Define if dnf package manager selected])
+		else
+			if test "x$PKGMGR" = "xapt" ; then
+				AC_DEFINE([PACKAGE_MANAGER_APT], [1], [Define if apt package manager selected])
+			else
+				AC_MSG_ERROR([Please provide a valid package manager (swupd, yum, dnf, or apt).])
+			fi
+		fi
+	fi
+fi
+
 # Checks for library functions.
 
 AC_OUTPUT
