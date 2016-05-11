@@ -245,7 +245,8 @@ no-log-init
 expiredate string    no           A date at which to expire the password
 ssh-authorized-keys
            string[]  no           Add SSH public keys to ssh configuration
-sudo       string[]  no           Add sudoers lines for this account
+sudo       string[]  no           Add sudoers lines for this account, the account
+                                  name is automatically prepended
 system     boolean   no           Make the account a system account
 .TE
 .RE
