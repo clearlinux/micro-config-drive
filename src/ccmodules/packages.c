@@ -46,7 +46,16 @@
 
 static gboolean packages_item(GNode* node, __unused__ gpointer data) {
 	gchar command[COMMAND_SIZE];
-	g_snprintf(command, COMMAND_SIZE, "/usr/bin/swupd bundle-add %s",
+	g_snprintf(command, COMMAND_SIZE,
+#if defined(PACKAGE_MANAGER_SWUPD)
+		"/usr/bin/swupd bundle-add %s",
+#elif defined(PACKAGE_MANAGER_YUM)
+		"/usr/bin/yum install %s",
+#elif defined(PACKAGE_MANAGER_DNF)
+		"/usr/bin/dnf install %s",
+#elif defined(PACKAGE_MANAGER_APT)
+		"/usr/bin/apt-get install %s",
+#endif
 		(char*)node->data);
 	LOG(MOD "Installing %s..\n", (char*)node->data);
 	exec_task(command);
