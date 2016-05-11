@@ -18,6 +18,6 @@ users:
       - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDmHRP+1o+vBSg+ej714Y3iO5Osbr29dHL/WZQlsj
       - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC9GNA2I6IU+II1qoKP1Ttn/eNv8zquEDNii+EA5m
     sudo:
-      - [ "ALL ALL=(ALL) NOPASSWD:ALL", "ALL ALL=(ALL) NOPASSWD:/bin/mysql" ]
-      - ALL ALL=(ALL) NOPASSWD:ALL
+      - [ "ALL=(ALL) NOPASSWD:ALL", "ALL=(ALL) NOPASSWD:/bin/mysql" ]
+      - ALL=(ALL) NOPASSWD:ALL
     system: true
