@@ -65,6 +65,8 @@ void package_upgrade_handler(GNode *node) {
 		exec_task("/usr/bin/dnf update --refresh");
 #elif defined(PACKAGE_MANAGER_APT)
 		exec_task("/usr/bin/apt-get upgrade");
+#elif defined(PACKAGE_MANAGER_TDNF)
+		exec_task("/usr/bin/tdnf update --refresh --assumeyes");
 #endif
 	} else {
 		LOG(MOD "Skipping system software update.\n");
