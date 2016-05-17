@@ -50,9 +50,9 @@ static gboolean packages_item(GNode* node, __unused__ gpointer data) {
 #if defined(PACKAGE_MANAGER_SWUPD)
 		"/usr/bin/swupd bundle-add %s",
 #elif defined(PACKAGE_MANAGER_YUM)
-		"/usr/bin/yum install %s",
+		"/usr/bin/yum --assumeyes install %s",
 #elif defined(PACKAGE_MANAGER_DNF)
-		"/usr/bin/dnf install %s",
+		"/usr/bin/tdnf --assumeyes install %s",
 #elif defined(PACKAGE_MANAGER_APT)
 		"/usr/bin/apt-get install %s",
 #endif
