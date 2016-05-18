@@ -62,7 +62,7 @@ void package_upgrade_handler(GNode *node) {
 #elif defined(PACKAGE_MANAGER_YUM)
 		exec_task("/usr/bin/yum update");
 #elif defined(PACKAGE_MANAGER_DNF)
-		exec_task("/usr/bin/dnf update --refresh");
+		exec_task("/usr/bin/tdnf update --refresh");
 #elif defined(PACKAGE_MANAGER_APT)
 		exec_task("/usr/bin/apt-get upgrade");
 #endif
