@@ -55,6 +55,8 @@ static gboolean packages_item(GNode* node, __unused__ gpointer data) {
 		"/usr/bin/dnf install %s",
 #elif defined(PACKAGE_MANAGER_APT)
 		"/usr/bin/apt-get install %s",
+#elif defined(PACKAGE_MANAGER_TDNF)
+		"/usr/bin/tdnf --assumeyes install %s",
 #endif
 		(char*)node->data);
 	LOG(MOD "Installing %s..\n", (char*)node->data);
