@@ -43,17 +43,17 @@ libtest_la_CFLAGS = $(COMMON_CFLAGS)
 
 lib_test_SOURCES = lib_test.c
 lib_test_CFLAGS = $(COMMON_CFLAGS) $(AM_CFLAGS)
-lib_test_LDADD = $(COMMON_LDADD) libtest.la
+lib_test_LDADD = libtest.la $(COMMON_LDADD)
 TESTS += lib_test
 
 curl_test_SOURCES = curl_test.c
 curl_test_CFLAGS = $(COMMON_CFLAGS)
-curl_test_LDADD = $(COMMON_LDADD) libtest.la
+curl_test_LDADD = libtest.la $(COMMON_LDADD)
 TESTS += curl_test
 
 userdata_test_SOURCES = userdata_test.c
 userdata_test_CFLAGS = $(COMMON_CFLAGS)
-userdata_test_LDADD = $(COMMON_LDADD) libtest.la
+userdata_test_LDADD = libtest.la $(COMMON_LDADD)
 TESTS += userdata_test
 
 
