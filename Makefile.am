@@ -59,6 +59,9 @@ cloud_init_SOURCES = \
 	src/async_task.c \
 	src/async_task.h
 
+if ENABLE_WERROR
+AM_CFLAGS += -Werror
+endif
 if DEBUG
 AM_CFLAGS += -ggdb3 -O0
 cloud_init_SOURCES += src/debug.c

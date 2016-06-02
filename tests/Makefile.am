@@ -42,7 +42,7 @@ endif
 libtest_la_CFLAGS = $(COMMON_CFLAGS)
 
 lib_test_SOURCES = lib_test.c
-lib_test_CFLAGS = $(COMMON_CFLAGS)
+lib_test_CFLAGS = $(COMMON_CFLAGS) $(AM_CFLAGS)
 lib_test_LDADD = $(COMMON_LDADD) libtest.la
 TESTS += lib_test
 
