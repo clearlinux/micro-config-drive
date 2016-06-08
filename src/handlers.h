@@ -47,7 +47,7 @@ struct interpreter_handler_struct {
 
 struct datasource_handler_struct {
 	char* datasource;                 // datasource name
-	bool (*init)(bool no_network);    // test if datasource is available (metadata service, config drive, etc)
+	bool (*init)(void);               // test if datasource is available (config drive, etc)
 	bool (*start)(void);              // create/init resources, process/save instance id, etc
 	bool (*process_metadata)(void);   // process metadata
 	bool (*process_userdata)(void);   // process userdata

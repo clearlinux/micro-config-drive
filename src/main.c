@@ -135,7 +135,6 @@ int main(int argc, char *argv[]) {
 	bool fix_disk = false;
 	bool first_boot_setup = false;
 	bool first_boot = false;
-	bool no_network = false;
 	char* userdata_filename = NULL;
 	char* tmp_metadata_filename = NULL;
 	char* tmp_data_filesystem = NULL;
@@ -219,9 +218,6 @@ int main(int argc, char *argv[]) {
 			first_boot_setup = true;
 			break;
 
-		case OPT_NO_NETWORK:
-			no_network = true;
-			break;
 		}
 	}
 
@@ -285,7 +281,7 @@ int main(int argc, char *argv[]) {
 	if (process_user_data || process_metadata || process_user_data_once) {
 		/* get/process userdata and metadata from datasources */
 		for (i = 0; datasource_structs[i] != NULL; ++i) {
-			if (datasource_structs[i]->init(no_network)) {
+			if (datasource_structs[i]->init()) {
 				datasource_handler = datasource_structs[i];
 				if (!datasource_handler->start()) {
 					result_code = EXIT_FAILURE;
