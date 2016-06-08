@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.68])
 AC_INIT([clr-cloud-init],[22],[dev@clearlinux.org])
-AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
+AM_INIT_AUTOMAKE([foreign -Wall -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_FILES([Makefile
 		tests/Makefile
@@ -30,6 +30,11 @@ AS_IF([test "x$enable_debug" = "xyes"],
 	[AC_DEFINE([DEBUG], [1], [Debugging mode enabled])],
 	[AC_DEFINE([NDEBUG], [1], [Debugging and assertions disabled])])
 AM_CONDITIONAL([DEBUG], [test x$enable_debug = x"yes"])
+
+# Enable -Werror for harder flags.
+AC_ARG_ENABLE(werror, AS_HELP_STRING([--enable-werror], [enable Werror @<:@default=no@:>@]),
+	      [], [enable_werror=no])
+AM_CONDITIONAL([ENABLE_WERROR], [test x$enable_werror = x"yes"])
 
 AC_ARG_ENABLE(tests, AS_HELP_STRING([--disable-tests], [do not build unit tests @<:@default=no@:>@]),
 	      [], [disable_tests=no])
