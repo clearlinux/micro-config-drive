@@ -34,6 +34,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mount.h>
@@ -45,7 +46,6 @@
 
 #include "openstack.h"
 #include "handlers.h"
-#include "curl.h"
 #include "lib.h"
 #include "userdata.h"
 #include "json.h"
@@ -54,15 +54,11 @@
 #include "async_task.h"
 
 #define MOD "openstack: "
-#define METADATA_SERVICE_URL "http://169.254.169.254"
 #define OPENSTACK_METADATA_API "latest"
 #define OPENSTACK_METADATA_FILE "/openstack/"OPENSTACK_METADATA_API"/meta_data.json"
 #define OPENSTACK_USERDATA_FILE "/openstack/"OPENSTACK_METADATA_API"/user_data"
 #define OPENSTACK_METADATA_ID_FILE DATADIR_PATH "/openstack_metadata_id"
 #define OPENSTACK_USER_DATA_ID_FILE DATADIR_PATH "/openstack_user_data_id"
-
-#define METADATA_SERVICE_ATTEMPTS 10
-#define METADATA_SERVICE_USLEEP 300000
 
 static bool openstack_process_config_drive_metadata(void);
 static bool openstack_process_config_drive_userdata(void);
@@ -76,7 +72,7 @@ static int openstack_metadata_hostname(GNode* node);
 static int openstack_metadata_files(GNode* node);
 static int openstack_metadata_uuid(GNode* node);
 
-bool openstack_init(bool no_network);
+bool openstack_init(void);
 bool openstack_start(void);
 bool openstack_process_metadata(void);
 bool openstack_process_userdata(void);
@@ -84,23 +80,16 @@ void openstack_finish(void);
 
 enum {
 	SOURCE_CONFIG_DRIVE = 101,
-	SOURCE_METADATA_SERVICE,
 	SOURCE_NONE
 };
 
 static int data_source = SOURCE_NONE;
-
-static CURL* curl = NULL;
 
 static char config_drive_disk[PATH_MAX] = { 0 };
 
 static char *config_drive_loop_device = NULL;
 
 static char config_drive_mount_path[] = DATADIR_PATH "/config-2-XXXXXX";
-
-static int ms_attempts = METADATA_SERVICE_ATTEMPTS;
-
-static useconds_t ms_usleep = METADATA_SERVICE_USLEEP;
 
 static char metadata_file[PATH_MAX] = { 0 };
 
@@ -141,7 +130,7 @@ struct datasource_handler_struct openstack_datasource = {
 	.finish=openstack_finish
 };
 
-bool openstack_init(bool no_network) {
+bool openstack_init() {
 	gchar* device = NULL;
 
 	data_source = SOURCE_NONE;
@@ -153,63 +142,14 @@ bool openstack_init(bool no_network) {
 		return true;
 	}
 
-	if (no_network) {
-		LOG(MOD "config drive was not found and --no-network option was used\n");
-		return false;
-	}
-
-	if (!curl_common_init(&curl)) {
-		LOG(MOD "Curl initialize failed\n");
-		return false;
-	}
-
-	if (!curl_ping(curl, METADATA_SERVICE_URL OPENSTACK_METADATA_FILE, ms_attempts, ms_usleep)) {
-		LOG(MOD "Metadata service is down\n");
-		curl_easy_cleanup(curl);
-		curl = NULL;
-		return false;
-	}
-
-	/*
-	* if metadata service is up, then we do not need to wait
-	* for nova metadata service in next connections
-	*/
-	ms_attempts = 1;
-	ms_usleep = 0;
-	data_source = SOURCE_METADATA_SERVICE;
-	return true;
+	LOG(MOD "config drive was not found\n");
+	return false;
 }
 
 bool openstack_start(void) {
-	gchar* data_file = NULL;
 	size_t i = 0;
 
 	switch(data_source) {
-	case SOURCE_METADATA_SERVICE:
-		/* download metadata file from metadata service */
-		LOG(MOD "Fetching metadata file URL %s\n", METADATA_SERVICE_URL OPENSTACK_METADATA_FILE );
-		data_file = curl_fetch_file(curl, METADATA_SERVICE_URL OPENSTACK_METADATA_FILE, DATADIR_PATH, ms_attempts, ms_usleep);
-		if (!data_file) {
-			LOG(MOD "Fetch metadata failed\n");
-			return false;
-		}
-		g_strlcpy(metadata_file, data_file, PATH_MAX);
-		g_free(data_file);
-		data_file = NULL;
-
-		/* download userdata file from metadata service */
-		LOG(MOD "Fetching userdata file URL %s\n", METADATA_SERVICE_URL OPENSTACK_USERDATA_FILE );
-		data_file = curl_fetch_file(curl, METADATA_SERVICE_URL OPENSTACK_USERDATA_FILE, DATADIR_PATH, ms_attempts, ms_usleep);
-		if (!data_file) {
-			/* userdata is optional, so it is ok */
-			LOG(MOD "Userdata file not found\n");
-		} else {
-			g_strlcpy(userdata_file, data_file, PATH_MAX);
-			g_free(data_file);
-			data_file = NULL;
-		}
-		break;
-
 	case SOURCE_CONFIG_DRIVE:
 		/* create mount directory */
 		if (!mkdtemp(config_drive_mount_path)) {
@@ -279,13 +219,6 @@ bool openstack_process_metadata(void) {
 	}
 
 	switch(data_source) {
-	case SOURCE_METADATA_SERVICE:
-		if (!openstack_process_metadata_file(metadata_file)) {
-			LOG(MOD "Process metadata failed\n");
-			return false;
-		}
-		break;
-
 	case SOURCE_CONFIG_DRIVE:
 		if (!openstack_process_config_drive_metadata()) {
 			LOG(MOD "Process config drive metadata failed\n");
@@ -338,12 +271,6 @@ bool openstack_process_userdata(void) {
 	}
 
 	switch(data_source) {
-	case SOURCE_METADATA_SERVICE:
-		if (userdata_file[0] && !userdata_process_file(userdata_file)) {
-			LOG(MOD "Process userdata failed\n");
-		}
-		break;
-
 	case SOURCE_CONFIG_DRIVE:
 		if (!openstack_process_config_drive_userdata()) {
 			LOG(MOD "Process config drive user data failed\n");
@@ -367,16 +294,6 @@ bool openstack_process_userdata(void) {
 
 void openstack_finish(void) {
 	switch(data_source) {
-	case SOURCE_METADATA_SERVICE:
-		curl_easy_cleanup(curl);
-		curl = NULL;
-		/* remove only if was downloaded from metadata service*/
-		if (metadata_file[0]) {
-			remove(metadata_file);
-			metadata_file[0] = 0;
-		}
-		break;
-
 	case SOURCE_CONFIG_DRIVE:
 		if (!umount_filesystem(config_drive_mount_path, config_drive_loop_device)) {
 			LOG(MOD "umount filesystem failed '%s'\n", config_drive_mount_path);
@@ -388,7 +305,7 @@ void openstack_finish(void) {
 		break;
 	}
 
-	if(userdata_file[0]) {
+	if (userdata_file[0]) {
 		remove(userdata_file);
 		userdata_file[0] = 0;
 	}
@@ -572,7 +489,6 @@ static int openstack_metadata_files(GNode* node) {
 	gchar content_path[LINE_MAX] = { 0 };
 	gchar path[LINE_MAX] = { 0 };
 	gchar src_content_file[PATH_MAX] = { 0 };
-	gchar* tmp_content_file = 0;
 	while (node) {
 		if (g_strcmp0("content_path", node->data) == 0) {
 			if (node->children) {
@@ -596,21 +512,6 @@ static int openstack_metadata_files(GNode* node) {
 				if (!copy_file(src_content_file, path)) {
 					LOG(MOD "Copy file '%s' failed\n", src_content_file);
 				}
-			break;
-
-			case SOURCE_METADATA_SERVICE:
-				g_snprintf(src_content_file, PATH_MAX, "%s/%s", METADATA_SERVICE_URL, content_path );
-				tmp_content_file = curl_fetch_file(curl, src_content_file, DATADIR_PATH, 1, 0);
-				if (!tmp_content_file) {
-					LOG(MOD "Fetch file '%s' failed\n", src_content_file);
-					break;
-				}
-				if (!copy_file(tmp_content_file, path)) {
-					LOG(MOD "Copy file '%s' failed\n", tmp_content_file);
-					break;
-				}
-				remove(tmp_content_file);
-				g_free(tmp_content_file);
 			break;
 
 			case SOURCE_NONE:
