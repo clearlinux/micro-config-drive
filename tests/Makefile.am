@@ -16,7 +16,6 @@ COMMON_LDADD = $(CHECK_LIBS) $(GLIB_LIBS) $(CURL_LIBS) $(YAML_LIBS) $(BLKID_LIBS
 
 libtest_la_SOURCES = \
 	../src/lib.c \
-	../src/curl.c \
 	../src/async_task.c \
 	../src/disk.c \
 	../src/userdata.c \
@@ -45,11 +44,6 @@ lib_test_SOURCES = lib_test.c
 lib_test_CFLAGS = $(COMMON_CFLAGS) $(AM_CFLAGS)
 lib_test_LDADD = libtest.la $(COMMON_LDADD)
 TESTS += lib_test
-
-curl_test_SOURCES = curl_test.c
-curl_test_CFLAGS = $(COMMON_CFLAGS)
-curl_test_LDADD = libtest.la $(COMMON_LDADD)
-TESTS += curl_test
 
 userdata_test_SOURCES = userdata_test.c
 userdata_test_CFLAGS = $(COMMON_CFLAGS)

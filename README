@@ -71,7 +71,6 @@ Currently, cloud-init requires the following prerequisites:
 - yaml-0.1 >= 0.1.4
 - libparted >= 3.1
 - blkid >= 2.25.0
-- libcurl
 - json-glib-1.0
 
 As cloud-init is tooled with autotools, one shouldn't have to do
