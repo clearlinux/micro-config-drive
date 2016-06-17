@@ -67,8 +67,7 @@ enum {
 	OPT_USER_DATA_ONCE,
 	OPT_METADATA,
 	OPT_FIX_DISK,
-	OPT_FIRST_BOOT_SETUP,
-	OPT_NO_NETWORK
+	OPT_FIRST_BOOT_SETUP
 };
 
 /* supported datasources */
@@ -87,7 +86,6 @@ static struct option opts[] = {
 	{ "version",                    no_argument, NULL, 'v' },
 	{ "fix-disk",                   no_argument, NULL, OPT_FIX_DISK },
 	{ "first-boot-setup",           no_argument, NULL, OPT_FIRST_BOOT_SETUP},
-	{ "no-network",                 no_argument, NULL, OPT_NO_NETWORK},
 	{ NULL, 0, NULL, 0 }
 };
 
