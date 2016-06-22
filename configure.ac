@@ -7,8 +7,7 @@ AM_INIT_AUTOMAKE([foreign -Wall -Wno-portability silent-rules subdir-objects col
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_FILES([Makefile
 		tests/Makefile
-		data/cloud-init.service
-        data/cloud-init-pre-network.service])
+		data/cloud-init.service])
 AC_CONFIG_HEADERS([config.h])
 
 LT_INIT
