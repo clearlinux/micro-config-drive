@@ -1,5 +1,5 @@
 
-A cloud-init for Clear Linux* Project for Intel Architecture
+A config-drive handler.
 
 ====
 
@@ -10,6 +10,12 @@ Contents:
 3) Bugs and feedback?
 
 ====
+
+Micro-config-drive ("ucd" for short) provides a subset of functionality
+that is provided by cloud-init implementations. Specifically,
+ucd provides the basic options and functions to handle config-2
+config-drive data for systems that have this config-drive data provided
+as a block device to the container or VM.
 
 cloud-init is the standard way for cloud customers to initialize
 containers and virtual hosts. These virtual machines are usually
@@ -66,14 +72,14 @@ considering used libraries, the resulting binary is small.
 
 2. Compiling
 
-Currently, cloud-init requires the following prerequisites:
+Currently, ucd requires the following prerequisites:
 - glib-2.0 >= 2.24.1
 - yaml-0.1 >= 0.1.4
 - libparted >= 3.1
 - blkid >= 2.25.0
 - json-glib-1.0
 
-As cloud-init is tooled with autotools, one shouldn't have to do
+As ucd is tooled with autotools, one shouldn't have to do
 more than:
 
 $ sh autogen.sh
@@ -85,14 +91,14 @@ $ sudo make install
 
 3. Bugs, feedback, contact
 
-cloud-init is hosted on github. You can find releases, an issue
-tracker and git sources on github.com/clearlinux/clr-cloud-init. For
+ucd is hosted on github. You can find releases, an issue tracker
+and git sources on github.com/clearlinux/micro-config-drive. For
 mailing lists, subscribe to dev@lists.clearlinux.org (via
 lists.clearlinux.org).
 
 When submitting bug reports, it may be relevant to include the
 log output of clouds- init. This can be done with the following
-command: `journalctl -b -u cloud-init`. Omit the `-b` option if
+command: `journalctl -b -u ucd`. Omit the `-b` option if
 you want output from prior to the last boot event.
 
 This project has many contributors. Not all may be mentioned in the

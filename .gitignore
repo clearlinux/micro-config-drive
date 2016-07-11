@@ -10,7 +10,7 @@
 Makefile.in
 aclocal.m4
 autom4te.cache
-cloud-init
+ucd
 compile
 config.*
 configure
@@ -18,9 +18,9 @@ depcomp
 install-sh
 missing
 stamp-h1
-data/cloud-init*.service
-clr-cloud-init-*.tar.xz
-clr-cloud-init-*/
+data/ucd*.service
+micro-config-drive-*.tar.xz
+micro-config-drive-*/
 tests/Makefile
 tests/.libs/
 tests/*_test

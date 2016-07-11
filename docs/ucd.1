@@ -1,5 +1,5 @@
 '\" t
-.TH "CLOUDINIT" "1" "" "cloud-init 1" "cloud-init"
+.TH "MICRO-CONFIG-DRIVE" "1" "" "ucd 1" "ucd"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -20,23 +20,23 @@
 .\" * MAIN CONTENT STARTS HERE *
 .\" -----------------------------------------------------------------
 .SH "NAME"
-cloud\-init \- Configures a cloud instance
+ucd \- Configures a cloud instance using config-drive data
 
 .SH "SYNOPSIS"
-.HP \w'\fBcloud-init\fR\ 'u
-\fBcloud-init\fR [OPTIONS...]
+.HP \w'\fBucd\fR\ 'u
+\fBucd\fR [OPTIONS...]
 
 .SH "DESCRIPTION"
 .PP
-\fBcloud-init\fR
+\fBucd\fR
 runs at boot time with the purpose of configuring a cloud instance
 for use of the end user.
 .PP
-cloud-init can perform any of the following (optional) tasks:
+ucd can perform any of the following (optional) tasks:
  * create a default account with sudo privileges
  * lock root and default account, the only way to login is using ssh keys (security feature)
  * maintain the cloud instance in a right state (resize/fix partitions and filesystem)
- * get and process userdata and metadata from data sources
+ * get and process userdata and metadata from an attached config-drive block device
 
 Userdata formats supported:
  * \fIcloud-config\fR: begins with \fB#cloud-config\fR and is used to execute certain tasks in a human friendly format
@@ -88,7 +88,7 @@ Prints a help message\&.
 .PP
 \fB\-u\fR FILE, \fB\-\-user\-data\-file\fR FILE
 .RS 4
-Path to a cloud-config user data file\&. If omitted, \fBcloud-init\fR will
+Path to a cloud-config user data file\&. If omitted, \fBucd\fR will
 attempt to fetch user-data from the openstack link-local connected data
 service URL.
 .RE
@@ -136,7 +136,7 @@ Prints version information\&.
 \fB\-\-first\-boot\-setup\fR
 .RS 4
 Setup the instance in its first boot.
-When first boot of the instance is detected, \fBcloud\-init\fR will perform
+When first boot of the instance is detected, \fBucd\fR will perform
 next tasks:
  * create a default user account
  * create sudoers file for default user account
@@ -154,14 +154,14 @@ Attribution\-ShareAlike 3.0 Unported\s-2\u[1]\d\s+2\&.
 
 .SH "SEE ALSO"
 .PP
-This project is a limited-functionality implementation of the cloud-init
+This project is a limited-functionality implementation of the ucd
 specification. The full documentation of the generic implementation is
 available online and can be referenced here:
 .RS 4
 \fBhttps://cloudinit.readthedocs.org/en/latest/\fR
 .RE
 .PP
-The cloud-config format that \fBcloud-init\fR(1) supports is documented
+The cloud-config format that \fBucd\fR(1) supports is documented
 in \fBcloud-config\fR(5). This lists the options that are supported,
 their structure and function.
 
