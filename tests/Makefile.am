@@ -46,7 +46,7 @@ lib_test_LDADD = libtest.la $(COMMON_LDADD)
 TESTS += lib_test
 
 userdata_test_SOURCES = userdata_test.c
-userdata_test_CFLAGS = $(COMMON_CFLAGS)
+userdata_test_CFLAGS = $(COMMON_CFLAGS) $(AM_CFLAGS)
 userdata_test_LDADD = libtest.la $(COMMON_LDADD)
 TESTS += userdata_test
 
