@@ -3,10 +3,13 @@ SUBDIRS = . tests
 ACLOCAL_AMFLAGS=-I m4
 
 AM_CPPFLAGS = -I $(top_srcdir)/src -I $(top_srcdir)/src/interpreters -I $(top_srcdir)/src/datasources
-AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
-	-Wstrict-prototypes -Wundef -fno-common \
-	-Wformat -Wformat-security \
-	-Wconversion -Wunused-variable -Wunreachable-code
+AM_CFLAGS = \
+        -fstack-protector -Wall -pedantic \
+        -Wstrict-prototypes -Wundef -fno-common \
+        -Werror-implicit-function-declaration \
+        -Wformat -Wformat-security -Werror=format-security \
+        -Wconversion -Wunused-variable -Wunreachable-code \
+        -Wall -W -std=gnu99
 
 EXTRA_DIST = \
 	LICENSE \
