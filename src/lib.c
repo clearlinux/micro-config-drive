@@ -250,7 +250,7 @@ bool write_ssh_keys(const GString* data, const gchar* username) {
 	GString* ssh_keys = NULL;
 	struct passwd pwd;
 	struct passwd* pwd_result;
-	char* pwd_buf;
+	char* pwd_buf = NULL;
 	long int pwd_bufsize;
 	struct stat st;
 
@@ -322,6 +322,8 @@ bool write_ssh_keys(const GString* data, const gchar* username) {
 			LOG(MOD "Cannot change the owner and group of %s.\n", auth_keys_file);
 			return false;
 		}
+	} else {
+		free(pwd_buf);
 	}
 
 	return true;
