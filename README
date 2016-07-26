@@ -43,7 +43,7 @@ a short summary of the key points of that decision are listed below.
 
 Speed is a significant factor. Interpreted languages have come a long
 way and are highly performant, especially if properly used. However,
-theire is a significant cost of provisioning cloud nodes that have
+there is a significant cost of provisioning cloud nodes that have
 increased base storage costs due to the inclusion of libraries of
 interpreted languages. Since we expect people to prefer cloud nodes are
 minimal in size, having interpreted language libraries just for the
