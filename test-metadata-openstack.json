@@ -28,11 +28,11 @@
             "name": "demo-key"
         }
     ],
-    "hostname": "clr-cloud-init-dev.novalocal",
+    "hostname": "micro-config-drive-dev.novalocal",
     "launch_index": 0,
     "public_keys": {
         "demo-key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCzDSFIGUGWQwX0bthU+oK7F+jXyA0YzRPpUfQrMna4n+C6ozFmUYC7Z6ak4kFi90LylCGhMQb1IvxdnvV+Lk/wjRwWhLZh80TuVbrvYmbFRP+TjjNJ+jO5SMFGKy7l5MIF8iyF6RHJ6qiZMzQKEH8J1AVttsSxkeu/tRPhe88hBR8oQA+pl9CYbqpjtin4inMhRNus7CdLIC5gAjaGFYLtjPOEwFpCiOjgVnsTxjjAe7mf97dWAwP8/1Ea+gXMXLsnFdhF11bkQHbY6AYtYpFa2nM5woPBzfIIi5RKGmriA+3Tkkx2hWKp2J0yru8G4EBU7NKVrBICFtymbG8f2jIV root@clr\n"
     },
     "project_id": "25ab73ec706c4cf8955574b135882afa",
-    "name": "clr-cloud-init-dev"
+    "name": "micro-config-drive-dev"
 }
