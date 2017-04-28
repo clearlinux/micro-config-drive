@@ -23,7 +23,10 @@ dist_man_MANS = \
 	docs/ucd.1 \
 	docs/cloud-config.5
 
-bin_PROGRAMS = ucd
+bin_PROGRAMS = \
+	ucd \
+	ucd-aws
+
 ucd_SOURCES = \
 	src/ccmodules.h \
 	src/ccmodules/groups.c \
@@ -58,6 +61,9 @@ ucd_SOURCES = \
 	src/disk.h \
 	src/async_task.c \
 	src/async_task.h
+
+ucd_aws_SOURCES = \
+	src/ucd-aws.c
 
 if ENABLE_WERROR
 AM_CFLAGS += -Werror
