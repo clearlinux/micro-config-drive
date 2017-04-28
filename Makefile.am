@@ -76,9 +76,11 @@ endif
 ucd_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS) $(YAML_CFLAGS) $(JSON_GLIB_CFLAGS) $(PARTED_CFLAGS) $(BLKID_CFLAGS)
 ucd_LDADD = $(GLIB_LIBS) $(YAML_LIBS) $(JSON_GLIB_LIBS) $(PARTED_LIBS) $(BLKID_LIBS)
 
+ucd_aws_CFLAGS = $(AM_CFLAGS)
+
 SYSTEMD_DIR=$(prefix)/lib/systemd/system/
 systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
-systemdsystemunit_DATA = data/ucd.service
+systemdsystemunit_DATA = data/ucd.service data/ucd-aws.service
 
 systemdsystemunit-install-local:
 	mkdir -p $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/
