@@ -144,7 +144,7 @@ int main(void) {
 	close(out);
 	fclose(f);
 
-	(void) execl("/usr/bin/ucd", "/usr/bin/ucd", "-u",
+	(void) execl(BINDIR "/ucd", BINDIR "/ucd", "-u",
 			AWS_USER_DATA_PATH "/" AWS_USER_DATA, (char *)NULL);
 	FAIL("exec()");
 }

@@ -9,7 +9,7 @@ AM_CFLAGS = \
         -Werror-implicit-function-declaration \
         -Wformat -Wformat-security -Werror=format-security \
         -Wconversion -Wunused-variable -Wunreachable-code \
-        -Wall -W -std=gnu99
+        -Wall -W -std=gnu99 -DBINDIR=\"$(bindir)\"
 
 EXTRA_DIST = \
 	LICENSE \
