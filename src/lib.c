@@ -54,6 +54,7 @@
 #include <sys/sysinfo.h>
 #include <sys/ioctl.h>
 #include <linux/loop.h>
+#include <sys/sysmacros.h>
 
 #include <glib.h>
 
