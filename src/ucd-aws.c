@@ -61,8 +61,9 @@ int main(void) {
 	int sockfd;
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd < 0)
+	if (sockfd < 0) {
 		FAIL("socket()");
+	}
 	
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
@@ -76,13 +77,16 @@ int main(void) {
 	for (;;) {
 		int n = 0;
 		int r = connect(sockfd, (struct sockaddr *)&server, sizeof(server));
-		if (r == 0)
+		if (r == 0) {
 			break;
-		if ((r != EAGAIN) && (r != ENETUNREACH) && (r != ETIMEDOUT))
+		}
+		if ((r != EAGAIN) && (r != ENETUNREACH) && (r != ETIMEDOUT)) {
 			FAIL("connect()");
+		}
 		nanosleep(&ts, NULL);
-		if (++n > 200) /* 10 secs */
+		if (++n > 200) { /* 10 secs */
 			FAIL("timeout in connect()");
+		}
 	}
 
 	char *message = AWS_REQUEST;
@@ -108,8 +112,9 @@ int main(void) {
 			close(sockfd);
 			FAIL("fgets()");
 		}
-		if (strncmp(buf, "\r\n", 2) == 0)
+		if (strncmp(buf, "\r\n", 2) == 0) {
 			break;
+		}
 	}
 
 	int out;
@@ -125,8 +130,9 @@ int main(void) {
 		char buf[512];
 		char *r = fgets(buf, sizeof(buf), f);
 		size_t len = strlen(buf);
-		if (r == 0)
+		if (r == 0) {
 			break;
+		}
 		if (write(out, buf, len) < (ssize_t)len) {
 			close(out);
 			fclose(f);
