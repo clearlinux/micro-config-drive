@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -55,7 +56,50 @@
 #define AWS_USER_DATA_PATH "/var/lib/cloud"
 #define AWS_USER_DATA "aws-user-data"
 #define AWS_IP "169.254.169.254"
-#define AWS_REQUEST "GET /latest/user-data HTTP/1.1\r\nhost: " AWS_IP "\r\nConnection: close\r\n\r\n"
+#define AWS_REQUEST_SSHKEY "GET /latest/meta-data/public-keys/0/openssh-key HTTP/1.0\r\nhost: " AWS_IP "\r\nConnection: keep-alive\r\n\r\n"
+#define AWS_REQUEST_USERDATA "GET /latest/user-data HTTP/1.0\r\nhost: " AWS_IP "\r\nConnection: close\r\n\r\n"
+#define CLOUD_CONFIG_SSH_HEADER "#cloud-config\nssh_authorized_keys:\n  - "
+
+
+/*
+ * parse_headers:
+ * f: file descriptor for input (stream)
+ * *cl: output content-length
+ * return values: status code
+ * - 0: an actual error occurred.
+ * - 1: parsed headers OK in full, ready to read content.
+ * - 2: non-200 exit status, but no error in conversation.
+ */
+static int parse_headers(FILE *f, long int *cl)
+{
+	for (;;) {
+		char buf[512];
+		char *r = fgets(buf, sizeof(buf), f);
+		if (!r) {
+			return 0;
+		}
+		if (strncmp(buf, "\r\n", 2) == 0) {
+			/* end of headers */
+			break;
+		} else if (strncmp(buf, "Content-Length:", 15) == 0) {
+			/* content length */
+			*cl = strtol(&buf[16], NULL, 10);
+			if (errno == EINVAL || errno == ERANGE) {
+				return 0;
+			}
+		} else if (strncmp(buf, "HTTP/1.0", 8) == 0) {
+			long int status = strtol(&buf[8], NULL, 10);
+			if (errno == EINVAL || errno == ERANGE) {
+				return 0;
+			}
+			/* fail if non-200 exit code */
+			if (status < 200 && status >= 299 ) {
+				return 2;
+			}
+		}
+	}
+	return 1;
+}
 
 int main(void) {
 	int sockfd;
@@ -80,7 +124,7 @@ int main(void) {
 		if (r == 0) {
 			break;
 		}
-		if ((r != EAGAIN) && (r != ENETUNREACH) && (r != ETIMEDOUT)) {
+		if ((errno != EAGAIN) && (errno != ENETUNREACH) && (errno != ETIMEDOUT)) {
 			FAIL("connect()");
 		}
 		nanosleep(&ts, NULL);
@@ -89,13 +133,11 @@ int main(void) {
 		}
 	}
 
-	char *message = AWS_REQUEST;
-	size_t len = strlen(message);
+	/* First, request the OpenSSH pubkey */
+	char *request = AWS_REQUEST_SSHKEY;
+	size_t len = strlen(request);
 
-	char response[4096];
-	memset(response, 0, sizeof(response));
-
-	if (write(sockfd, message, len) < (ssize_t)len) {
+	if (write(sockfd, request, len) < (ssize_t)len) {
 		close(sockfd);
 		FAIL("write()");
 	}
@@ -105,16 +147,12 @@ int main(void) {
 		close(sockfd);
 		FAIL("fdopen()");
 	}
-	for (;;) {
-		char buf[512];
-		char *r = fgets(buf, sizeof(buf), f);
-		if (!r) {
-			close(sockfd);
-			FAIL("fgets()");
-		}
-		if (strncmp(buf, "\r\n", 2) == 0) {
-			break;
-		}
+
+	long int cl;
+	int result = parse_headers(f, &cl);
+	if (result != 1) {
+		close(sockfd);
+		FAIL("parse_headers()");
 	}
 
 	int out;
@@ -126,10 +164,19 @@ int main(void) {
 		FAIL("open()");
 	}
 
+	/* Insert cloud-config header above SSH key. */
+	char *header = CLOUD_CONFIG_SSH_HEADER;
+	len = strlen(header);
+	write(out, header, len);
+
 	for (;;) {
+		if (cl == 0) {
+			break;
+		}
 		char buf[512];
 		char *r = fgets(buf, sizeof(buf), f);
 		size_t len = strlen(buf);
+		cl -= (long int)len;
 		if (r == 0) {
 			break;
 		}
@@ -141,6 +188,39 @@ int main(void) {
 		}
 	}
 
+	/* next, get user-data */
+	char *request2 = AWS_REQUEST_USERDATA;
+	len = strlen(request2);
+
+	if (write(sockfd, request2, len) < (ssize_t)len) {
+		close(sockfd);
+		FAIL("write()");
+	}
+
+	/* parse/discard the header and body */
+	result = parse_headers(f, &cl);
+	if (result == 0) {
+		fclose(f);
+		close(out);
+		FAIL("parse_headers()");
+	} else if (result == 1) {
+		for (;;) {
+			char buf[512];
+			char *r = fgets(buf, sizeof(buf), f);
+			size_t len = strlen(buf);
+			if (r == 0) {
+				break;
+			}
+			if (write(out, buf, len) < (ssize_t)len) {
+				close(out);
+				fclose(f);
+				unlink(AWS_USER_DATA_PATH "/" AWS_USER_DATA);
+				FAIL("write()");
+			}
+		}
+	}
+
+	/* cleanup */
 	close(out);
 	fclose(f);
 
