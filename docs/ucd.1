@@ -1,173 +1,172 @@
-'\" t
-.TH "MICRO-CONFIG-DRIVE" "1" "" "ucd 1" "ucd"
-.\" -----------------------------------------------------------------
-.\" * Define some portability stuff
-.\" -----------------------------------------------------------------
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.\" http://bugs.debian.org/507673
-.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.ie \n(.g .ds Aq \(aq
-.el       .ds Aq '
-.\" -----------------------------------------------------------------
-.\" * set default formatting
-.\" -----------------------------------------------------------------
-.\" disable hyphenation
-.nh
-.\" disable justification (adjust text to left margin only)
-.ad l
-.\" -----------------------------------------------------------------
-.\" * MAIN CONTENT STARTS HERE *
-.\" -----------------------------------------------------------------
-.SH "NAME"
-ucd \- Configures a cloud instance using config-drive data
+MICRO-CONFIG-DRIVE(1)                                    MICRO-CONFIG-DRIVE(1)
 
-.SH "SYNOPSIS"
-.HP \w'\fBucd\fR\ 'u
-\fBucd\fR [OPTIONS...]
 
-.SH "DESCRIPTION"
-.PP
-\fBucd\fR
-runs at boot time with the purpose of configuring a cloud instance
-for use of the end user.
-.PP
-ucd can perform any of the following (optional) tasks:
- * create a default account with sudo privileges
- * lock root and default account, the only way to login is using ssh keys (security feature)
- * maintain the cloud instance in a right state (resize/fix partitions and filesystem)
- * get and process userdata and metadata from an attached config-drive block device
 
-Userdata formats supported:
- * \fIcloud-config\fR: begins with \fB#cloud-config\fR and is used to execute certain tasks in a human friendly format
- * \fIshell-script\fR: begins wiht \fB#!\fR and is used to execute a shell script
+[1mNAME[0m
+       [1mmicro-config-drive [22m- Configure a cloud instance using config-drive data
 
-Metadata formats supported:
- * \fIopenstack\fR
+[1mSYNOPSIS[0m
+       [1mucd[0m
 
-.SH "OPENSTACK DATASOURCES"
-Datasources are used to retrive instance-specific data in order to configure a new cloud instance.
-Openstack attaches two datasources to the cloud instance when it boots and these are listed bellow. 
- * \fIconfig-drive\fR: is a disk formatted with vfat or iso9660 and have a label of config-2
- * \fImetadata service\fR: instances can access to it at http://169.254.169.254 \fB[NOT SUPPORTED]\fR
+       [1mucd [22m[OPTIONS...]
 
-more information about openstack datasources can be found in:
-\%http://docs.openstack.org/user-guide/cli_config_drive.html
-\%http://docs.openstack.org/admin-guide/compute-networking-nova.html#metadata-service
-.RE
+[1mDESCRIPTION[0m
+       [1mucd  [22mruns at boot time with the purpose of configuring a cloud instance
+       for use of the end user.
 
-.SH "WORKFLOW"
-    \fB|\fR Parse options
-    \fB|\fR Init openstack datasource
-    \fB|->\fR if config-drive is found then define it as datasource otherwise exit
-    \fB|\fR Start openstack datasource
-    \fB|->\fR Get userdata and metadata from datasource
-    \fB|\fR Run async tasks
-    \fB|->\fR resize disk
-    \fB|->\fR resize filesystem
-    \fB|\fR If a datasource was found
-    \fB|->\fR if VM first boot was detected
-    \fB|   |->\fR Run async tasks
-    \fB|   |   |->\fR lock root account
-    \fB|   |   |->\fR Create sudoers file for default user account
-    \fB|   |->\fR Create default user account
-    \fB|->\fR Process openstack metadata
-    \fB|->\fR Process openstack userdata
-    \fB|\fR Join async tasks
-    \fB|\fR Finish openstack datasource (free resources)
-.RE
+       ucd can perform any of the following (optional) tasks:
 
-.SH "OPTIONS"
-.PP
-The following options are understood:
-.PP
-\fB\-h\fR, \fB\-\-help\fR
-.RS 4
-Prints a help message\&.
-.RE
-.PP
-\fB\-u\fR FILE, \fB\-\-user\-data\-file\fR FILE
-.RS 4
-Path to a cloud-config user data file\&. If omitted, \fBucd\fR will
-attempt to fetch user-data from the openstack link-local connected data
-service URL.
-.RE
-.PP
-\fB\-\-openstack\-metadata\-file\fR FILE
-.RS 4
-Path to an openstack metadata file.
- more information: \%http://docs.openstack.org/user-guide/cli_config_drive.html#openstack-metadata-format
-.RE
-.PP
-\fB\-\-openstack\-config\-drive\fR PATH
-.RS 4
-Path to openstack config drive (iso9660 or vfat filesystem),
-it will be used to process metadata and userdata.
- more information:
-\%http://docs.openstack.org/user-guide/cli_config_drive.html#configuration-drive-contents
-.RE
-.PP
-\fB\-\-user\-data\fR
-.RS 4
-Get and process user data from data sources.
-.RE
-.PP
-\fB\-\-user\-data\-once\fR
-.RS 4
-Only on first boot get and process user data from data sources.
-Note this option is ignored if \fB\-\-user\-data\fR is enabled.
-.RE
-.PP
-\fB\-\-metadata\fR
-.RS 4
-Get and process metadata from data sources.
-.RE
-.PP
-\fB\-\-fix\-disk\fR
-.RS 4
-Fix disk and filesystem if it is needed.
-.RE
-.PP
-\fB\-v\fR, \fB\-\-version\fR
-.RS 4
-Prints version information\&.
-.RE
-.PP
-\fB\-\-first\-boot\-setup\fR
-.RS 4
-Setup the instance in its first boot.
-When first boot of the instance is detected, \fBucd\fR will perform
-next tasks:
- * create a default user account
- * create sudoers file for default user account
- * lock root account
-.RE
+       +o   create a default account with sudo privileges
 
-.SH "EXIT STATUS"
-.PP
-On success, 0 is returned, a non\-zero failure code otherwise\&.
+       +o   lock root and default account, the only way to login is  using  ssh
+           keys (security feature)
 
-.SH "COPYRIGHT"
-.PP
-Copyright 2015 Intel Corporation\&. License: Creative Commons
-Attribution\-ShareAlike 3.0 Unported\s-2\u[1]\d\s+2\&.
+       +o   maintain the cloud instance in a right state (resize/fix partitions
+           and filesystem)
 
-.SH "SEE ALSO"
-.PP
-This project is a limited-functionality implementation of the ucd
-specification. The full documentation of the generic implementation is
-available online and can be referenced here:
-.RS 4
-\fBhttps://cloudinit.readthedocs.org/en/latest/\fR
-.RE
-.PP
-The cloud-config format that \fBucd\fR(1) supports is documented
-in \fBcloud-config\fR(5). This lists the options that are supported,
-their structure and function.
+       +o   get and process userdata and metadata from an attached config-drive
+           block device
 
-.SH "NOTES"
-.IP " 1." 4
-Creative Commons Attribution\-ShareAlike 3.0 Unported
-.RS 4
-\%http://creativecommons.org/licenses/by-sa/3.0/
-.RE
+
+
+       Userdata formats supported:
+
+       +o   [1mcloud-config[22m: begins with [1m#cloud-config [22mand is used to execute cer-
+           tain tasks in a human friendly format
+
+       +o   [1mshell-script[22m: begins wiht [1m#! [22mand is used to execute a shell script
+
+
+
+       Metadata formats supported:
+
+       +o   [1mopenstack[0m
+
+
+
+[1mOPENSTACK DATASOURCES[0m
+       Datasources are used to retrive instance-specific data in order to con-
+       figure  a new cloud instance. Openstack attaches two datasources to the
+       cloud instance when it boots.
+
+       +o   [1mconfig-drive[22m: is a disk formatted with vfat or iso9660 and  have  a
+           label of config-2
+
+       +o   [1mmetadata    service[22m:    instances    can    access    to    it   at
+           http://169.254.169.254 [1m[NOT SUPPORTED][0m
+
+
+
+       more information about openstack datasources can be found in:
+
+       +o   http://docs.openstack.org/user-guide/cli_config_drive.html
+
+       +o   http://docs.openstack.org/admin-guide/compute-network-
+           ing-nova.html#metadata-service
+
+
+
+[1mWORKFLOW[0m
+       `|` Parse options
+       `|` Init openstack datasource
+       `|->` if config-drive is found then define it as datasource otherwise exit
+       `|` Start openstack datasource
+       `|->` Get userdata and metadata from datasource
+       `|` Run async tasks
+       `|->` resize disk
+       `|->` resize filesystem
+       `|` If a datasource was found
+       `|->` if VM first boot was detected
+       `|   |->` Run async tasks
+       `|   |   |->` lock root account
+       `|   |   |->` Create sudoers file for default user account
+       `|   |->` Create default user account
+       `|->` Process openstack metadata
+       `|->` Process openstack userdata
+       `|` Join async tasks
+       `|` Finish openstack datasource (free resources)
+
+[1mOPTIONS[0m
+       The following options are understood:
+
+       [1m-h[22m, [1m--help[22m:
+
+              Prints a help message.
+
+       [1m-u [22mFILE, [1m--user-data-file [22mFILE:
+
+              Path  to  a  cloud-config  user data file&. If omitted, [1mucd [22mwill
+              attempt to fetch user-data from the  openstack  link-local  con-
+              nected data service URL.
+
+       [1m--openstack-metadata-file [22mFILE:
+
+              Path   to   an   openstack   metadata  file.  more  information:
+              http://docs.openstack.org/user-guide/cli_config_drive.html#open-
+              stack-metadata-format
+
+       [1m--openstack-config-drive [22mPATH:
+
+              Path  to openstack config drive (iso9660 or vfat filesystem), it
+              will be used to process metadata and userdata. more information:
+              http://docs.openstack.org/user-guide/cli_config_drive.html#con-
+              figuration-drive-contents
+
+       [1m--user-data[22m:
+
+              Get and process user data from data sources.
+
+       [1m--user-data-once[22m:
+
+              Only on first boot get and process user data from data  sources.
+              Note this option is ignored if [1m--user-data [22mis enabled.
+
+       [1m--metadata[22m:
+
+              Get and process metadata from data sources.
+
+       [1m--fix-disk[22m:
+
+              Fix disk and filesystem if it is needed.
+
+       [1m-v[22m, [1m--version[22m:
+
+              Prints version information.
+
+       [1m--first-boot-setup[22m:
+
+              Setup  the  instance  in  its first boot. When first boot of the
+              instance is detected, [1mucd [22mwill perform the following tasks: cre-
+              ate a default user account, create sudoers file for default user
+              account, lock the root account.
+
+[1mEXIT STATUS[0m
+       On success, 0 is returned, a non-zero failure code otherwise.
+
+[1mCOPYRIGHT[0m
+       +o   Copyright (C) 2017 Intel Corporation, License: CC-BY-SA-3.0
+
+
+
+[1mSEE ALSO[0m
+       This  project  is  a  limited-functionality   implementation   of   the
+       cloud-init  specification. The full documentation of the generic imple-
+       mentation is available online and can be referenced here:
+
+       [1mhttps://cloudinit.readthedocs.org/en/latest/[0m
+
+       The  cloud-config  format  that  [1mucd[22m(1)  supports  is   documented   in
+       [1mcloud-config[22m(5).  This  lists  the  options  that  are supported, their
+       structure and function.
+
+[1mNOTES[0m
+       Creative Commons Attribution-ShareAlike 3.0 Unported
+
+       +o   http://creativecommons.org/licenses/by-sa/3.0/
+
+
+
+
+
+
+                                   June 2017             MICRO-CONFIG-DRIVE(1)

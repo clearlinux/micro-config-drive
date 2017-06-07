@@ -1,316 +1,207 @@
-'\" t
-.TH "CLOUDCONFIG" "5" "" "cloud-config 5" "cloud-config"
-.\" -----------------------------------------------------------------
-.\" * Define some portability stuff
-.\" -----------------------------------------------------------------
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.\" http://bugs.debian.org/507673
-.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.ie \n(.g .ds Aq \(aq
-.el       .ds Aq '
-.\" -----------------------------------------------------------------
-.\" * set default formatting
-.\" -----------------------------------------------------------------
-.\" disable hyphenation
-.nh
-.\" disable justification (adjust text to left margin only)
-.ad l
-.\" -----------------------------------------------------------------
-.\" * MAIN CONTENT STARTS HERE *
-.\" -----------------------------------------------------------------
-.SH "NAME"
-cloud\-config \- User data format used by \fBcloud-init\fR(1)
+CLOUD-CONFIG(5)                                                CLOUD-CONFIG(5)
 
-.SH "SYNOPSIS"
-.PP
-cloud\-config data is provided by the cloud infrastructure to a cloud
-instance. This data is parsed by \fBcloud-init\fR(1) which then configures
-the cloud instance based on the information in the cloud-config.
 
-.SH "DESCRIPTION"
-.PP
-The user\-data as provided can be of several formats. \fBcloud\-init\fR(1)
-supports the \fBcloud\-config\fR format, but also supports generic shell
-scripts. If the user\-data starts with \fB#!\fR, it is assumed that the
-user\-data is a generic shell script, and \fBcloud\-init\fR will attempt
-to execute the data as a script. If the user\-data starts with the
-\fB#cloud-config\fR stanza, it is assumed the user\-data is in the
-\fBcloud\-config\fR format, described below.
 
-.PP
-The \fBcloud\-config\fR format is used to structure configuration data
-provided to the cloud instance. This data is structured in the YAML
-format (\fBhttp://yaml.org\fR). Note that \fBcloud\-init\fR(1) uses the
-libyaml library, which supports YAML version 1.1.
+[1mNAME[0m
+       [1mcloud-config [22m- User data format used by [1mucd(1)[0m
 
-.PP
-In the YAML content, the root node (the document) contains a sequence of
-directives. These directives inform cloud-init that the content of the
-directive are processed by a directive-specific handler, or "module".
+[1mSYNOPSIS[0m
+       [1muser-data[0m
 
-.PP
-cloud-init includes many modules, each expecting a specifically constructed
-content. This document lists the correct format and organization of each data
-section for the supported modules, describes their effect, and states
-various parameters for each option.
+       [1m#cloud-config[0m
 
-.PP
-Table of implemented directives. Column 3 ("Ref") and column 4 ("CoreOS")
-list whether the reference specification or the CoreOS implementation support
-these directives. Note that implementation details may differ, due to the
-underlying differences in Operating Systems.
+       cloud-config  data  is  provided by the cloud infrastructure to a cloud
+       instance. This data is parsed by [1mcloud-init(1)  [22mwhich  then  configures
+       the cloud instance based on the information in the cloud-config.
 
-.RS
-.TS
-lb   lb lb lb
-lfCW l  l l l.
-Directive            Description                           Ref.  CoreOS.
-_
-groups               Configure user account groups         yes   no
-package_upgrade      Perform a software update             yes   no
-packages             Install additional software           yes   no
-runcmd               Execute system commands               yes   no
-service              Perform system service configuration  no    no
-ssh_authorized_keys  Provision SSH public keys             yes   yes
-users                Configure user accounts               yes   yes
-write_files          Write content to arbitrary files      yes   yes
-hostname             Define the system's hostname          yes   yes
-envar                Set environment variables             no    no
-fbootcmd             Execute system commands on first boot no    no
-_
-.TE
-.RE
+[1mDESCRIPTION[0m
+       The user-data as provided can be of several formats. [1mcloud-init(1) [22msup-
+       ports the [1mcloud-config [22mformat, but also supports generic shell scripts.
+       If  the user-data starts with [1m#![22m, it is assumed that the user-data is a
+       generic shell script, and [1mcloud-init [22mwill attempt to execute  the  data
+       as  a script. If the user-data starts with the [1m#cloud-config [22mstanza, it
+       is assumed the user-data  is  in  the  [1mcloud-config  [22mformat,  described
+       below.
 
-.SH "OPTIONS"
-.PP
-For each of the directives listed in the table above, zero or more options may
-be provided. The list below documents the implemented options per directive.
-The "Type" field values are:
+       The  [1mcloud-config  [22mformat  is used to structure configuration data pro-
+       vided to the cloud instance. This data is structured in the YAML format
+       ([1mhttp://yaml.org[22m).  Note  that  [1mcloud-init[22m(1) uses the libyaml library,
+       which supports YAML version 1.1.
 
-.PP
-\fBTYPES\fR
-.RS 4
-.TS
-lb    lb
-lfCW  l  l.
-Type        Description
-_
-boolean     Either true, false, yes, no, 0 or 1 (upper case and initial capitol
-            letter versions treated identical)
-string      A generic string encoded value. Can be multiline or YAML encoded
-            content
-integer     A string encoded decimal integer value
-octal       A string encoded octal integer value
-hex         A string encoded hexadecimal integer value
-[]          if a type is listed with [] appended, it means there may be zero or
-            more values, lists of values or any arbitrary depth of these nested
-*           Indicates this value isn't a separate key, but directly the
-            associated value of the root node. This is applicable for directives
-            that only have a single configuration parameter,
-            e.g. "package_upgrade"
-.TE
-.RE
+       In the YAML content, the root node (the document) contains  a  sequence
+       of  directives.  These directives inform cloud-init that the content of
+       the directive are processed by a directive-specific handler,  or  "mod-
+       ule".
 
-.PP
-\fBgroups\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-name       string[]  no           Create a new user account group and
-                                  place listed user account names in
-                                  that group
-.TE
-.RE
+       cloud-init  includes  many  modules, each expecting a specifically con-
+       structed content. This document lists the correct format and  organiza-
+       tion  of  each  data section for the supported modules, describes their
+       effect, and states various parameters for each option.
 
-.PP
-\fBpackage_upgrade\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-*          boolean   yes          Enables or disables whether software
-                                  update is performed
-.TE
-.RE
+       Table  of  implemented  directives.  Column  3  ("Ref")  and  column  4
+       ("CoreOS")  list  whether  the  reference  specification  or the CoreOS
+       implementation  support  these  directives.  Note  that  implementation
+       details may differ, due to the underlying differences in Operating Sys-
+       tems.
 
-.PP
-\fBpackages\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-name       string[]  no           Enables installation of software bundles
-.TE
-.RE
 
-.PP
-\fBruncmd\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-*          string[]  no           Executes a command, if the item is a list,
-                                  the list will be converted to a string
-                                  and executed as a command line.
-.TE
-.RE
 
-.PP
-\fBhostname\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-*          string    yes          Defines the system's hostname
-.TE
-.RE
+           Directive           |Description                          |Ref. |CoreOS.
+           --------------------|-------------------------------------|-----|-------
+           groups              |Configure user account groups        |yes  |no
+           package_upgrade     |Perform a software update            |yes  |no
+           packages            |Install additional software          |yes  |no
+           runcmd              |Execute system commands              |yes  |no
+           service             |Perform system service configuration |no   |no
+           ssh_authorized_keys |Provision SSH public keys            |yes  |yes
+           users               |Configure user accounts              |yes  |yes
+           write_files         |Write content to arbitrary files     |yes  |yes
+           hostname            |Define the system's hostname         |yes  |yes
+           envar               |Set environment variables            |no   |no
+           bootcmd             |Execute system commands on first boot|no   |no
 
-.PP
-\fBservice\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-start      string[]  no           Start units
-stop       string[]  no           Stop units
-restart    string[]  no           Restart units
-enable     string[]  no           Enable units to start automatically
-disable    string[]  no           Disable units from starting automatically
-reload     string[]  no           Reload service units
-isolate    string[]  no           Change target to a new unit
-mask       string[]  no           Prevent units from starting
-unmask     string[]  no           Remove unit start prevention mask
-.TE
-.RE
 
-.PP
-\fBssh_authorized_keys\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-*          string[]  no           Specifies an SSH public key value, as
-                                  string. This will be added to the default
-                                  user account's SSH configuration
-.TE
-.RE
 
-.PP
-\fBusers\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-*          []        no           This directive expects a list of user
-                                  definitions. Each definition can
-                                  additionally specify the following
-                                  sub-options:
-_
-name       string    yes          A user account name to be created
-gecos      string    no           A real user name, can be left empty
-homedir    string    no           A home directory path. Default under "/home"
-primary-group
-           string    no           A group name.
-groups     string    no           Comma-separated list of group names or
-                                  single group name. Specifies additional
-                                  groups to put this user account into
-lock-passwd
-           boolean   no           Lock the user account
-inactive   boolean   no           Mark the user account as inactive
-passwd     string    no           Password hash for the user account
-no-create-home
-           boolean   no           Omits creating a home directory
-no-user-group
-           boolean   no           Omits group creating for the account
-no-log-init
-           boolean   no           Omits this account from lastlog/faillog
-expiredate string    no           A date at which to expire the password
-ssh-authorized-keys
-           string[]  no           Add SSH public keys to ssh configuration
-sudo       string[]  no           Add sudoers lines for this account, the account
-                                  name is automatically prepended
-system     boolean   no           Make the account a system account
-.TE
-.RE
+[1mOPTIONS[0m
+       For each of the directives listed in the  table  above,  zero  or  more
+       options  may  be  provided.  The  list  below documents the implemented
+       options per directive. The "Type" field values are:
 
-.PP
-\fBwrite_files\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option      Type      Required     Function
-_
-*           []        no           This directive expects a list of write_files
-                                   definitions. Each definition itself contains the
-                                   following options:
-_
-content     string    yes          The content to write to a file
-path        string    yes          The full path and filename of the file to
-                                   be written out
-owner       string    no           Username and optionally group name, separated
-                                   by ":" or ".". Defaults to "root.root"
-permissions octal     no           Octal value describing the file permissions
-                                   default value is influenced according to
-                                   \fBumask\fR
-.TE
-.RE
+   [1mTYPES[0m
+       Type       |Description
+       -----------|-------------------------------------------------------------------
+       boolean    |Either true, false, yes, no, 0 or 1 (upper case and initial capitol
+                  |letter versions treated identical)
+       string     |A generic string encoded value. Can be multiline or YAML encoded
+                  |content
+       integer    |A string encoded decimal integer value
+       octal      |A string encoded octal integer value
+       hex        |A string encoded hexadecimal integer value
+       []         |if a type is listed with [] appended, it means there may be zero or
+                  |more values, lists of values or any arbitrary depth of these nested
+       *          |Indicates this value isn't a separate key, but directly the
+                  |associated value of the root node. This is applicable for directives
+                  |that only have a single configuration parameter,
+                  |e.g. "package_upgrade"
 
-.PP
-\fBenvar\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-*          string    yes          Add environment variables to /etc/profile.d/cloud-init.sh
-                                  and to current cloud-init process
-.TE
-.RE
+   [1mgroups[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       name      |string[] |no          |Create a new user account group and
+                 |         |            |place listed user account names in
+                 |         |            |that group
 
-.PP
-\fBfbootcmd\fR
-.RS 4
-.TS
-lb    lb lb lb
-lfCW  l  l l l.
-Option     Type      Required     Function
-_
-*          string[]  no           Similar to runcmd but fbootcmd will run only on first boot
-.TE
-.RE
+   [1mpackage_upgrade[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       *         |boolean  |yes         |Enables or disables whether software
+                 |         |            |update is performed
 
-.SH "COPYRIGHT"
-.PP
-Copyright 2015 Intel Corporation\&. License: Creative Commons
-Attribution\-ShareAlike 3.0 Unported\s-2\u[1]\d\s+2\&.
+   [1mpackages[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       name      |string[] |no          |Enables installation of software bundles
 
-.SH "SEE ALSO"
-.PP
-\fBcloud-init\fB(1)
+   [1mruncmd[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       *         |string[] |no          |Executes a command, if the item is a list,
+                 |         |            |the list will be converted to a string
+                 |         |            |and executed as a command line.
 
-.SH "NOTES"
-.IP " 1." 4
-Creative Commons Attribution\-ShareAlike 3.0 Unported
-.RS 4
-\%http://creativecommons.org/licenses/by-sa/3.0/
-.RE
+   [1mhostname[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       *         |string   |yes         |Defines the system's hostname
+
+   [1mservice[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       start     |string[] |no          |Start units
+       stop      |string[] |no          |Stop units
+       restart   |string[] |no          |Restart units
+       enable    |string[] |no          |Enable units to start automatically
+       disable   |string[] |no          |Disable units from starting automatically
+       reload    |string[] |no          |Reload service units
+       isolate   |string[] |no          |Change target to a new unit
+       mask      |string[] |no          |Prevent units from starting
+       unmask    |string[] |no          |Remove unit start prevention mask
+
+   [1mssh_authorized_keys[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       *         |string[] |no          |Specifies an SSH public key value, as
+                 |         |            |string. This will be added to the default
+                 |         |            |user account's SSH configuration
+
+   [1musers[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       *         |[]       |no          |This directive expects a list of user
+                 |         |            |definitions. Each definition can
+                 |         |            |additionally specify the following
+                 |         |            |sub-options:
+       name      |string   |yes         |A user account name to be created
+       gecos     |string   |no          |A real user name, can be left empty
+       homedir   |string   |no          |A home directory path. Default under "/home"
+       primary-group|string|no          |A group name.
+       groups    |string   |no          |Comma-separated list of group names or
+                 |         |            |single group name. Specifies additional
+                 |         |            |groups to put this user account into
+       lock-passwd|boolean |no          |Lock the user account
+       inactive  |boolean  |no          |Mark the user account as inactive
+       passwd    |string   |no          |Password hash for the user account
+       no-create-home|boolean|no        |Omits creating a home directory
+       no-user-group|boolean|no         |Omits group creating for the account
+       no-log-init|boolean |no          |Omits this account from lastlog/faillog
+       expiredate|string   |no          |A date at which to expire the password
+       ssh-authorized-keys|string[]|no  |Add SSH public keys to ssh configuration
+       sudo      |string[] |no          |Add sudoers lines for this account, the account
+                 |         |            |name is automatically prepended
+       system    |boolean  |no          |Make the account a system account
+
+   [1mwrite_files[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       *         |[]       |no          |This directive expects a list of write_files
+                 |         |            |definitions. Each definition itself contains the
+                 |         |            |following options:
+       content   |string   |yes         |The content to write to a file
+       path      |string   |yes         |The full path and filename of the file to
+                 |         |            |be written out
+       owner     |string   |no          |Username and optionally group name, separated
+                 |         |            |by ":" or ".". Defaults to "root.root"
+       permissions|octal   |no          |Octal value describing the file permissions
+                 |         |            |default value is influenced according to
+                 |         |            |`umask`
+
+[1menvar[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       *         |string   |yes         |Add environment variables to /etc/profile.d/cloud-init.sh
+                 |         |            |and to current cloud-init process
+
+   [1mbootcmd[0m
+       Option    |Type     |Required    |Function
+       ----------|---------|------------|-----------------------------------
+       *         |string[] |no          |Similar to runcmd but bootcmd will run only on first boot
+
+[1mCOPYRIGHT[0m
+       +o   Copyright (C) 2017 Intel Corporation, License: CC-BY-SA-3.0
+
+
+
+[1mSEE ALSO[0m
+       [1mcloud-init[22m(1)
+
+[1mNOTES[0m
+       Creative Commons Attribution-ShareAlike 3.0 Unported
+
+       +o   http://creativecommons.org/licenses/by-sa/3.0/
+
+
+
+
+
+
+                                   June 2017                   CLOUD-CONFIG(5)

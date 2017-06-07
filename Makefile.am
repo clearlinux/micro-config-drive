@@ -14,7 +14,9 @@ AM_CFLAGS = \
 EXTRA_DIST = \
 	LICENSE \
 	COPYING \
-	data/ucd.service.in
+	data/ucd.service.in \
+	docs/ucd.1.md \
+	docs/cloud-config.5.md
 
 DISTCHECK_CONFIGURE_FLAGS =  \
 	--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir) --enable-debug
@@ -92,3 +94,9 @@ systemdsystemunit-uninstall-local:
 	rm -f $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/ucd.service
 
 uninstall-local: systemdsystemunit-uninstall-local
+
+docs/ucd.1: docs/ucd.1.md
+	ronn -m --pipe < docs/ucd.1.md > docs/ucd.1
+docs/cloud-config.5: docs/cloud-config.5.md
+	ronn -m --pipe < docs/cloud-config.5.md > docs/cloud-config.5
+docs: docs/ucd.1 docs/cloud-config.5
