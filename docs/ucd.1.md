@@ -3,7 +3,7 @@ micro-config-drive(1) -- Configure a cloud instance using config-drive data
 
 ## SYNOPSIS
 
-`ucd`
+`/usr/bin/ucd`
 
 `ucd` [OPTIONS...]
 
