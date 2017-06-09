@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([micro-config-drive],[28],[dev@clearlinux.org])
+AC_INIT([micro-config-drive],[29],[dev@clearlinux.org])
 AM_INIT_AUTOMAKE([foreign -Wall -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_FILES([Makefile
