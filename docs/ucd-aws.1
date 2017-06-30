@@ -1,0 +1,44 @@
+UCD-AWS(1)                                                          UCD-AWS(1)
+
+
+
+[1mNAME[0m
+       [1mucd-aws [22m- Fetch user-data from AWS user-data service
+
+[1mSYNOPSIS[0m
+       [1m/usr/bin/ucd-aws[0m
+
+[1mDESCRIPTION[0m
+       [1mucd-aws [22mis a helper agent program that fetches openstack user-data from
+       the http://169.254.169.254/ service, as well as the SSH pubkey provided
+       to  the  cloud instance. After fetching the two pieces of data, ucd-aws
+       combines them into a  valid  [1m#cloud-config  [22muser-data  text  block  and
+       passes the output to [1mucd[22m(1) for processing/execution.
+
+[1mOPTIONS[0m
+       [1mucd-aws [22mhas no configurable options.
+
+[1mEXIT STATUS[0m
+       On  success, 0 is returned, a non-zero failure code otherwise. The exit
+       code returned may be the exit code of the subsequent [1mucd [22mprogram execu-
+       tion.
+
+[1mCOPYRIGHT[0m
+       +o   Copyright (C) 2017 Intel Corporation, License: CC-BY-SA-3.0
+
+
+
+[1mSEE ALSO[0m
+       [1mucd[22m(1)
+
+[1mNOTES[0m
+       Creative Commons Attribution-ShareAlike 3.0 Unported
+
+       +o   http://creativecommons.org/licenses/by-sa/3.0/
+
+
+
+
+
+
+                                   June 2017                        UCD-AWS(1)
