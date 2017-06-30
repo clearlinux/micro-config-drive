@@ -67,6 +67,7 @@ static bool openstack_load_metadata_file(const gchar* filename);
 static void openstack_process_uuid(GNode* node, __unused__ gpointer *data);
 
 static int openstack_metadata_not_implemented(GNode* node);
+static int openstack_metadata_public_keys(GNode* node);
 static int openstack_metadata_keys(GNode* node);
 static int openstack_metadata_hostname(GNode* node);
 static int openstack_metadata_files(GNode* node);
@@ -111,7 +112,7 @@ static struct openstack_metadata_data openstack_metadata_options[] = {
 	{ "keys",               openstack_metadata_keys            },
 	{ "hostname",           openstack_metadata_hostname        },
 	{ "launch_index",       openstack_metadata_not_implemented },
-	{ "public_keys",        openstack_metadata_not_implemented },
+	{ "public_keys",        openstack_metadata_public_keys     },
 	{ "project_id",         openstack_metadata_not_implemented },
 	{ "name",               openstack_metadata_not_implemented },
 	{ "files",              openstack_metadata_files           },
@@ -146,9 +147,30 @@ bool openstack_init() {
 	return false;
 }
 
-bool openstack_start(void) {
+static void openstack_metadata_load_options(void)
+{
 	size_t i = 0;
 
+	if (openstack_metadata_options_htable)
+		return;
+
+	openstack_metadata_options_htable = g_hash_table_new(g_str_hash, g_str_equal);
+	for (i = 0; openstack_metadata_options[i].key != NULL; ++i) {
+		g_hash_table_insert(openstack_metadata_options_htable, (gpointer)openstack_metadata_options[i].key,
+		                    *((openstack_metadata_data_func**)(&openstack_metadata_options[i].func)));
+	}
+}
+
+static void openstack_metadata_free_options(void)
+{
+	if (openstack_metadata_options_htable) {
+		g_hash_table_destroy(openstack_metadata_options_htable);
+		openstack_metadata_options_htable = NULL;
+	}
+}
+
+bool openstack_start(void)
+{
 	switch(data_source) {
 	case SOURCE_CONFIG_DRIVE:
 		/* create mount directory */
@@ -178,14 +200,11 @@ bool openstack_start(void) {
 		return false;
 	}
 
-	openstack_metadata_options_htable = g_hash_table_new(g_str_hash, g_str_equal);
-	for (i = 0; openstack_metadata_options[i].key != NULL; ++i) {
-		g_hash_table_insert(openstack_metadata_options_htable, (gpointer)openstack_metadata_options[i].key,
-		                    *((openstack_metadata_data_func**)(&openstack_metadata_options[i].func)));
-	}
+	openstack_metadata_load_options();
 
 	g_node_children_foreach(metadata_node, G_TRAVERSE_ALL, (GNodeForeachFunc)openstack_process_uuid, NULL);
 
+	openstack_metadata_free_options();
 	return true;
 }
 
@@ -316,10 +335,7 @@ void openstack_finish(void) {
 		metadata_node = NULL;
 	}
 
-	if (openstack_metadata_options_htable) {
-		g_hash_table_destroy(openstack_metadata_options_htable);
-		openstack_metadata_options_htable = NULL;
-	}
+	openstack_metadata_free_options();
 }
 
 gboolean openstack_process_config_drive(const gchar* path) {
@@ -351,7 +367,10 @@ gboolean openstack_process_config_drive(const gchar* path) {
 	return true;
 }
 
-gboolean openstack_process_metadata_file(const gchar* filename) {
+gboolean openstack_process_metadata_file(const gchar* filename)
+{
+	openstack_metadata_load_options();
+
 	if (!metadata_node && !openstack_load_metadata_file(filename)) {
 		LOG(MOD "Load metadata file '%s'failed\n", filename);
 		return false;
@@ -359,6 +378,7 @@ gboolean openstack_process_metadata_file(const gchar* filename) {
 
 	g_node_children_foreach(metadata_node, G_TRAVERSE_ALL, (GNodeForeachFunc)openstack_run_handler, NULL);
 
+	openstack_metadata_free_options();
 	return true;
 }
 
@@ -458,7 +478,32 @@ static int openstack_metadata_not_implemented(GNode* node) {
 	return 0;
 }
 
+static int openstack_metadata_public_keys(GNode* node) {
+	LOG(MOD "public keys processing %s\n", (char*)node->data);
+	while (node) {
+		if (!node->data) {
+			node = node->next;
+			continue;
+		}
+
+		LOG(MOD "Adding key \"%s\"\n", (char*)node->data);
+		GString *pub_key = g_string_new(node->children->data);
+		if (!write_ssh_keys(pub_key, DEFAULT_USER_USERNAME)) {
+			LOG(MOD "Cannot write ssh pub key in auth for user %s\n",
+				DEFAULT_USER_USERNAME);
+		}
+		g_string_free(pub_key, true);
+
+		node = node->next;
+	}
+	return 0;
+}
+
 static int openstack_metadata_keys(GNode* node) {
+	//FIXME this doesn't seem what 'keys' is supposed to be for
+	//at all, and doesn't properly iterate a list of keys as
+	//demonstrated in the test-metadata-openstack.json test
+	//content file.
 	GString* ssh_key;
 	while (node) {
 		if (g_strcmp0("data", node->data) == 0) {
