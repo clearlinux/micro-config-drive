@@ -22,7 +22,7 @@ ucd can perform any of the following (optional) tasks:
 Userdata formats supported:
 
  * `cloud-config`: begins with `#cloud-config` and is used to execute certain tasks in a human friendly format
- * `shell-script`: begins wiht `#!` and is used to execute a shell script
+ * `shell-script`: begins with `#!` and is used to execute a shell script
 
 Metadata formats supported:
 

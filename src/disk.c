@@ -214,7 +214,7 @@ gboolean disk_by_label(const gchar* label, gchar** device) {
 
 	dev = blkid_find_dev_with_tag(cache, "LABEL", label);
 	if (!dev) {
-		LOG(MOD "Device wiht label '%s' not found!\n", label);
+		LOG(MOD "Device with label '%s' not found!\n", label);
 		return false;
 	}
 
