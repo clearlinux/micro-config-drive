@@ -17,6 +17,7 @@ EXTRA_DIST = \
 	data/ucd.service.in \
 	docs/ucd.1.md \
 	docs/ucd-aws.1.md \
+	docs/ucd-oci.1.md \
 	docs/cloud-config.5.md
 
 DISTCHECK_CONFIGURE_FLAGS =  \
@@ -25,11 +26,13 @@ DISTCHECK_CONFIGURE_FLAGS =  \
 dist_man_MANS = \
 	docs/ucd.1 \
 	docs/ucd-aws.1 \
+	docs/ucd-oci.1 \
 	docs/cloud-config.5
 
 bin_PROGRAMS = \
 	ucd \
-	ucd-aws
+	ucd-aws \
+	ucd-oci
 
 ucd_SOURCES = \
 	src/ccmodules.h \
@@ -69,6 +72,9 @@ ucd_SOURCES = \
 ucd_aws_SOURCES = \
 	src/ucd-aws.c
 
+ucd_oci_SOURCES = \
+	src/ucd-oci.c
+
 if ENABLE_WERROR
 AM_CFLAGS += -Werror
 endif
@@ -82,9 +88,11 @@ ucd_LDADD = $(GLIB_LIBS) $(YAML_LIBS) $(JSON_GLIB_LIBS) $(PARTED_LIBS) $(BLKID_L
 
 ucd_aws_CFLAGS = $(AM_CFLAGS)
 
+ucd_oci_CFLAGS = $(AM_CFLAGS)
+
 SYSTEMD_DIR=$(prefix)/lib/systemd/system/
 systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
-systemdsystemunit_DATA = data/ucd.service data/ucd-aws.service
+systemdsystemunit_DATA = data/ucd.service data/ucd-aws.service data/ucd-oci.service
 
 systemdsystemunit-install-local:
 	mkdir -p $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/
@@ -101,6 +109,8 @@ docs/ucd.1: docs/ucd.1.md
 	ronn -m --pipe < docs/ucd.1.md > docs/ucd.1
 docs/ucd-aws.1: docs/ucd-aws.1.md
 	ronn -m --pipe < docs/ucd-aws.1.md > docs/ucd-aws.1
+docs/ucd-oci.1: docs/ucd-oci.1.md
+	ronn -m --pipe < docs/ucd-oci.1.md > docs/ucd-oci.1
 docs/cloud-config.5: docs/cloud-config.5.md
 	ronn -m --pipe < docs/cloud-config.5.md > docs/cloud-config.5
 docs: docs/ucd.1 docs/cloud-config.5
