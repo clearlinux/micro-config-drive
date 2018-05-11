@@ -8,7 +8,8 @@ AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_FILES([Makefile
 		tests/Makefile
 		data/ucd.service
-		data/ucd-aws.service])
+		data/ucd-aws.service
+                data/ucd-oci.service])
 AC_CONFIG_HEADERS([config.h])
 
 LT_INIT
