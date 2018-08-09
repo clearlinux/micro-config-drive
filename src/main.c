@@ -108,7 +108,7 @@ static int async_fixdisk(__unused__ gpointer null) {
 	return 0;
 }
 
-static bool async_setup_first_boot(__unused__ gpointer null) {
+static void setup_first_boot(void) {
 	gchar command[LINE_MAX] = { 0 };
 	GString* sudo_directives = NULL;
 
@@ -122,7 +122,7 @@ static bool async_setup_first_boot(__unused__ gpointer null) {
 
 	/* lock root account for security */
 	g_snprintf(command, LINE_MAX, USERMOD_PATH " -p '!' root");
-	return async_task_exec(command);
+	exec_task(command);
 }
 
 int main(int argc, char *argv[]) {
@@ -296,7 +296,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (first_boot_setup && first_boot) {
-		async_task_run((GThreadFunc)async_setup_first_boot, NULL);
+		setup_first_boot();
 	}
 
 	if (first_boot_setup && first_boot) {
