@@ -1,6 +1,6 @@
-#Network configuration with micro-config-drive (ucd)
+# Network configuration with micro-config-drive (ucd)
 
-##Goal of this document
+## Goal of this document
 
 As most cloud-based VMs and containers are deployed in a typical
 DHCP-enabled environment, and all major Linux distributions are by
@@ -18,7 +18,7 @@ mechanisms. This document describes those and provides a few basic
 clues and pointers that demonstrate this functionality.
 
 
-##Introduction
+## Introduction
 
 Micro-config-drive does not offer any specific functionality to
 facilitate network configuration, but offers various generic tools
@@ -34,7 +34,7 @@ but may require use of the `runcmd` directive instead. These
 services are not covered by this document.
 
 
-##General Use.
+## General Use
 
 As systemd-networkd uses plain text configuration files, we use the
 cloud-config directive `write_files` to output these networkd
@@ -94,9 +94,9 @@ service:
 ```
 
 
-##Typical Use Cases.
+## Typical Use Cases
 
-###Dynamic IP Address.
+### Dynamic IP Address
 
 Most distributions provide default networking configurations for DHCP
 networking, and they usually include a standard DHCP configuration file
@@ -116,7 +116,7 @@ UseDomains=yes
 UseMTU=yes
 ```
 
-###Static IP Address.
+### Static IP Address
 
 If one needs to use a static IP address, this can be done as follows:
 
@@ -132,7 +132,7 @@ Gateway=10.0.0.1
 ```
 
 
-###Creating a bridged interface.
+### Creating a bridged interface
 
 Creating a bridge creates a new virtual netdev, so we have to create
 a `.netdev` file, and declare the bridge interface in it.
@@ -203,7 +203,7 @@ service:
 ```
 
 
-##See Also.
+## See Also
 
 The following documentation is not exhaustive and covers a few, more
 common use cases. Additional documentation is available on several
@@ -213,7 +213,7 @@ places on the internet that may be useful to the reader.
  - https://wiki.archlinux.org/index.php/Systemd-networkd
 
 
-##About
+## About
 
 This documentation is part of micro-config-drive, see https://github.
 com/clearlinux/micro-config-drive. For bugs, please e-mail
