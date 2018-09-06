@@ -108,7 +108,7 @@ int main(void) {
 	if (sockfd < 0) {
 		FAIL("socket()");
 	}
-	
+
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = inet_addr(AWS_IP);
@@ -155,12 +155,13 @@ int main(void) {
 		FAIL("parse_headers()");
 	}
 
+	close(sockfd);
+
 	int out;
 	(void) mkdir(AWS_USER_DATA_PATH, 0);
 	(void) unlink(AWS_USER_DATA_PATH "/" AWS_USER_DATA);
 	out = open(AWS_USER_DATA_PATH "/" AWS_USER_DATA, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 	if (out < 0) {
-		close(sockfd);
 		FAIL("open()");
 	}
 
@@ -188,6 +189,27 @@ int main(void) {
 		}
 	}
 
+	/* reopen socket */
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0) {
+		FAIL("socket()");
+	}
+
+	for (;;) {
+		int n = 0;
+		int r = connect(sockfd, (struct sockaddr *)&server, sizeof(server));
+		if (r == 0) {
+			break;
+		}
+		if ((errno != EAGAIN) && (errno != ENETUNREACH) && (errno != ETIMEDOUT)) {
+			FAIL("connect()");
+		}
+		nanosleep(&ts, NULL);
+		if (++n > 200) { /* 10 secs */
+			FAIL("timeout in connect()");
+		}
+	}
+
 	/* next, get user-data */
 	char *request2 = AWS_REQUEST_USERDATA;
 	len = strlen(request2);
@@ -195,6 +217,12 @@ int main(void) {
 	if (write(sockfd, request2, len) < (ssize_t)len) {
 		close(sockfd);
 		FAIL("write()");
+	}
+
+	f = fdopen(sockfd, "r");
+	if (!f) {
+		close(sockfd);
+		FAIL("fdopen()");
 	}
 
 	/* parse/discard the header and body */
