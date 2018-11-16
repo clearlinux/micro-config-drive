@@ -12,6 +12,7 @@ aclocal.m4
 autom4te.cache
 ucd
 ucd-aws
+ucd-oci
 compile
 config.*
 configure
