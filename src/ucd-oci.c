@@ -103,7 +103,7 @@ static int parse_headers(FILE *f, long int *cl)
 				return 0;
 			}
 			/* fail if non-200 exit code */
-			if (status < 200 && status >= 299 ) {
+			if (status < 200 || status >= 299 ) {
 				return 2;
 			}
 		}
