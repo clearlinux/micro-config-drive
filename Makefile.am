@@ -106,11 +106,11 @@ systemdsystemunit-uninstall-local:
 uninstall-local: systemdsystemunit-uninstall-local
 
 docs/ucd.1: docs/ucd.1.md
-	ronn -m --pipe < docs/ucd.1.md > docs/ucd.1
+	ronn -r --pipe < docs/ucd.1.md > docs/ucd.1
 docs/ucd-aws.1: docs/ucd-aws.1.md
-	ronn -m --pipe < docs/ucd-aws.1.md > docs/ucd-aws.1
+	ronn -r --pipe < docs/ucd-aws.1.md > docs/ucd-aws.1
 docs/ucd-oci.1: docs/ucd-oci.1.md
-	ronn -m --pipe < docs/ucd-oci.1.md > docs/ucd-oci.1
+	ronn -r --pipe < docs/ucd-oci.1.md > docs/ucd-oci.1
 docs/cloud-config.5: docs/cloud-config.5.md
-	ronn -m --pipe < docs/cloud-config.5.md > docs/cloud-config.5
-docs: docs/ucd.1 docs/cloud-config.5
+	ronn -r --pipe < docs/cloud-config.5.md > docs/cloud-config.5
+docs: docs/ucd.1 docs/ucd-aws.1 docs/ucd-oci.1 docs/cloud-config.5
