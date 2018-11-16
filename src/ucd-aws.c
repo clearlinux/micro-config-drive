@@ -110,6 +110,7 @@ int main(void) {
 	}
 
 	struct sockaddr_in server;
+	memset(&server, 0, sizeof(struct sockaddr_in));
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = inet_addr(AWS_IP);
 	server.sin_port = htons(80);
