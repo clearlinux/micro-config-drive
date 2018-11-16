@@ -1,43 +1,38 @@
-UCD-OCI(1)                                                          UCD-OCI(1)
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "UCD\-OCI" "1" "November 2018" "" ""
+.
+.SH "NAME"
+\fBucd\-oci\fR \- Fetch ssh public key from OCI service
+.
+.SH "SYNOPSIS"
+\fB/usr/bin/ucd\-oci\fR
+.
+.SH "DESCRIPTION"
+\fBucd\-oci\fR a helper program that fetches the SSH pubkey provided to the cloud instance\. After fetching the data, ucd\-aws creates a \fB#cloud\-config\fR text block and passes the output to \fBucd\fR(1) for processing/execution\.
+.
+.SH "OPTIONS"
+\fBucd\-oci\fR has no configurable options\.
+.
+.SH "EXIT STATUS"
+On success, 0 is returned, a non\-zero failure code otherwise\. The exit code returned may be the exit code of the subsequent \fBucd\fR program execution\.
+.
+.SH "COPYRIGHT"
+.
+.IP "\(bu" 4
+Copyright (C) 2017 Intel Corporation, License: CC\-BY\-SA\-3\.0
+.
+.IP "" 0
+.
+.SH "SEE ALSO"
+\fBucd\fR(1)
+.
+.SH "NOTES"
+Creative Commons Attribution\-ShareAlike 3\.0 Unported
+.
+.IP "\(bu" 4
+http://creativecommons\.org/licenses/by\-sa/3\.0/
+.
+.IP "" 0
 
-
-
-[1mNAME[0m
-       [1mucd-oci [22m- Fetch ssh public key from OCI service
-
-[1mSYNOPSIS[0m
-       [1m/usr/bin/ucd-oci[0m
-
-[1mDESCRIPTION[0m
-       [1mucd-oci  [22ma  helper  program that fetches the SSH pubkey provided to the
-       cloud instance. After fetching the data, ucd-aws creates a  [1m#cloud-con-[0m
-       [1mfig  [22mtext  block  and passes the output to [1mucd[22m(1) for processing/execu-
-       tion.
-
-[1mOPTIONS[0m
-       [1mucd-oci [22mhas no configurable options.
-
-[1mEXIT STATUS[0m
-       On success, 0 is returned, a non-zero failure code otherwise. The  exit
-       code returned may be the exit code of the subsequent [1mucd [22mprogram execu-
-       tion.
-
-[1mCOPYRIGHT[0m
-       +o   Copyright (C) 2017 Intel Corporation, License: CC-BY-SA-3.0
-
-
-
-[1mSEE ALSO[0m
-       [1mucd[22m(1)
-
-[1mNOTES[0m
-       Creative Commons Attribution-ShareAlike 3.0 Unported
-
-       +o   http://creativecommons.org/licenses/by-sa/3.0/
-
-
-
-
-
-
-                                   May 2018                         UCD-OCI(1)
