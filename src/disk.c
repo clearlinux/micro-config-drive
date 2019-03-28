@@ -63,6 +63,140 @@ static PedExceptionOption disk_exception_handler(PedException* ex) {
 	return PED_EXCEPTION_UNHANDLED;
 }
 
+static char *blk_device_by_path(const gchar* path) {
+	struct stat st = { 0 };
+
+	if (!path) {
+		LOG(MOD "Path is empty\n");
+		return NULL;
+	}
+	if (stat(path, &st) != 0) {
+		LOG(MOD "Cannot stat '%s'\n", path);
+		return NULL;
+	}
+
+	return blkid_devno_to_devname(st.st_dev);
+}
+
+static PedPartition *get_rootfs_partition(PedDisk* disk) {
+	char *rootfs_dev_path = NULL;
+	char *part_path = NULL;
+	PedPartition *part = NULL;
+	int last_partition_num = 0;
+	int i = 0;
+
+	rootfs_dev_path = blk_device_by_path("/");
+
+	if (!rootfs_dev_path) {
+		LOG(MOD "Could not get the rootfs block device\n");
+		return NULL;
+	}
+
+	/* Looking for rootfs partition */
+	last_partition_num = ped_disk_get_last_partition_num(disk);
+	for (i = 1; i <= last_partition_num; i++) {
+		part = ped_disk_get_partition(disk, i);
+		part_path = ped_partition_get_path(part);
+		if (!part_path) {
+			LOG(MOD "Could not get partition path. Start sector: %lld\n",
+			    part->geom.start);
+			continue;
+		}
+
+		if (strncmp(part_path, rootfs_dev_path, strlen(rootfs_dev_path)) == 0) {
+			LOG(MOD "Found rootfs in block device: %s. Start sector: %lld\n",
+			    rootfs_dev_path, part->geom.start);
+			free(part_path);
+			goto out;
+		}
+
+		free(part_path);
+	}
+
+out:
+	free(rootfs_dev_path);
+	return part;
+}
+
+static gboolean resize_rootfs_blk_device(PedDisk* disk) {
+	PedPartition *rootfs_part = NULL;
+	PedGeometry geometry_start;
+	PedGeometry* geometry_end = NULL;
+	PedConstraint* constraint = NULL;
+	PedPartition* nextPartition = NULL;
+	gboolean ret = false;
+	char *part_path = NULL;
+	char command[LINE_MAX] = { 0 };
+
+	rootfs_part = get_rootfs_partition(disk);
+	if (!rootfs_part) {
+		LOG(MOD "Rootfs not found\n");
+		return false;
+	}
+
+	LOG(MOD "Rootfs start sector: %lld\n", rootfs_part->geom.start);
+
+	nextPartition = ped_disk_get_partition_by_sector(disk, rootfs_part->geom.end + 1);
+	if (!nextPartition) {
+		LOG(MOD "Rootfs is the latest partition. End sector: %lld\n",
+		    rootfs_part->geom.end);
+		return false;
+	}
+
+	LOG(MOD "Next partition end sector: %lld\n", nextPartition->geom.end);
+
+	if (nextPartition->type != PED_PARTITION_FREESPACE) {
+		LOG(MOD "Next partition to rootfs is not a free space partition\n");
+		return false;
+	}
+
+	geometry_start.dev = disk->dev;
+	geometry_start.start = rootfs_part->geom.start;
+	geometry_start.end = nextPartition->geom.end;
+	geometry_start.length = 1;
+
+	geometry_end = ped_geometry_new(disk->dev, nextPartition->geom.end, 1);
+	if (!geometry_end) {
+		LOG(MOD "Could not create end sector geometry\n");
+		return false;
+	}
+
+	constraint = ped_constraint_new(ped_alignment_any, ped_alignment_any,
+	                                &geometry_start, geometry_end, 1,
+	                                disk->dev->length);
+	if (!constraint) {
+		LOG(MOD "Could not create a new constraint\n");
+		goto fail1;
+	}
+
+	if (!ped_disk_maximize_partition(disk, rootfs_part, constraint)) {
+		printf("Could not maximize rootfs partition\n");
+		goto fail2;
+	}
+
+	if (!ped_disk_commit(disk)) {
+		LOG(MOD "Cannot write the partition table to disk\n");
+	}
+
+	part_path = blk_device_by_path("/");
+	if (!part_path) {
+		LOG(MOD "Cannot get the rootfs block device\n");
+		goto fail2;
+	}
+
+	snprintf(command, LINE_MAX, RESIZEFS_PATH " %s", part_path);
+	free(part_path);
+	async_task_exec(command);
+
+	ret = true;
+fail2:
+	ped_constraint_destroy(constraint);
+fail1:
+	ped_geometry_destroy(geometry_end);
+
+	return ret;
+}
+
 char *disk_by_path(const gchar* path) {
 	char diskname[NAME_MAX];
     struct stat st = { 0 };
@@ -128,6 +262,12 @@ gboolean disk_fix(const gchar* disk_path) {
 	}
 
 	if (!resize_fs) {
+		/* PMBR is fine. Verify and fix rootfs block device */
+		if (resize_rootfs_blk_device(disk)) {
+			LOG(MOD "Rootfs block device resized\n");
+			return true;
+		}
+
 		/* do not resize filesystem, it is ok */
 		LOG(MOD "Nothing to do with '%s' disk\n", disk_path);
 		return false;
