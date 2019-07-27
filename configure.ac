@@ -9,7 +9,8 @@ AC_CONFIG_FILES([Makefile
 		tests/Makefile
 		data/ucd.service
 		data/ucd-aws.service
-                data/ucd-oci.service])
+		data/ucd-oci.service
+		data/ucd-tct.service])
 AC_CONFIG_HEADERS([config.h])
 
 LT_INIT
