@@ -56,9 +56,9 @@
 
 #define TCT_USER_DATA_PATH "/var/lib/cloud"
 #define TCT_USER_DATA "tct-user-data"
-#define TCT_DN "metadata.tencentyun.com"
+#define TCT_IP "169.254.0.23"
 
-#define TCT_REQUEST_SSHKEY "GET /latest/meta-data/public-keys/0/openssh-key HTTP/1.0\r\nhost: " TCT_DN "\r\nConnection: keep-alive\r\n\r\n"
+#define TCT_REQUEST_SSHKEY "GET /latest/meta-data/public-keys/0/openssh-key HTTP/1.0\r\nhost: " TCT_IP "\r\nConnection: keep-alive\r\n\r\n"
 #define CLOUD_CONFIG_TCT_HEADER \
 "#cloud-config\n" \
 "users:\n" \
@@ -121,27 +121,12 @@ int main(void) {
 	struct sockaddr_in server;
 	memset(&server, 0, sizeof(struct sockaddr_in));
 	server.sin_family = AF_INET;
+	server.sin_addr.s_addr = inet_addr(TCT_IP);
+	server.sin_port = htons(80);
 
 	struct timespec ts;
 	ts.tv_sec = 0;
 	ts.tv_nsec = 50000000;
-
-	/* Get host ip from name */
-	struct hostent *he = NULL;
-	for (;;) {
-		int n = 0;
-		he = gethostbyname(TCT_DN);
-		if (he != NULL) {
-			break;
-		}
-		nanosleep(&ts, NULL);
-		if (++n > 200) { /* 10 secs */
-			FAIL("timeout in gethostbyname()");
-		}
-	}
-
-	server.sin_addr.s_addr = *((unsigned int *)he->h_addr);
-	server.sin_port = htons(80);
 
 	for (;;) {
 		int n = 0;
