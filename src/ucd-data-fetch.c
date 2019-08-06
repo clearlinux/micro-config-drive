@@ -1,6 +1,6 @@
 
 /***
- Copyright © 2017 Intel Corporation
+ Copyright © 2017-2019 Intel Corporation
 
  Author: Auke-jan H. Kok <auke-jan.h.kok@intel.com>
 
@@ -37,6 +37,8 @@
 	#include "config.h"
 #endif
 
+#define _GNU_SOURCE
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,12 +55,53 @@
 
 #define FAIL(err) do { perror(err); exit(EXIT_FAILURE); } while(0)
 
-#define AWS_USER_DATA_PATH "/var/lib/cloud"
-#define AWS_USER_DATA "aws-user-data"
-#define AWS_IP "169.254.169.254"
-#define AWS_REQUEST_SSHKEY "GET /latest/meta-data/public-keys/0/openssh-key HTTP/1.0\r\nhost: " AWS_IP "\r\nConnection: keep-alive\r\n\r\n"
-#define AWS_REQUEST_USERDATA "GET /latest/user-data HTTP/1.0\r\nhost: " AWS_IP "\r\nConnection: close\r\n\r\n"
-#define CLOUD_CONFIG_SSH_HEADER "#cloud-config\nssh_authorized_keys:\n  - "
+#define USER_DATA_PATH "/var/lib/cloud"
+
+struct cloud_struct {
+	char *name;
+	char *ip;
+	char *request_sshkey_path;
+	char *request_userdata_path;
+	char *cloud_config_header;
+};
+
+#define MAX_CONFIGS 3
+static struct cloud_struct config[MAX_CONFIGS] = {
+	{
+		"aws",
+		"169.254.169.254",
+		"/latest/meta-data/public-keys/0/openssh-key",
+		"/latest/user-data",
+		"#cloud-config\n" \
+		"ssh_authorized_keys:\n  - "
+	},
+	{
+		"oci",
+		"169.254.169.254",
+		"/opc/v1/instance/metadata/ssh_authorized_keys",
+		NULL,
+		"#cloud-config\n" \
+		"users:\n" \
+		"  - name: opc\n" \
+		"    groups: wheelnopw\n" \
+		"    gecos: Oracle Public Cloud User\n" \
+		"ssh_authorized_keys:\n" \
+		"  - "
+	},
+	{
+		"tencent",
+		"169.254.0.23",
+		"/latest/meta-data/public-keys/0/openssh-key",
+		NULL,
+		"#cloud-config\n" \
+		"users:\n" \
+		"  - name: tencent\n" \
+		"    groups: wheelnopw\n" \
+		"ssh-authorized-keys:\n" \
+		"  - "
+	}
+};
+
 
 
 /*
@@ -101,8 +144,36 @@ static int parse_headers(FILE *f, long int *cl)
 	return 1;
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
+	int conf = -1;
 	int sockfd;
+	char *request, *request2;
+	char *outpath;
+
+	if (argc != 2) {
+		FAIL("No cloud service provider passed as arg1, unable to continue\n");
+	}
+
+	if ((strcmp(argv[1], "--help") == 0) ||
+	    (strcmp(argv[1], "-h") == 0)) {
+		fprintf(stderr, "Usage: ucd-userdata-fetch <cloud service provider name>\n"
+			"Known cloud service provider names:\n");
+		for (int i = 0; i < MAX_CONFIGS; i++)
+			fprintf(stderr, "      - %s\n", config[i].name);
+		exit(EXIT_SUCCESS);
+	}
+
+	for (int i = 0; i < MAX_CONFIGS; i++) {
+		if (strcmp(argv[1], config[i].name) == 0) {
+			conf = i;
+			break;
+		}
+	}
+
+	if (conf == -1) {
+		fprintf(stderr, "Unknown cloud service provider name: %s\n", argv[1]);
+		exit(EXIT_FAILURE);
+	}
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
@@ -112,7 +183,7 @@ int main(void) {
 	struct sockaddr_in server;
 	memset(&server, 0, sizeof(struct sockaddr_in));
 	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = inet_addr(AWS_IP);
+	server.sin_addr.s_addr = inet_addr(config[conf].ip);
 	server.sin_port = htons(80);
 
 	struct timespec ts;
@@ -135,7 +206,11 @@ int main(void) {
 	}
 
 	/* First, request the OpenSSH pubkey */
-	char *request = AWS_REQUEST_SSHKEY;
+	if (asprintf(&request, "GET %s HTTP/1.0\r\nhost: %s\r\nConnection: keep-alive\r\n\r\n",
+			config[conf].request_sshkey_path, config[conf].ip) < 0) {
+		FAIL("asprintf");
+	}
+
 	size_t len = strlen(request);
 
 	if (write(sockfd, request, len) < (ssize_t)len) {
@@ -159,17 +234,19 @@ int main(void) {
 	close(sockfd);
 
 	int out;
-	(void) mkdir(AWS_USER_DATA_PATH, 0);
-	(void) unlink(AWS_USER_DATA_PATH "/" AWS_USER_DATA);
-	out = open(AWS_USER_DATA_PATH "/" AWS_USER_DATA, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+	(void) mkdir(USER_DATA_PATH, 0);
+	if (asprintf(&outpath, "%s/%s-user-data", USER_DATA_PATH, config[conf].name) < 0) {
+		FAIL("asprintf()");
+	}
+	(void) unlink(outpath);
+	out = open(outpath, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 	if (out < 0) {
 		FAIL("open()");
 	}
 
 	/* Insert cloud-config header above SSH key. */
-	char *header = CLOUD_CONFIG_SSH_HEADER;
-	len = strlen(header);
-	write(out, header, len);
+	len = strlen(config[conf].cloud_config_header);
+	write(out, config[conf].cloud_config_header, len);
 
 	for (;;) {
 		if (cl == 0) {
@@ -185,7 +262,7 @@ int main(void) {
 		if (write(out, buf, len) < (ssize_t)len) {
 			close(out);
 			fclose(f);
-			unlink(AWS_USER_DATA_PATH "/" AWS_USER_DATA);
+			unlink(outpath);
 			FAIL("write()");
 		}
 	}
@@ -212,7 +289,13 @@ int main(void) {
 	}
 
 	/* next, get user-data */
-	char *request2 = AWS_REQUEST_USERDATA;
+	if (!config[conf].request_userdata_path)
+		goto finish;
+
+	if (asprintf(&request2, "GET %s HTTP/1.0\r\nhost: %s \r\nConnection: keep-alive\r\n\r\n",
+			config[conf].request_userdata_path, config[conf].ip) < 0) {
+		FAIL("asprintf");
+	}
 	len = strlen(request2);
 
 	if (write(sockfd, request2, len) < (ssize_t)len) {
@@ -243,7 +326,7 @@ int main(void) {
 			if (write(out, buf, len) < (ssize_t)len) {
 				close(out);
 				fclose(f);
-				unlink(AWS_USER_DATA_PATH "/" AWS_USER_DATA);
+				unlink(outpath);
 				FAIL("write()");
 			}
 		}
@@ -253,7 +336,8 @@ int main(void) {
 	close(out);
 	fclose(f);
 
-	(void) execl(BINDIR "/ucd", BINDIR "/ucd", "-u",
-			AWS_USER_DATA_PATH "/" AWS_USER_DATA, (char *)NULL);
+finish:
+
+	(void) execl(BINDIR "/ucd", BINDIR "/ucd", "-u", outpath, (char *)NULL);
 	FAIL("exec()");
 }

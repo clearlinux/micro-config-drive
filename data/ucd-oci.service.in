@@ -6,7 +6,7 @@ ConditionPathExists=!/var/lib/cloud/oci-user-data
 
 [Service]
 Type=oneshot
-ExecStart=@prefix@/bin/ucd-oci
+ExecStart=@prefix@/bin/ucd-data-fetch oci
 RemainAfterExit=yes
 TimeoutSec=0
 

@@ -31,8 +31,7 @@ dist_man_MANS = \
 
 bin_PROGRAMS = \
 	ucd \
-	ucd-aws \
-	ucd-oci
+	ucd-data-fetch
 
 ucd_SOURCES = \
 	src/ccmodules.h \
@@ -69,11 +68,8 @@ ucd_SOURCES = \
 	src/async_task.c \
 	src/async_task.h
 
-ucd_aws_SOURCES = \
-	src/ucd-aws.c
-
-ucd_oci_SOURCES = \
-	src/ucd-oci.c
+ucd_data_fetch_SOURCES = \
+	src/ucd-data-fetch.c
 
 if ENABLE_WERROR
 AM_CFLAGS += -Werror
@@ -86,13 +82,14 @@ endif
 ucd_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS) $(YAML_CFLAGS) $(JSON_GLIB_CFLAGS) $(PARTED_CFLAGS) $(BLKID_CFLAGS)
 ucd_LDADD = $(GLIB_LIBS) $(YAML_LIBS) $(JSON_GLIB_LIBS) $(PARTED_LIBS) $(BLKID_LIBS)
 
-ucd_aws_CFLAGS = $(AM_CFLAGS)
-
-ucd_oci_CFLAGS = $(AM_CFLAGS)
+ucd_data_fetch_CFLAGS = $(AM_CFLAGS)
 
 SYSTEMD_DIR=$(prefix)/lib/systemd/system/
 systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
-systemdsystemunit_DATA = data/ucd.service data/ucd-aws.service data/ucd-oci.service
+systemdsystemunit_DATA = data/ucd.service \
+	data/ucd-aws.service \
+	data/ucd-oci.service \
+	data/ucd-tencent.service
 
 systemdsystemunit-install-local:
 	mkdir -p $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/

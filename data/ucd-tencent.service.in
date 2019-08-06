@@ -1,12 +1,12 @@
 [Unit]
-Description=micro-config-drive job for AWS
+Description=micro-config-drive job for TENCENT
 After=network.target systemd-networkd.service
 Wants=local-fs.target sshd.service sshd-keygen.service
-ConditionPathExists=!/var/lib/cloud/aws-user-data
+ConditionPathExists=!/var/lib/cloud/tencent-user-data
 
 [Service]
 Type=oneshot
-ExecStart=@prefix@/bin/ucd-data-fetch aws
+ExecStart=@prefix@/bin/ucd-data-fetch tencent
 RemainAfterExit=yes
 TimeoutSec=0
 
