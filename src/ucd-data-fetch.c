@@ -130,7 +130,8 @@ static int parse_headers(FILE *f, long int *cl)
 			if (errno == EINVAL || errno == ERANGE) {
 				return 0;
 			}
-		} else if (strncmp(buf, "HTTP/1.0", 8) == 0) {
+		} else if ((strncmp(buf, "HTTP/1.0", 8) == 0) ||
+			   (strncmp(buf, "HTTP/1.1", 8) == 0)) {
 			long int status = strtol(&buf[8], NULL, 10);
 			if (errno == EINVAL || errno == ERANGE) {
 				return 0;
@@ -206,7 +207,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* First, request the OpenSSH pubkey */
-	if (asprintf(&request, "GET %s HTTP/1.0\r\nhost: %s\r\nConnection: keep-alive\r\n\r\n",
+	if (asprintf(&request, "GET %s HTTP/1.1\r\nhost: %s\r\nConnection: keep-alive\r\n\r\n",
 			config[conf].request_sshkey_path, config[conf].ip) < 0) {
 		FAIL("asprintf");
 	}
@@ -292,7 +293,7 @@ int main(int argc, char *argv[]) {
 	if (!config[conf].request_userdata_path)
 		goto finish;
 
-	if (asprintf(&request2, "GET %s HTTP/1.0\r\nhost: %s \r\nConnection: keep-alive\r\n\r\n",
+	if (asprintf(&request2, "GET %s HTTP/1.1\r\nhost: %s \r\nConnection: keep-alive\r\n\r\n",
 			config[conf].request_userdata_path, config[conf].ip) < 0) {
 		FAIL("asprintf");
 	}
