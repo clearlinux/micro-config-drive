@@ -16,8 +16,7 @@ EXTRA_DIST = \
 	COPYING \
 	data/ucd.service.in \
 	docs/ucd.1.md \
-	docs/ucd-aws.1.md \
-	docs/ucd-oci.1.md \
+	docs/ucd-data-fetch.1.md \
 	docs/cloud-config.5.md
 
 DISTCHECK_CONFIGURE_FLAGS =  \
@@ -25,8 +24,7 @@ DISTCHECK_CONFIGURE_FLAGS =  \
 
 dist_man_MANS = \
 	docs/ucd.1 \
-	docs/ucd-aws.1 \
-	docs/ucd-oci.1 \
+	docs/ucd-data-fetch.1 \
 	docs/cloud-config.5
 
 bin_PROGRAMS = \
@@ -104,10 +102,8 @@ uninstall-local: systemdsystemunit-uninstall-local
 
 docs/ucd.1: docs/ucd.1.md
 	ronn -r --pipe < docs/ucd.1.md > docs/ucd.1
-docs/ucd-aws.1: docs/ucd-aws.1.md
-	ronn -r --pipe < docs/ucd-aws.1.md > docs/ucd-aws.1
-docs/ucd-oci.1: docs/ucd-oci.1.md
-	ronn -r --pipe < docs/ucd-oci.1.md > docs/ucd-oci.1
+docs/ucd-data-fetch.1: docs/ucd-data-fetch.1.md
+	ronn -r --pipe < docs/ucd-data-fetch.1.md > docs/ucd-data-fetch.1
 docs/cloud-config.5: docs/cloud-config.5.md
 	ronn -r --pipe < docs/cloud-config.5.md > docs/cloud-config.5
-docs: docs/ucd.1 docs/ucd-aws.1 docs/ucd-oci.1 docs/cloud-config.5
+docs: docs/ucd.1 docs/ucd-data-fetch.1 docs/cloud-config.5
