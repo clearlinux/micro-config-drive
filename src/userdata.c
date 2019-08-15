@@ -55,7 +55,10 @@ gboolean userdata_process_file(const gchar* filename) {
 	}
 
 	LOG(MOD "Looking for shebang file %s\n", filename);
-	fgets(shebang, LINE_MAX, userdata_file);
+	if (!fgets(shebang, LINE_MAX, userdata_file)) {
+		LOG(MOD "Empty userdata file or read error '%s'\n", filename);
+		return false;
+	}
 
 	if (fclose(userdata_file) == EOF) {
 		LOG(MOD "Cannot close file '%s'\n", filename);
