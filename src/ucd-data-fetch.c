@@ -247,7 +247,9 @@ int main(int argc, char *argv[]) {
 
 	/* Insert cloud-config header above SSH key. */
 	len = strlen(config[conf].cloud_config_header);
-	write(out, config[conf].cloud_config_header, len);
+	if (write(out, config[conf].cloud_config_header, len) < (ssize_t)len) {
+		FAIL("write()");
+	}
 
 	for (;;) {
 		if (cl == 0) {
