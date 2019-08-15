@@ -108,7 +108,10 @@ static void write_files_item(GNode* node, __unused__ gpointer data) {
 		return;
 	}
 
-	write(fd, content->data, strlen(content->data));
+	if (write(fd, content->data, strlen(content->data)) < (ssize_t)strlen(content->data)) {
+		LOG(MOD "Unable to write %lu bytes.\n", strlen(content->data));
+		return;
+	}
 
 	if (permissions) {
 		if (cloud_config_int_base(permissions, (int *)&mode, 8)) {
