@@ -255,11 +255,11 @@ int main(int argc, char *argv[]) {
 		}
 		char buf[512];
 		char *r = fgets(buf, sizeof(buf), f);
-		size_t len = strlen(buf);
-		cl -= (long int)len;
-		if (r == 0) {
+		if (r == NULL) {
 			break;
 		}
+		size_t len = strlen(buf);
+		cl -= (long int)len;
 		if (write(out, buf, len) < (ssize_t)len) {
 			close(out);
 			fclose(f);
