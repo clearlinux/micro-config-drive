@@ -113,7 +113,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
  * - 1: parsed headers OK in full, ready to read content.
  * - 2: non-200 exit status, but no error in conversation.
  */
-static int parse_headers(FILE *f, long int *cl)
+static int parse_headers(FILE *f, size_t *cl)
 {
 	for (;;) {
 		char buf[512];
@@ -126,7 +126,7 @@ static int parse_headers(FILE *f, long int *cl)
 			break;
 		} else if (strncmp(buf, "Content-Length:", 15) == 0) {
 			/* content length */
-			*cl = strtol(&buf[16], NULL, 10);
+			*cl = (size_t)strtol(&buf[16], NULL, 10);
 			if (errno == EINVAL || errno == ERANGE) {
 				return 0;
 			}
@@ -143,6 +143,37 @@ static int parse_headers(FILE *f, long int *cl)
 		}
 	}
 	return 1;
+}
+
+/**
+ * write_lines() - write remaining data from stream f into out, while minding cl length
+ * - returns 0 on success, 1 on failure
+ * - after this call, the calue of `cl` outside the function is invalid.
+ */
+static int write_lines(int out, FILE *f, size_t cl)
+{
+	for (;;) {
+		if (cl == 0) {
+			return 0;
+		}
+
+		size_t len;
+		char buf[512] = {0};
+
+		len = (cl > sizeof(buf)) ? sizeof(buf) : cl;
+
+		size_t r = fread(buf, 1, len, f);
+		if (ferror(f)) {
+			return 1;
+		} else if (r == 0) {
+			return 0;
+		}
+
+		cl -= r;
+		if (write(out, buf, r) < (ssize_t)r) {
+			return 1;
+		}
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -225,7 +256,7 @@ int main(int argc, char *argv[]) {
 		FAIL("fdopen()");
 	}
 
-	long int cl;
+	size_t cl;
 	int result = parse_headers(f, &cl);
 	if (result != 1) {
 		close(sockfd);
@@ -251,23 +282,11 @@ int main(int argc, char *argv[]) {
 		FAIL("write()");
 	}
 
-	for (;;) {
-		if (cl == 0) {
-			break;
-		}
-		char buf[512];
-		char *r = fgets(buf, sizeof(buf), f);
-		if (r == NULL) {
-			break;
-		}
-		size_t len = strlen(buf);
-		cl -= (long int)len;
-		if (write(out, buf, len) < (ssize_t)len) {
-			close(out);
-			fclose(f);
-			unlink(outpath);
-			FAIL("write()");
-		}
+	if (!write_lines(out, f, cl)) {
+		close(out);
+		fclose(f);
+		unlink(outpath);
+		FAIL("write_lines()");
 	}
 
 	/* reopen socket */
@@ -314,25 +333,17 @@ int main(int argc, char *argv[]) {
 
 	/* parse/discard the header and body */
 	result = parse_headers(f, &cl);
-	if (result == 0) {
+	if (result != 1) {
 		fclose(f);
 		close(out);
 		FAIL("parse_headers()");
-	} else if (result == 1) {
-		for (;;) {
-			char buf[512];
-			char *r = fgets(buf, sizeof(buf), f);
-			size_t len = strlen(buf);
-			if (r == 0) {
-				break;
-			}
-			if (write(out, buf, len) < (ssize_t)len) {
-				close(out);
-				fclose(f);
-				unlink(outpath);
-				FAIL("write()");
-			}
-		}
+	}
+
+	if (!write_lines(out, f, cl)) {
+		close(out);
+		fclose(f);
+		unlink(outpath);
+		FAIL("write_lines()");
 	}
 
 	/* cleanup */
