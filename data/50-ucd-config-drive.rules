@@ -1,0 +1,7 @@
+KERNEL!="sr[0-9]", GOTO="no_config_drive_end"
+# Import FS info udev
+IMPORT{program}="/sbin/blkid -o udev -p %N"
+ACTION!="add", GOTO="no_config_drive_end"
+SUBSYSTEM=="block", ENV{ID_FS_TYPE}=="iso9660|udf|vfat", ENV{ID_FS_LABEL}=="config-2|CONFIG-2", RUN+="/usr/bin/ucd --user-data-once"
+# Exit
+LABEL="no_config_drive_end"
