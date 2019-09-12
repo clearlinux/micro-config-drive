@@ -282,7 +282,7 @@ int main(int argc, char *argv[]) {
 		FAIL("write()");
 	}
 
-	if (!write_lines(out, f, cl)) {
+	if (write_lines(out, f, cl) != 0) {
 		close(out);
 		fclose(f);
 		unlink(outpath);
@@ -339,7 +339,7 @@ int main(int argc, char *argv[]) {
 		FAIL("parse_headers()");
 	}
 
-	if (!write_lines(out, f, cl)) {
+	if (write_lines(out, f, cl) != 0) {
 		close(out);
 		fclose(f);
 		unlink(outpath);
