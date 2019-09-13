@@ -97,7 +97,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"users:\n" \
 		"  - name: tencent\n" \
 		"    groups: wheelnopw\n" \
-		"ssh-authorized-keys:\n" \
+		"ssh_authorized_keys:\n" \
 		"  - "
 	}
 };
