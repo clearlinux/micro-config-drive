@@ -73,7 +73,11 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"/latest/meta-data/public-keys/0/openssh-key",
 		"/latest/user-data",
 		"#cloud-config\n" \
-		"ssh_authorized_keys:\n  - "
+		"users:\n" \
+		"  - name: clear\n" \
+		"    groups: wheelnopw\n" \
+		"ssh-authorized-keys:\n" \
+		"  - "
 	},
 	{
 		"oci",
