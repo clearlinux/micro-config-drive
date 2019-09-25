@@ -65,7 +65,7 @@ struct cloud_struct {
 	char *cloud_config_header;
 };
 
-#define MAX_CONFIGS 3
+#define MAX_CONFIGS 4
 static struct cloud_struct config[MAX_CONFIGS] = {
 	{
 		"aws",
@@ -100,6 +100,18 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"#cloud-config\n" \
 		"users:\n" \
 		"  - name: tencent\n" \
+		"    groups: wheelnopw\n" \
+		"ssh_authorized_keys:\n" \
+		"  - "
+	},
+	{
+		"aliyun",
+		"100.100.100.200",
+		"/latest/meta-data/public-keys/0/openssh-key",
+		NULL,
+		"#cloud-config\n" \
+		"users:\n" \
+		"  - name: aliyun\n" \
 		"    groups: wheelnopw\n" \
 		"ssh_authorized_keys:\n" \
 		"  - "
