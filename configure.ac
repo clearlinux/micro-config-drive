@@ -10,7 +10,8 @@ AC_CONFIG_FILES([Makefile
 		data/ucd.service
 		data/ucd-aws.service
 		data/ucd-oci.service
-		data/ucd-tencent.service])
+		data/ucd-tencent.service
+		data/ucd-aliyun.service])
 AC_CONFIG_HEADERS([config.h])
 
 LT_INIT

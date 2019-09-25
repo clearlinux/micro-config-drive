@@ -87,7 +87,8 @@ systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
 systemdsystemunit_DATA = data/ucd.service \
 	data/ucd-aws.service \
 	data/ucd-oci.service \
-	data/ucd-tencent.service
+	data/ucd-tencent.service \
+	data/ucd-aliyun.service
 
 systemdsystemunit-install-local:
 	mkdir -p $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/
