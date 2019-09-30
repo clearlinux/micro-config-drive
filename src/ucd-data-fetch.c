@@ -337,13 +337,15 @@ int main(int argc, char *argv[]) {
 
 	/* parse/discard the header and body */
 	result = parse_headers(f, &cl);
-	if (result != 1) {
+	if (result == 0) {
+		/* error - exit */
 		fclose(f);
 		close(out);
 		FAIL("parse_headers()");
 	}
 
-	if (write_lines(out, f, cl) != 0) {
+	/* don't write part #2 if 404 or some non-error */
+	if ((result != 2) && (write_lines(out, f, cl) != 0)) {
 		close(out);
 		fclose(f);
 		unlink(outpath);
