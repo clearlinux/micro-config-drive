@@ -1,15 +1,16 @@
 
-A config-drive handler.
+## A config-drive handler.
 
-====
 
-Contents:
+### Contents:
 
-1) Description of this project
-2) Compiling, prerequisites
-3) Bugs and feedback?
+  - Description of this project
+  - Compiling, prerequisites
+  - Security considerations
+  - Bugs and feedback?
 
-====
+
+## Description
 
 Micro-config-drive ("ucd" for short) provides a subset of functionality
 that is provided by cloud-init implementations. Specifically,
@@ -68,28 +69,52 @@ has brought the size of this implementation down to under 1mb. Even
 considering used libraries, the resulting binary is small.
 
 
-====
-
-2. Compiling
+## Compiling
 
 Currently, ucd requires the following prerequisites:
-- glib-2.0 >= 2.24.1
-- yaml-0.1 >= 0.1.4
-- libparted >= 3.1
-- blkid >= 2.25.0
-- json-glib-1.0
+- `glib-2.0 >= 2.24.1`
+- `yaml-0.1 >= 0.1.4`
+- `libparted >= 3.1`
+- `blkid >= 2.25.0`
+- `json-glib-1.0`
 
 As ucd is tooled with autotools, one shouldn't have to do
 more than:
 
+```
 $ sh autogen.sh
 $ make
 $ sudo make install
+```
 
 
-====
+## Security considerations
 
-3. Bugs, feedback, contact
+`micro-config-drive` and `user-data-fetch` should never be deployed
+on existing, or provisioned, installations. Doing so may expose your
+system to an attacker on a local network.
+
+If deploying on a public could infrastructure, you should assure that
+routing to your instance is limited to trusted infrastructure nodes.
+
+Most cloud service providers use LL addresses to serve cloud configs.
+If your CSP does not, you should verify that your use of non-LL
+addresses for cloud config service data is secure and does not expose
+your systems to unnecesary risk.
+
+When running this project in a CSP environment, you should assure
+you are enabling the correct cloud service type. Do not under any
+circumstance enable several service types, this may further expose
+your instances to risk.
+
+`micro-config-drive` is not immune to `man-in-the-middle` (MITM)
+attacks, since it relies on unencryted HTTP services. This means a
+local attacker may manipulate the received cloud service data. This
+is a fundamental issue with `cloud-config` as it currently is offered
+by CSP's, and not an implementation bug.
+
+
+## Bugs, feedback, contact
 
 ucd is hosted on github. You can find releases, an issue tracker
 and git sources on github.com/clearlinux/micro-config-drive. For
