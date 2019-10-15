@@ -12,7 +12,7 @@ AM_CFLAGS = \
         -Wall -W -std=gnu99 -DBINDIR=\"$(bindir)\"
 
 EXTRA_DIST = \
-	README.md
+	README.md \
 	LICENSE \
 	COPYING \
 	data/ucd.service.in \
