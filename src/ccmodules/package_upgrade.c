@@ -41,6 +41,8 @@
 #include "cloud_config.h"
 #include "lib.h"
 
+extern void wait_for_network(void);
+
 #define MOD "package_upgrade: "
 
 void package_upgrade_handler(GNode *node) {
@@ -57,6 +59,7 @@ void package_upgrade_handler(GNode *node) {
 	}
 	if (do_upgrade) {
 		LOG(MOD "Performing system software update.\n");
+		wait_for_network();
 #if defined(PACKAGE_MANAGER_SWUPD)
 		exec_task("/usr/bin/swupd update");
 #elif defined(PACKAGE_MANAGER_YUM)

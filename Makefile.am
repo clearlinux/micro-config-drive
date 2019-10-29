@@ -45,6 +45,7 @@ ucd_SOURCES = \
 	src/ccmodules/runcmd.c \
 	src/ccmodules/envar.c \
 	src/ccmodules/fbootcmd.c \
+	src/ccmodules/wait-for-network.c \
 	src/datasources.h \
 	src/datasources/openstack.c \
 	src/datasources/openstack.h \

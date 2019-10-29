@@ -159,6 +159,12 @@ else
 	AC_MSG_ERROR([Please provide a valid package manager (swupd, yum, dnf, tdnf, or apt).])
 fi
 
+AC_ARG_WITH([dnstestaddr],[AC_HELP_STRING([--with-dnstestaddr=hostname],
+	[Default DNS test host name (0.clearlinux.pool.ntp.org)])], [dnstestaddr=${withval}],
+	[dnstestaddr=0.clearlinux.pool.ntp.org])
+AC_SUBST([DNSTESTADDR], ["$dnstestaddr"], [Default DNS test host name])
+AC_DEFINE_UNQUOTED([DNSTESTADDR], ["$DNSTESTADDR"], [Default DNS test host name])
+
 # Checks for library functions.
 
 AC_OUTPUT

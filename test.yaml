@@ -1,6 +1,8 @@
 #cloud-config
 package_upgrade: true
 package_upgrade: false
+wait_for_network: false
+wait_for_network: true
 apt_upgrade: false
 write_files:
   -

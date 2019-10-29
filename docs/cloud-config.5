@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "CLOUD\-CONFIG" "5" "November 2018" "" ""
+.TH "CLOUD\-CONFIG" "5" "October 2019" "" ""
 .
 .SH "NAME"
 \fBcloud\-config\fR \- User data format used by \fBucd(1)\fR
@@ -47,6 +47,7 @@ write_files         |Write content to arbitrary files     |yes  |yes
 hostname            |Define the system\'s hostname         |yes  |yes
 envar               |Set environment variables            |no   |no
 bootcmd             |Execute system commands on first boot|no   |no
+wait_for_network    |Halt execution until network is up   |no   |no
 .
 .fi
 .
@@ -100,6 +101,9 @@ Option    |Type     |Required    |Function
 .
 .fi
 .
+.P
+This option implies the \fBwait_for_network\fR option\.
+.
 .SS "packages"
 .
 .nf
@@ -109,6 +113,9 @@ Option    |Type     |Required    |Function
 name      |string[] |no          |Enables installation of software bundles
 .
 .fi
+.
+.P
+This option implies the \fBwait_for_network\fR option\.
 .
 .SS "runcmd"
 .
@@ -213,7 +220,7 @@ permissions|octal   |no          |Octal value describing the file permissions
 .
 .fi
 .
-.SH "envar"
+.SS "envar"
 .
 .nf
 
@@ -233,6 +240,19 @@ Option    |Type     |Required    |Function
 *         |string[] |no          |Similar to runcmd but bootcmd will run only on first boot
 .
 .fi
+.
+.SS "wait_for_network"
+.
+.nf
+
+Option    |Type     |Required    |Function
+\-\-\-\-\-\-\-\-\-\-|\-\-\-\-\-\-\-\-\-|\-\-\-\-\-\-\-\-\-\-\-\-|\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+*         |boolean  |no          |Enable to force waiting for a functional network\.
+.
+.fi
+.
+.P
+This option makes the program wait until an active network is detected\. To prevent waiting, ensure that this option is disabled explicitly disabled, before other options are used\. This may be needed when using the \fBpackages\fR or \fBpackage_upgrade\fR options, which imply that this option is used\.
 .
 .SH "COPYRIGHT"
 .

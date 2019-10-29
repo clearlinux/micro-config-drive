@@ -31,7 +31,8 @@ libtest_la_SOURCES = \
 	../src/ccmodules/ssh_authorized_keys.c \
 	../src/ccmodules/users.c \
 	../src/ccmodules/write_files.c \
-	../src/ccmodules/fbootcmd.c
+	../src/ccmodules/fbootcmd.c \
+	../src/ccmodules/wait-for-network.c
 
 if DEBUG
 libtest_la_SOURCES += ../src/debug.c

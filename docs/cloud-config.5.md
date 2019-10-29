@@ -54,6 +54,7 @@ write_files         |Write content to arbitrary files     |yes  |yes
 hostname            |Define the system's hostname         |yes  |yes
 envar               |Set environment variables            |no   |no
 bootcmd             |Execute system commands on first boot|no   |no
+wait_for_network    |Halt execution until network is up   |no   |no
 ```
 
 ## OPTIONS
@@ -100,6 +101,9 @@ Option    |Type     |Required    |Function
           |         |            |update is performed
 ```
 
+This option implies the `wait_for_network` option.
+
+
 ### packages
 
 ```
@@ -107,6 +111,8 @@ Option    |Type     |Required    |Function
 ----------|---------|------------|-----------------------------------
 name      |string[] |no          |Enables installation of software bundles
 ```
+
+This option implies the `wait_for_network` option.
 
 ### runcmd
 
@@ -199,7 +205,7 @@ permissions|octal   |no          |Octal value describing the file permissions
           |         |            |`umask`
 ```
 
-## envar
+### envar
 
 ```
 Option    |Type     |Required    |Function
@@ -215,6 +221,20 @@ Option    |Type     |Required    |Function
 ----------|---------|------------|-----------------------------------
 *         |string[] |no          |Similar to runcmd but bootcmd will run only on first boot
 ```
+
+### wait_for_network
+
+```
+Option    |Type     |Required    |Function
+----------|---------|------------|-----------------------------------
+*         |boolean  |no          |Enable to force waiting for a functional network.
+```
+
+This option makes the program wait until an active network is detected.
+To prevent waiting, ensure that this option is disabled explicitly
+disabled, before other options are used.  This may be needed when
+using the `packages` or `package_upgrade` options, which imply that
+this option is used.
 
 ## COPYRIGHT
 

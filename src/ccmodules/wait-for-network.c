@@ -1,5 +1,5 @@
 /***
- Copyright © 2015 Intel Corporation
+ Copyright © 2019 Intel Corporation
 
  Author: Auke-jan H. Kok <auke-jan.h.kok@intel.com>
 
@@ -34,6 +34,8 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <netdb.h>
+#include <unistd.h>
 
 #include <glib.h>
 
@@ -41,42 +43,65 @@
 #include "cloud_config.h"
 #include "lib.h"
 
-extern void wait_for_network(void);
+#define MOD "package_upgrade: "
 
-#define MOD "packages: "
-#define COMMAND_SIZE 256
+static int do_network_wait = -1;
+// -1: default: unset
+//  0: don't wait
+//  1: wait
+//  2: wait already happened
 
-static gboolean packages_item(GNode* node, __unused__ gpointer data) {
-	gchar command[COMMAND_SIZE];
-	g_snprintf(command, COMMAND_SIZE,
-#if defined(PACKAGE_MANAGER_SWUPD)
-		"/usr/bin/swupd bundle-add %s",
-#elif defined(PACKAGE_MANAGER_YUM)
-		"/usr/bin/yum --assumeyes install %s",
-#elif defined(PACKAGE_MANAGER_DNF)
-		"/usr/bin/dnf install %s",
-#elif defined(PACKAGE_MANAGER_APT)
-		"/usr/bin/apt-get install %s",
-#elif defined(PACKAGE_MANAGER_TDNF)
-		"/usr/bin/tdnf --assumeyes install %s",
-#endif
-		(char*)node->data);
-	wait_for_network();
-	LOG(MOD "Installing %s..\n", (char*)node->data);
-	exec_task(command);
-	return false;
+void wait_for_network(void) {
+	if (do_network_wait == 1) {
+		struct hostent *he = NULL;
+		useconds_t slept = 0;
+		useconds_t times = 0;
+
+		// don't re-enter
+		do_network_wait = 2;
+
+		memset(he, 0, sizeof(struct hostent));
+		LOG(MOD "Waiting for an active network connection.\n");
+		for (;;) {
+			he = gethostbyname(DNSTESTADDR);
+			if (he) {
+				LOG(MOD "Network appears active, waiting completed.\n");
+				break;
+			}
+			times = times < 10 ? times + 1 : times;
+			slept += times;
+			if (slept > 3000) {
+				LOG(MOD "Waited for network for 5 minutes, no answer - giving up.\n");
+				break;
+			}
+			usleep(times * 100000);
+		}
+	}
 }
 
-void packages_handler(GNode *node) {
-	LOG(MOD "Packages Handler running...\n");
-	/*
-	 * due to node possibly being a list of lists, just ignore all
-	 * non-leave nodes.
-	 */
-	g_node_traverse(node, G_IN_ORDER, G_TRAVERSE_LEAVES, -1, packages_item, NULL);
+void wait_for_network_handler(GNode *node) {
+	bool do_wait;
+
+	LOG(MOD "Wait System Software Update Handler running...\n");
+	GNode* val = g_node_first_child(node);
+	if (!val) {
+		LOG(MOD "Corrupt userdata!\n");
+		return;
+	}
+	if (!cloud_config_bool(val, &do_wait)) {
+		return;
+	}
+
+	if (do_wait) {
+		do_network_wait = 1;
+		wait_for_network();
+	} else {
+		do_network_wait = 0;
+		LOG(MOD "Disabling network wait.\n");
+	}
 }
 
-struct cc_module_handler_struct packages_cc_module = {
-	.name = "packages",
-	.handler = &packages_handler
+struct cc_module_handler_struct wait_for_network_cc_module = {
+	.name = "wait_for_network",
+	.handler = &wait_for_network_handler
 };

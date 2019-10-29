@@ -42,6 +42,8 @@
 
 #include "userdata.h"
 
+extern void wait_for_network(void);
+
 START_TEST(test_userdata_process_file)
 {
 	int fd_script;
