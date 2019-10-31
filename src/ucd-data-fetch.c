@@ -197,6 +197,7 @@ int main(int argc, char *argv[]) {
 	int sockfd;
 	char *request, *request2;
 	char *outpath;
+	int n = 0;
 
 	if (argc != 2) {
 		FAIL("No cloud service provider passed as arg1, unable to continue\n");
@@ -239,7 +240,6 @@ int main(int argc, char *argv[]) {
 	ts.tv_nsec = 50000000;
 
 	for (;;) {
-		int n = 0;
 		int r = connect(sockfd, (struct sockaddr *)&server, sizeof(server));
 		if (r == 0) {
 			break;
@@ -311,8 +311,8 @@ int main(int argc, char *argv[]) {
 		FAIL("socket()");
 	}
 
+	n = 0;
 	for (;;) {
-		int n = 0;
 		int r = connect(sockfd, (struct sockaddr *)&server, sizeof(server));
 		if (r == 0) {
 			break;
