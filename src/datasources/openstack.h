@@ -32,6 +32,8 @@
  files in the program, then also delete it here.
 ***/
 
+#pragma once
+
 #include <glib.h>
 
 gboolean openstack_process_metadata_file(const gchar* filename);
