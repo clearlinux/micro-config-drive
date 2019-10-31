@@ -52,7 +52,7 @@ static int do_network_wait = -1;
 //  2: wait already happened
 
 void wait_for_network(void) {
-	if (do_network_wait == 1) {
+	if ((do_network_wait == -1) || (do_network_wait == 1)) {
 		struct hostent *he = NULL;
 		useconds_t slept = 0;
 		useconds_t times = 0;
