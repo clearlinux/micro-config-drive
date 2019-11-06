@@ -9,6 +9,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: install dependencies
+      run: apt-get install libyaml-devel libglib2.0-devel json-glib-devel parted-devel util-linux-devel
     - name: autogen
       run: sh autogen.sh
     - name: make
