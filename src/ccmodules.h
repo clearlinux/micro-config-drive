@@ -50,6 +50,7 @@ extern struct cc_module_handler_struct hostname_cc_module;
 extern struct cc_module_handler_struct runcmd_cc_module;
 extern struct cc_module_handler_struct envar_cc_module;
 extern struct cc_module_handler_struct fbootcmd_cc_module;
+extern struct cc_module_handler_struct wait_for_network_cc_module;
 
 struct cc_module_handler_struct *cc_module_structs[] =  {
 	&package_upgrade_cc_module,
@@ -63,6 +64,7 @@ struct cc_module_handler_struct *cc_module_structs[] =  {
 	&runcmd_cc_module,
 	&envar_cc_module,
 	&fbootcmd_cc_module,
+	&wait_for_network_cc_module,
 	NULL
 };
 

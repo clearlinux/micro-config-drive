@@ -60,11 +60,10 @@ void wait_for_network(void) {
 		// don't re-enter
 		do_network_wait = 2;
 
-		memset(he, 0, sizeof(struct hostent));
 		LOG(MOD "Waiting for an active network connection.\n");
 		for (;;) {
 			he = gethostbyname(DNSTESTADDR);
-			if (he) {
+			if (he != NULL) {
 				LOG(MOD "Network appears active, waiting completed.\n");
 				break;
 			}
