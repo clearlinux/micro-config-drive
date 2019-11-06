@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: install dependencies
-      run: sudo apt-get install libyaml-devel libglib2.0-devel json-glib-devel parted-devel util-linux-devel
+      run: sudo apt-get install libyaml-dev libglib2.0-dev json-glib-dev parted-dev util-linux-dev
     - name: autogen
       run: sh autogen.sh
     - name: make
