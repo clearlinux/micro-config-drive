@@ -1,7 +1,6 @@
 [Unit]
 Description=micro-config-drive job
 After=local-fs.target
-Before=network.target systemd-networkd.service
 Wants=local-fs.target sshd.service sshd-keygen.service
 
 [Service]
