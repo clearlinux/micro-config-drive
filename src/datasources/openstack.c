@@ -136,11 +136,26 @@ bool openstack_init() {
 
 	data_source = SOURCE_NONE;
 
-	if (disk_by_label("config-2", &device)) {
-		data_source = SOURCE_CONFIG_DRIVE;
-		g_strlcpy(config_drive_disk, device, PATH_MAX);
-		g_free(device);
-		return true;
+	for (int tries = 0; tries < 8; tries++) {
+		if (disk_by_label("config-2", &device)) {
+			data_source = SOURCE_CONFIG_DRIVE;
+			g_strlcpy(config_drive_disk, device, PATH_MAX);
+			g_free(device);
+			return true;
+		}
+
+		/*
+		 * In case of a VM image with module for cdrom+sr_mod,
+		 * trigger modprobe to reveal config drive, once.
+		 */
+		if (tries == 0) {
+			system("/sbin/modprobe sr_mod");
+		}
+
+		usleep((1 << tries) * 4000);
+
+		if (tries > 8)
+			break;
 	}
 
 	LOG(MOD "config drive was not found\n");
