@@ -218,5 +218,3 @@ places on the internet that may be useful to the reader.
 This documentation is part of micro-config-drive, see https://github.
 com/clearlinux/micro-config-drive. For bugs, please e-mail
 dev@lists.clearlinux.org or visit the https://clearlinux.org/ website.
-dev@lists.clearlinux.org or visit the https://clearlinux.org/ website.
-dev@lists.clearlinux.org or visit the https://clearlinux.org/ website.
