@@ -11,8 +11,8 @@ check_PROGRAMS =
 check_LTLIBRARIES = libtest.la
 COMMON_CFLAGS = -std=gnu99 -I$(top_srcdir)/src -I$(top_srcdir)/src/ccmodules \
 	-I$(top_srcdir)/src/interpreters \
-	$(CHECK_FLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS) $(YAML_CFLAGS) $(BLKID_CFLAGS) $(PARTED_CFLAGS)
-COMMON_LDADD = $(CHECK_LIBS) $(GLIB_LIBS) $(CURL_LIBS) $(YAML_LIBS) $(BLKID_LIBS) $(PARTED_LIBS)
+	$(CHECK_FLAGS) $(GLIB_CFLAGS) $(YAML_CFLAGS) $(BLKID_CFLAGS) $(PARTED_CFLAGS)
+COMMON_LDADD = $(CHECK_LIBS) $(GLIB_LIBS) $(YAML_LIBS) $(BLKID_LIBS) $(PARTED_LIBS)
 
 libtest_la_SOURCES = \
 	../src/lib.c \
