@@ -299,26 +299,29 @@ int main(int argc, char *argv[]) {
 	size_t cl;
 	int result = parse_headers(f, &cl);
 	if (result != 1) {
-		close(sockfd);
+		fclose(f);
 		FAIL("parse_headers()");
 	}
-
-	close(sockfd);
 
 	int out;
 	(void) mkdir(USER_DATA_PATH, 0);
 	if (asprintf(&outpath, "%s/%s-user-data", USER_DATA_PATH, config[conf].name) < 0) {
+		fclose(f);
 		FAIL("asprintf()");
 	}
 	(void) unlink(outpath);
 	out = open(outpath, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 	if (out < 0) {
+		fclose(f);
 		FAIL("open()");
 	}
 
 	/* Insert cloud-config header above SSH key. */
 	len = strlen(config[conf].cloud_config_header);
 	if (write(out, config[conf].cloud_config_header, len) < (ssize_t)len) {
+		close(out);
+		fclose(f);
+		unlink(outpath);
 		FAIL("write()");
 	}
 
@@ -337,6 +340,7 @@ int main(int argc, char *argv[]) {
 		unlink(outpath);
 		FAIL("write()");
 	}
+	close(sockfd);
 
 	/* reopen socket */
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
