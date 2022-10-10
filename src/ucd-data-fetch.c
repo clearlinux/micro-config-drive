@@ -76,8 +76,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"users:\n" \
 		"  - name: clear\n" \
 		"    groups: wheelnopw\n" \
-		"ssh_authorized_keys:\n" \
-		"  - "
+		"ssh_authorized_keys:\n"
 	},
 	{
 		"oci",
@@ -89,8 +88,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"  - name: opc\n" \
 		"    groups: wheelnopw\n" \
 		"    gecos: Oracle Public Cloud User\n" \
-		"ssh_authorized_keys:\n" \
-		"  - "
+		"ssh_authorized_keys:\n"
 	},
 	{
 		"tencent",
@@ -101,8 +99,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"users:\n" \
 		"  - name: tencent\n" \
 		"    groups: wheelnopw\n" \
-		"ssh_authorized_keys:\n" \
-		"  - "
+		"ssh_authorized_keys:\n"
 	},
 	{
 		"aliyun",
@@ -113,8 +110,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"users:\n" \
 		"  - name: aliyun\n" \
 		"    groups: wheelnopw\n" \
-		"ssh_authorized_keys:\n" \
-		"  - "
+		"ssh_authorized_keys:\n"
 	}
 };
 
@@ -162,31 +158,36 @@ static int parse_headers(FILE *f, size_t *cl)
 }
 
 /**
- * write_lines() - write remaining data from stream f into out, while minding cl length
+ * write_lines() - write remaining lines from stream f into out, while minding cl length
+ * - if prefix != NULL, each line written is prefixed with the prefix.
  * - returns 0 on success, 1 on failure
- * - after this call, the calue of `cl` outside the function is invalid.
+ * - after this call, the value of `cl` outside the function is invalid.
  */
-static int write_lines(int out, FILE *f, size_t cl)
+static int write_lines(int out, FILE *f, size_t cl, const char *prefix)
 {
 	for (;;) {
 		if (cl == 0) {
 			return 0;
 		}
 
-		size_t len;
-		char buf[512] = {0};
+		char buf[2048] = {0};
 
-		len = (cl > sizeof(buf)) ? sizeof(buf) : cl;
-
-		size_t r = fread(buf, 1, len, f);
+		char *r = fgets(buf, sizeof(buf), f);
 		if (ferror(f)) {
 			return 1;
-		} else if (r == 0) {
+		} else if (!r) {
 			return 0;
 		}
 
-		cl -= r;
-		if (write(out, buf, r) < (ssize_t)r) {
+		size_t len = strlen(r);
+		cl -= len;
+
+		if (prefix) {
+			if (write(out, prefix, strlen(prefix)) < (ssize_t)strlen(prefix))
+				return 1;
+		}
+
+		if (write(out, buf, len) < (ssize_t)len) {
 			return 1;
 		}
 	}
@@ -298,11 +299,20 @@ int main(int argc, char *argv[]) {
 		FAIL("write()");
 	}
 
-	if (write_lines(out, f, cl) != 0) {
+	/* Write out SSH keys */
+	if (write_lines(out, f, cl, "  - ") != 0) {
 		close(out);
 		fclose(f);
 		unlink(outpath);
 		FAIL("write_lines()");
+	}
+
+	/* Write an extra linefeed in case this didn't end with one */
+	if (write(out, "\n", 1) < (ssize_t) 1) {
+		close(out);
+		fclose(f);
+		unlink(outpath);
+		FAIL("write()");
 	}
 
 	/* reopen socket */
@@ -357,7 +367,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* don't write part #2 if 404 or some non-error */
-	if ((result != 2) && (write_lines(out, f, cl) != 0)) {
+	if ((result != 2) && (write_lines(out, f, cl, NULL) != 0)) {
 		close(out);
 		fclose(f);
 		unlink(outpath);
