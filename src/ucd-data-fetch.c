@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -235,6 +236,18 @@ int main(int argc, char *argv[]) {
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = inet_addr(config[conf].ip);
 	server.sin_port = htons(80);
+
+	/* Do we need to look up a hostname? */
+	if ((int) server.sin_addr.s_addr == -1) {
+		struct hostent *hp = gethostbyname(config[conf].ip);
+		if (!hp || hp->h_length <= 0) {
+			FAIL("gethostbyname()");
+		}
+
+		/* Got it; use the resulting IP address */
+		server.sin_family = (short unsigned int) (hp->h_addrtype & 0xFFFF);
+		memcpy(&(server.sin_addr.s_addr), hp->h_addr, (size_t) hp->h_length);
+	}
 
 	struct timespec ts;
 	ts.tv_sec = 0;
