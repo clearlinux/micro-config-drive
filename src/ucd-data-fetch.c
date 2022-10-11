@@ -117,8 +117,9 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"equinix",
 		"metadata.platformequinix.com",
 		"/2009-04-04/meta-data/public-keys",
-		NULL,
+		"/userdata",
 		"#cloud-config\n" \
+		"users:\n" \
 		"  - name: clear\n" \
 		"    groups: wheelnopw\n" \
 		"ssh_authorized_keys:\n"
