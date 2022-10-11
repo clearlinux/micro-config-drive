@@ -61,6 +61,7 @@
 struct cloud_struct {
 	char *name;
 	char *ip;
+	uint16_t port;
 	char *request_sshkey_path;
 	char *request_userdata_path;
 	char *cloud_config_header;
@@ -71,6 +72,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 	{
 		"aws",
 		"169.254.169.254",
+		80,
 		"/latest/meta-data/public-keys/0/openssh-key",
 		"/latest/user-data",
 		"#cloud-config\n" \
@@ -82,6 +84,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 	{
 		"oci",
 		"169.254.169.254",
+		80,
 		"/opc/v1/instance/metadata/ssh_authorized_keys",
 		NULL,
 		"#cloud-config\n" \
@@ -94,6 +97,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 	{
 		"tencent",
 		"169.254.0.23",
+		80,
 		"/latest/meta-data/public-keys/0/openssh-key",
 		NULL,
 		"#cloud-config\n" \
@@ -105,6 +109,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 	{
 		"aliyun",
 		"100.100.100.200",
+		80,
 		"/latest/meta-data/public-keys/0/openssh-key",
 		NULL,
 		"#cloud-config\n" \
@@ -116,6 +121,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 	{
 		"equinix",
 		"metadata.platformequinix.com",
+		80,
 		"/2009-04-04/meta-data/public-keys",
 		"/userdata",
 		"#cloud-config\n" \
@@ -246,7 +252,7 @@ int main(int argc, char *argv[]) {
 	memset(&server, 0, sizeof(struct sockaddr_in));
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = inet_addr(config[conf].ip);
-	server.sin_port = htons(80);
+	server.sin_port = htons(config[conf].port);
 
 	/* Do we need to look up a hostname? */
 	if ((int) server.sin_addr.s_addr == -1) {
