@@ -1,0 +1,23 @@
+#!/bin/bash -x
+
+set -euo pipefail
+SCRIPT_PATH="$(dirname "$(readlink -f "${BASH_SOURCE}")")"
+
+# Launch a lightweight HTTP server and attempt to fetch cloud config from it
+# Uses the "test" template in ucd-fetch-data
+
+cd "${SCRIPT_PATH}/fetch_data"
+python -m http.server 8123 --bind 127.0.0.254 &
+HTTP_PID=$!
+trap "sleep 1; kill ${HTTP_PID}" EXIT
+cd "${SCRIPT_PATH}"
+
+sleep 2
+
+../ucd-data-fetch test
+
+# Compare what we got/generated with what we expect
+cmp -b fetch_data/expected test-user-data
+
+# Cleanup the test data file
+rm test-user-data

@@ -6,7 +6,10 @@ ACLOCAL_AMFLAGS = -I m4
 
 TESTS =
 
+EXTRA_DIST =
+
 check_PROGRAMS =
+check_SCRIPTS =
 
 check_LTLIBRARIES = libtest.la
 COMMON_CFLAGS = -std=gnu99 -I$(top_srcdir)/src -I$(top_srcdir)/src/ccmodules \
@@ -45,14 +48,18 @@ lib_test_SOURCES = lib_test.c
 lib_test_CFLAGS = $(COMMON_CFLAGS) $(AM_CFLAGS)
 lib_test_LDADD = libtest.la $(COMMON_LDADD)
 TESTS += lib_test
+check_PROGRAMS += lib_test
 
 userdata_test_SOURCES = userdata_test.c
 userdata_test_CFLAGS = $(COMMON_CFLAGS) $(AM_CFLAGS)
 userdata_test_LDADD = libtest.la $(COMMON_LDADD)
 TESTS += userdata_test
+check_PROGRAMS += userdata_test
 
-
-check_PROGRAMS += $(TESTS)
+# fetch_test is a shell script
+TESTS += fetch_test
+check_SCRIPTS += fetch_test
+EXTRA_DIST += fetch_test fetch_data
 
 CLEANFILES = *~ *.log
 
