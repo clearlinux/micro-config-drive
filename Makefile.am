@@ -16,6 +16,7 @@ EXTRA_DIST = \
 	LICENSE \
 	COPYING \
 	data/ucd.service.in \
+	data/ucd@.service.in \
 	docs/ucd.1.md \
 	docs/ucd-data-fetch.1.md \
 	docs/cloud-config.5.md
@@ -87,10 +88,7 @@ ucd_data_fetch_CFLAGS = $(AM_CFLAGS)
 SYSTEMD_DIR=$(prefix)/lib/systemd/system/
 systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
 systemdsystemunit_DATA = data/ucd.service \
-	data/ucd-aws.service \
-	data/ucd-oci.service \
-	data/ucd-tencent.service \
-	data/ucd-aliyun.service
+			 data/ucd@.service
 
 systemdsystemunit-install-local:
 	mkdir -p $(DESTDIR)$(systemdsystemunitdir)/multi-user.target.wants/
