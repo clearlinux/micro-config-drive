@@ -1,0 +1,8 @@
+#cloud-config
+
+users:
+  - name: test1
+    groups: group1
+  - name: test2
+    groups: group2
+

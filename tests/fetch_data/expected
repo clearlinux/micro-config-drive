@@ -1,0 +1,17 @@
+#cloud-config
+users:
+  - name: clear
+    groups: wheelnopw
+ssh_authorized_keys:
+  - SSH_TEST_KEY_STRING_1
+  - SSH_TEST_KEY_STRING_2
+  - SSH_TEST_KEY_STRING_3
+
+#cloud-config
+
+users:
+  - name: test1
+    groups: group1
+  - name: test2
+    groups: group2
+

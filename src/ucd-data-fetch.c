@@ -67,7 +67,7 @@ struct cloud_struct {
 	char *cloud_config_header;
 };
 
-#define MAX_CONFIGS 5
+#define MAX_CONFIGS 6
 static struct cloud_struct config[MAX_CONFIGS] = {
 	{
 		"aws",
@@ -124,6 +124,18 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		80,
 		"/2009-04-04/meta-data/public-keys",
 		"/userdata",
+		"#cloud-config\n" \
+		"users:\n" \
+		"  - name: clear\n" \
+		"    groups: wheelnopw\n" \
+		"ssh_authorized_keys:\n"
+	},
+	{
+		"test",
+		"127.0.0.254",
+		8123,
+		"/public-keys",
+		"/user-data",
 		"#cloud-config\n" \
 		"users:\n" \
 		"  - name: clear\n" \
@@ -316,6 +328,13 @@ int main(int argc, char *argv[]) {
 		fclose(f);
 		FAIL("asprintf()");
 	}
+	/* Special case for testing -- can't use/don't need privileged directory */
+	if (0 == strcmp(config[conf].name, "test")) {
+		if (asprintf(&outpath, "%s-user-data", config[conf].name) < 0) {
+			fclose(f);
+			FAIL("asprintf()");
+		}
+	}
 	(void) unlink(outpath);
 	out = open(outpath, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 	if (out < 0) {
@@ -414,6 +433,11 @@ int main(int argc, char *argv[]) {
 
 finish:
 
-	(void) execl(BINDIR "/ucd", BINDIR "/ucd", "-u", outpath, (char *)NULL);
-	FAIL("exec()");
+	/* Don't run ucd for the test template */
+	if (strcmp(config[conf].name, "test") != 0) {
+		(void) execl(BINDIR "/ucd", BINDIR "/ucd", "-u", outpath, (char *)NULL);
+		FAIL("exec()");
+	}
+
+	return 0;
 }
