@@ -266,21 +266,39 @@ int main(int argc, char *argv[]) {
 	server.sin_addr.s_addr = inet_addr(config[conf].ip);
 	server.sin_port = htons(config[conf].port);
 
-	/* Do we need to look up a hostname? */
-	if ((int) server.sin_addr.s_addr == -1) {
-		struct hostent *hp = gethostbyname(config[conf].ip);
-		if (!hp || hp->h_length <= 0) {
-			FAIL("gethostbyname()");
-		}
-
-		/* Got it; use the resulting IP address */
-		server.sin_family = (short unsigned int) (hp->h_addrtype & 0xFFFF);
-		memcpy(&(server.sin_addr.s_addr), hp->h_addr, (size_t) hp->h_length);
-	}
-
 	struct timespec ts;
 	ts.tv_sec = 0;
 	ts.tv_nsec = 50000000;
+
+	/* Do we need to look up a hostname? */
+	if ((int) server.sin_addr.s_addr == -1) {
+		n = 0;
+		for (;;) {
+			struct hostent *hp = gethostbyname(config[conf].ip);
+			if (hp != NULL) {
+				if (hp->h_length > 0) {
+					/* Got it; use the resulting IP address */
+					server.sin_family = (short unsigned int) (hp->h_addrtype & 0xFFFF);
+					memcpy(&(server.sin_addr.s_addr), hp->h_addr, (size_t) hp->h_length);
+					break;
+				}
+				else {
+					fprintf(stderr, "gethostbyname(): empty response");
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			if ((h_errno != TRY_AGAIN) && (h_errno != NO_RECOVERY)) {
+				herror("gethostbyname()");
+				exit(EXIT_FAILURE);
+			}
+			nanosleep(&ts, NULL);
+			if (++n > 2000) { /* 100 secs */
+				herror("gethostbyname()");
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
 
 	for (;;) {
 		int r = connect(sockfd, (struct sockaddr *)&server, sizeof(server));
@@ -291,7 +309,7 @@ int main(int argc, char *argv[]) {
 			FAIL("connect()");
 		}
 		nanosleep(&ts, NULL);
-		if (++n > 200) { /* 10 secs */
+		if (++n > 2400) { /* 120 secs - any used up in gethostbyname */
 			FAIL("timeout in connect()");
 		}
 	}
