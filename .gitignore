@@ -25,6 +25,7 @@ micro-config-drive-*/
 tests/Makefile
 tests/.libs/
 tests/*_test
+tests/test_user_data
 libtool
 ltmain.sh
 m4/
