@@ -233,7 +233,7 @@ static int write_lines(int out, FILE *f, size_t cl, const char *prefix)
 int main(int argc, char *argv[]) {
 	int conf = -1;
 	int sockfd;
-	char *request, *request2;
+	char *request, *request2, *request3;
 	char *outpath;
 	int n = 0;
 
@@ -414,17 +414,80 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	/* next, get user-data */
-	if (!config[conf].request_userdata_path)
-		goto finish;
+	/* next, get hostname */
+	if (!config[conf].request_hostname_path)
+		goto user_data;
 
 	if (asprintf(&request2, "GET %s HTTP/1.1\r\nhost: %s \r\nConnection: keep-alive\r\n\r\n",
-			config[conf].request_userdata_path, config[conf].ip) < 0) {
+				config[conf].request_hostname_path, config[conf].ip) < 0) {
 		FAIL("asprintf");
 	}
 	len = strlen(request2);
 
 	if (write(sockfd, request2, len) < (ssize_t)len) {
+		close(sockfd);
+		FAIL("write()");
+	}
+
+	f = fdopen(sockfd, "r");
+	if (!f) {
+		close(sockfd);
+		FAIL("fdopen()");
+	}
+
+	/* parse/discard the header and body */
+	result = parse_headers(f, &cl);
+	if (result == 0) {
+		/* error - exit */
+		fclose(f);
+		close(out);
+		FAIL("parse_headers()");
+	}
+
+	/* don't write part #2 if 404 or some non-error */
+	if ((result != 2) && (write_lines(out, f, cl, "hostname: ") != 0)) {
+		close(out);
+		fclose(f);
+		unlink(outpath);
+		FAIL("write_lines()");
+	}
+
+	/* cleanup */
+	fclose(f);
+
+	/* reopen socket */
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0) {
+		FAIL("socket()");
+	}
+
+	n = 0;
+	for (;;) {
+		int r = connect(sockfd, (struct sockaddr *)&server, sizeof(server));
+		if (r == 0) {
+			break;
+		}
+		if ((errno != EAGAIN) && (errno != ENETUNREACH) && (errno != ETIMEDOUT)) {
+			FAIL("connect()");
+		}
+		nanosleep(&ts, NULL);
+		if (++n > 200) { /* 10 secs */
+			FAIL("timeout in connect()");
+		}
+	}
+
+user_data:
+	/* next, get user-data */
+	if (!config[conf].request_userdata_path)
+		goto finish;
+
+	if (asprintf(&request3, "GET %s HTTP/1.1\r\nhost: %s \r\nConnection: keep-alive\r\n\r\n",
+			config[conf].request_userdata_path, config[conf].ip) < 0) {
+		FAIL("asprintf");
+	}
+	len = strlen(request3);
+
+	if (write(sockfd, request3, len) < (ssize_t)len) {
 		close(sockfd);
 		FAIL("write()");
 	}
