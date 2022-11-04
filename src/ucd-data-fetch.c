@@ -63,6 +63,7 @@ struct cloud_struct {
 	char *ip;
 	uint16_t port;
 	char *request_sshkey_path;
+	char *request_hostname_path;
 	char *request_userdata_path;
 	char *cloud_config_header;
 };
@@ -74,6 +75,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"169.254.169.254",
 		80,
 		"/latest/meta-data/public-keys/0/openssh-key",
+		"/latest/meta-data/hostname",
 		"/latest/user-data",
 		"#cloud-config\n" \
 		"users:\n" \
@@ -86,6 +88,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"169.254.169.254",
 		80,
 		"/opc/v1/instance/metadata/ssh_authorized_keys",
+		NULL,
 		NULL,
 		"#cloud-config\n" \
 		"users:\n" \
@@ -100,6 +103,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		80,
 		"/latest/meta-data/public-keys/0/openssh-key",
 		NULL,
+		NULL,
 		"#cloud-config\n" \
 		"users:\n" \
 		"  - name: tencent\n" \
@@ -112,6 +116,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		80,
 		"/latest/meta-data/public-keys/0/openssh-key",
 		NULL,
+		NULL,
 		"#cloud-config\n" \
 		"users:\n" \
 		"  - name: aliyun\n" \
@@ -123,6 +128,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"metadata.platformequinix.com",
 		80,
 		"/2009-04-04/meta-data/public-keys",
+		"/2009-04-04/meta-data/hostname",
 		"/userdata",
 		"#cloud-config\n" \
 		"users:\n" \
@@ -135,6 +141,7 @@ static struct cloud_struct config[MAX_CONFIGS] = {
 		"127.0.0.254",
 		8123,
 		"/public-keys",
+		"/hostname",
 		"/user-data",
 		"#cloud-config\n" \
 		"users:\n" \
