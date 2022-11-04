@@ -17,7 +17,7 @@ sleep 2
 ../ucd-data-fetch test
 
 # Compare what we got/generated with what we expect
-cmp -b fetch_data/expected test-user-data
+diff -y fetch_data/expected test-user-data
 
 # Cleanup the test data file
 rm test-user-data
