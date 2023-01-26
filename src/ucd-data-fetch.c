@@ -227,6 +227,13 @@ static int write_lines(int out, FILE *f, size_t cl, const char *prefix)
 		if (write(out, buf, len) < (ssize_t)len) {
 			return 1;
 		}
+
+		/* Make sure this line ends with a newline when we write it */
+		if (buf[len-1] != '\n') {
+			if (write(out, "\n", 1) < (ssize_t)1) {
+				return 1;
+			}
+		}
 	}
 }
 
@@ -384,13 +391,6 @@ int main(int argc, char *argv[]) {
 		FAIL("write_lines()");
 	}
 
-	/* Write an extra linefeed in case this didn't end with one */
-	if (write(out, "\n", 1) < (ssize_t) 1) {
-		close(out);
-		fclose(f);
-		unlink(outpath);
-		FAIL("write()");
-	}
 	close(sockfd);
 
 	/* reopen socket */
@@ -445,16 +445,11 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* don't write part #2 if 404 or some non-error */
-	if (result != 2) {
-	       if (write_lines(out, f, cl, "hostname: ") != 0) {
-		       close(out);
-		       fclose(f);
-		       unlink(outpath);
-		       FAIL("write_lines()");
-	       }
-
-	       /* Write an extra linefeed in case userdata hostname didn't end with one */
-	       write(out, "\n", 1);
+	if ((result != 2) && (write_lines(out, f, cl, "hostname: ") != 0)) {
+		close(out);
+		fclose(f);
+		unlink(outpath);
+		FAIL("write_lines()");
 	}
 
 	/* cleanup */
