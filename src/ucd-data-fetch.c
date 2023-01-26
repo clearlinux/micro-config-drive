@@ -445,11 +445,16 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* don't write part #2 if 404 or some non-error */
-	if ((result != 2) && (write_lines(out, f, cl, "hostname: ") != 0)) {
-		close(out);
-		fclose(f);
-		unlink(outpath);
-		FAIL("write_lines()");
+	if (result != 2) {
+	       if (write_lines(out, f, cl, "hostname: ") != 0) {
+		       close(out);
+		       fclose(f);
+		       unlink(outpath);
+		       FAIL("write_lines()");
+	       }
+
+	       /* Write an extra linefeed in case userdata hostname didn't end with one */
+	       write(out, "\n", 1);
 	}
 
 	/* cleanup */
