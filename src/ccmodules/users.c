@@ -74,6 +74,7 @@ static struct users_options_data users_options[] = {
 	{"ssh-authorized-keys", NULL,                       NULL        },
 	{"sudo",                NULL,                       NULL        },
 	{"system",              users_add_option_format,    " -r "      },
+	{"uid",                 users_add_option_format,    " -u '%s' " },
 	{NULL}
 };
 
