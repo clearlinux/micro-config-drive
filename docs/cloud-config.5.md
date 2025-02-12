@@ -185,6 +185,8 @@ ssh-authorized-keys|string[]|no  |Add SSH public keys to ssh configuration
 sudo      |string[] |no          |Add sudoers lines for this account, the account
           |         |            |name is automatically prepended
 system    |boolean  |no          |Make the account a system account
+uid       |string   |no          |User ID, when not given system will
+          |         |            |determine and use the next free one
 ```
 
 ### write_files
